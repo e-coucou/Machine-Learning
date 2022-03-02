@@ -1,3 +1,4 @@
 {
-    "notebook.output.textLineLimit": 1000
+    "notebook.output.textLineLimit": 1000,
+    "jupyter.jupyterServerType": "local"
 }
