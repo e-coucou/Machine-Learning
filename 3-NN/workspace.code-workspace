@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../Python-dev/rky001"
+		}
+	],
+	"settings": {
+		"notebook.output.textLineLimit": 1000,
+		"jupyter.jupyterServerType": "local"
+	}
+}
