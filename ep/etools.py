@@ -3,6 +3,7 @@ from sklearn.metrics import confusion_matrix
 import numpy as np
 import matplotlib.pyplot as plt
 import itertools
+from IPython.display import display,Image,Markdown,HTML
 
 # -------------------------------------------------------------
 # show_images
@@ -208,5 +209,70 @@ def plot_confusion_matrix(y_true, y_pred,
     plt.ylabel('True label')
     plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(
         accuracy, misclass))
+    # save_fig(save_as)
+    plt.show()
+
+
+def subtitle(t):
+    display(Markdown(f'<br>**{t}**'))
+    
+def display_md(text):
+    display(Markdown(text))
+
+def display_html(text):
+    display(HTML(text))
+    
+def display_img(img):
+    display(Image(img))
+
+def np_print(*args, precision=3, linewidth=120):
+    with np.printoptions(precision=precision, linewidth=linewidth):
+        for a in args:
+            print(a)
+
+
+def plot_multivariate_serie(sequence, labels=None, predictions=None, only_features=None,
+                            columns=3, width=5,height=4,wspace=0.3,hspace=0.2,ms=6,lw=1,
+                            save_as='auto', time_dt=1, hide_ticks=False):
+    
+    sequence_len = len(sequence)
+    features_len = sequence.shape[1]
+    if only_features is None : only_features=range(features_len)
+    if labels is None        : labels=range(features_len)
+    
+    t  = np.arange(sequence_len)    
+    if predictions is None:
+        dt = 0
+    else:
+        dt = len(predictions)
+        sequence_with_pred = sequence.copy()
+        sequence_with_pred[-dt:]=predictions
+
+    rows = math.ceil(features_len/columns)
+    fig  = plt.figure(figsize=(columns*width, rows*height))
+    fig.subplots_adjust(wspace=0.3,hspace=0.2)
+    n=1
+    for i in only_features:
+        ax=fig.add_subplot(rows, columns, n)
+        
+        # ---- Real sequence without prediction
+        #
+        ax.plot( t[:-dt],sequence[:-dt,i], 'o',  markersize=ms, color='C0', zorder=2)
+        ax.plot( t,sequence[:,i],          '-',  linewidth=lw,  color='C0', label=labels[i],zorder=1)
+
+        # ---- What we expect
+        #
+        ax.plot(t[-dt:], sequence[-dt:,i], 'o', markeredgecolor='C0',markerfacecolor='white',ms=6)
+        
+        if predictions is not None:
+            ax.plot(t[-dt-1:], sequence_with_pred[-dt-1:,i], '--',  lw=lw, fillstyle='full',  ms=ms, color='C1',zorder=1)
+            ax.plot(t[-dt:],   predictions[:,i],             'o',   lw=lw, fillstyle='full',  ms=ms, color='C1',zorder=2)
+
+        if hide_ticks:
+            ax.set_yticks([])
+            ax.set_xticks([])
+        
+        ax.legend(loc="upper left")
+        n+=1
     # save_fig(save_as)
     plt.show()
