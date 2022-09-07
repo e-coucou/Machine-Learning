@@ -11,9 +11,10 @@ import timeit
 
 width = 800
 height = 600
-N = 100
+N = 10
 DEC = 1
 GRID =30
+LIMITE = 1000
 
 np_v1 = np.array([2.35,5.56])
 np_v2 = np.array([-3.35,1.56])
@@ -55,9 +56,10 @@ def main() -> int:
     affichage = 0
     nbGenese = 0
 
-    #debug
-    # pos=np.array([100,100])
-    target = ga.math.Vector2(500,400)
+    foods = []
+    Food.surface=win
+    foods.append(Food(500,400))
+    # target = ga.math.Vector2(500,400)
     base = ga.math.Vector2(100,100)
     colonie = []
     for _ in range(N):
@@ -69,7 +71,10 @@ def main() -> int:
     Ant.phe_food = np.zeros((width,height),dtype=np.int64)
     Ant.phe_base = np.zeros((width,height),dtype=np.int64)
     ga.pixelcopy.surface_to_array(Ant.grid,win,'P')
-    Ant.food.append(target)
+    #try
+    Ant.food = foods
+    Ant.food[0].pid = Ant.food[0]
+    # Ant.food.append(target)
     Ant.getFood = 10
     while run:
         if not(pause):
@@ -84,7 +89,9 @@ def main() -> int:
                 x,y = ga.mouse.get_pos()
                 # Ant.phe_base[int(x),int(y)] += 255
                 # gfx.pixel(win,x,y,(255,255,255))
-                Ant.food.append(ga.math.Vector2(x,y))
+                foods.append(Food(x,y))
+                foods[len(foods)-1].pid = foods[len(foods)-1]
+                # Ant.food.append(ga.math.Vector2(x,y))
                 # # for f in colonie:
                 # #     f.newSet(target)
             if event.type == ga.KEYDOWN:
@@ -128,7 +135,7 @@ def main() -> int:
                 if event.unicode == 'd' or event.unicode == 'D':
                     Ant.debug = not Ant.debug
                 if event.unicode == 'a' or event.unicode == 'A':
-                    Ant.anim = not Ant.anim
+                    Ant.anim = (Ant.anim + 1)%3
                 if event.unicode == 'p':
                     Ant.wanderProjection -= 0.1
                 if event.unicode == 'P':
@@ -158,8 +165,13 @@ def main() -> int:
         ga.surfarray.blit_array(win,Ant.grid)
         Ant.phe_food = (Ant.phe_food - 1).clip(0,255)
         Ant.phe_base = (Ant.phe_base - 1).clip(0,255)
-        for f in Ant.food:
-            gfx.filled_circle(win,int(f.x),int(f.y),5,(0,255,0))
+        nFo = len(foods)
+        for i in range(nFo-1,-1,-1):
+            foods[i].Show()
+            if foods[i].fin:
+                foods.pop(i)
+        # for f in Ant.food:
+        #     gfx.filled_circle(win,int(f.x),int(f.y),5,(0,255,0))
         gfx.filled_circle(win,int(base.x),int(base.y),6,(255,0,0))
         nF = len(colonie)
         for i in range(nF-1,-1,-1):
@@ -181,7 +193,7 @@ def main() -> int:
             if f.getFood:
                 f.getFood = 0
                 nbGenese += 1
-        if (nbGenese >= 20 and nF <=500):
+        if (nbGenese >= 20 and nF <=LIMITE):
             nbGenese = 0
             colonie.append(Ant(f.base.x,f.base.y))
         end = tm.time()

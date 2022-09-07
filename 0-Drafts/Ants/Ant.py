@@ -33,7 +33,7 @@ class Ant():
     PHERO = 255
     # animation
     debug = True
-    anim = True
+    anim = 0
 
     def __init__(self,x,y,color=(255,0,255)) -> None:
         self.pos = ga.math.Vector2(x,y)
@@ -49,6 +49,7 @@ class Ant():
         self.target = None
         self.life = self.LIFE
         self.getFood = 0
+        self.pid = None
 
         self.color = color
         self.PheroCt = ga.math.Vector2((self.PheroSq//2,self.PheroSq//2))
@@ -71,12 +72,13 @@ class Ant():
     def Look4Food(self):
         food = []
         for f in self.food:
-            self.desired = (f-self.pos)
+            self.desired = (f.pos-self.pos)
             d,a = self.desired.as_polar()
             if d < self.foodDetection:
                 food.append(f)
         if len(food)>0:
-            self.target = food[0]
+            self.target = food[0].pos
+            self.pid = food[0].pid
             return True
         return False
 
@@ -207,7 +209,15 @@ class Ant():
                 self.life = self.LIFE
                 if self.withFood:
                     self.getFood = 1
-                self.withFood = not self.withFood
+                    self.withFood = False
+                else:
+                    try:
+                        self.pid.decQte()
+                        self.withFood = True
+                    except:
+                        self.target=None
+                        self.pid = None
+                        return ga.math.Vector2(-3,-3)
                 self.vel = self.vel.reflect(self.vel).normalize()*self.maxSpeed
             c = np.interp(d,[0,self.dArrive_sq],[1,self.maxSpeed])
             self.desired *= c
@@ -242,7 +252,9 @@ class Ant():
                 gfx.pixel(self.surface,int(self.pos.x),int(self.pos.y),(255,0,255))
             ga.draw.line(self.surface,(255,255,255),self.pos,self.pos+self.vel*10,1)
         else:
-            if self.anim: # une jolie petite fourmi : switch a/A
+            if self.anim==0: # un pixel est c'est tout
+                gfx.pixel(self.surface,int(self.pos.x),int(self.pos.y),(255,255,255))
+            elif self.anim == 1: # une jolie petite fourmi : switch a/A
                 oeil1 = ga.math.Vector2()
                 oeil2 = ga.math.Vector2()
                 iris1 = ga.math.Vector2()
@@ -269,8 +281,19 @@ class Ant():
                 gfx.filled_circle(self.surface,int(oeil2.x),int(oeil2.y),int(s1),(255,255,255))
                 gfx.filled_circle(self.surface,int(iris1.x),int(iris1.y),2,(0,0,0))
                 gfx.filled_circle(self.surface,int(iris2.x),int(iris2.y),2,(0,0,0))
-            else: # un pixel est c'est tout
-                gfx.pixel(self.surface,int(self.pos.x),int(self.pos.y),(255,255,255))
+            elif self.anim == 2:
+                tete = self.pos - ga.math.Vector2(0,self.size)
+                inter = self.pos + ga.math.Vector2(0,3/4*self.size)
+                patte = self.pos  + ga.math.Vector2(0,7/4*self.size)
+                corps = self.pos + ga.math.Vector2(0,3*self.size)
+                # if self.withFood:
+                #     gfx.filled_circle(self.surface,int(self.pos.x),int(self.pos.y),self.size,(255,0,255,150))
+                # else:
+                #     gfx.filled_circle(self.surface,int(self.pos.x),int(self.pos.y),self.size,(0,255,120,150))
+                gfx.filled_circle(self.surface,int(tete.x),int(tete.y),int(self.size),(255,255,255))
+                gfx.filled_circle(self.surface,int(patte.x),int(patte.y),int(self.size//5),(255,255,255))
+                gfx.filled_ellipse(self.surface,int(inter.x),int(inter.y),int(self.size//2),int(self.size),(255,255,255))
+                gfx.filled_ellipse(self.surface,int(corps.x),int(corps.y),int(3*self.size//2),int(2*self.size),(255,255,255))
     
     def newSet(self,target):
         self.forFood = True
@@ -288,3 +311,23 @@ class Ant():
 class Colony():
     def __init__(self) -> None:
         pass
+
+
+class Food():
+    surface = None
+    
+    def __init__(self,x,y) -> None:
+        self.pos = ga.math.Vector2(x,y)
+        self.pheromone = None
+        self.qte = 1025
+        self.fin = False
+        self.pid = None
+
+    def decQte(self):
+        if self.qte>1:
+            self.qte -= 1
+        else:
+            self.fin = True
+    
+    def Show(self):
+        gfx.filled_circle(self.surface,int(self.pos.x),int(self.pos.y),floor(self.qte//256),(0,255,0))
