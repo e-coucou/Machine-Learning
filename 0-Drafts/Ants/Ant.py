@@ -1,3 +1,5 @@
+from ast import walk
+from textwrap import fill
 import pygame as ga
 import numpy as np
 from math import *
@@ -12,12 +14,13 @@ class Ant():
     grid = None
     width = 100
     height = 100
+    wall = None
     # caracteristique des fourmis
     size = 6
     wanderTheta = pi/2
     wanderRadius = 2
-    wanderProjection = 14
-    maxSpeed = 3.5
+    wanderProjection = 8
+    maxSpeed = 2.5
     maxSpeed_squared = 100
     maxForce = 0.35
     # detections nourriture/base
@@ -35,7 +38,7 @@ class Ant():
     debug = True
     anim = 0
 
-    def __init__(self,x,y,color=(255,0,255)) -> None:
+    def __init__(self,x,y,color=(255,255,255)) -> None:
         self.pos = ga.math.Vector2(x,y)
         self.base = ga.math.Vector2(self.pos.x,self.pos.y)
         self.dir = random()*360
@@ -56,6 +59,8 @@ class Ant():
         self.look = []
         self.lookChoix = 1
         self.pheroCpt = self.PHERO
+
+        self.sprite = self.makeSprite()
 
     def Behavior(self):
         if self.target == None:
@@ -164,6 +169,11 @@ class Ant():
         if self.pos.y >= self.height:
             self.vel.y = -self.vel.y
             self.pos.y = self.height-1
+        couleur = ga.Surface.get_at(self.surface,(int(self.pos.x),int(self.pos.y)))
+        if couleur==self.wall:
+            self.vel.x = -self.vel.x
+            self.vel.y = -self.vel.y
+            self.pos += self.vel
 
     def aLive(self):
         self.life -= 1
@@ -253,7 +263,7 @@ class Ant():
             ga.draw.line(self.surface,(255,255,255),self.pos,self.pos+self.vel*10,1)
         else:
             if self.anim==0: # un pixel est c'est tout
-                gfx.pixel(self.surface,int(self.pos.x),int(self.pos.y),(255,255,255))
+                gfx.pixel(self.surface,int(self.pos.x),int(self.pos.y),self.color)
             elif self.anim == 1: # une jolie petite fourmi : switch a/A
                 oeil1 = ga.math.Vector2()
                 oeil2 = ga.math.Vector2()
@@ -282,19 +292,46 @@ class Ant():
                 gfx.filled_circle(self.surface,int(iris1.x),int(iris1.y),2,(0,0,0))
                 gfx.filled_circle(self.surface,int(iris2.x),int(iris2.y),2,(0,0,0))
             elif self.anim == 2:
-                tete = self.pos - ga.math.Vector2(0,self.size)
-                inter = self.pos + ga.math.Vector2(0,3/4*self.size)
-                patte = self.pos  + ga.math.Vector2(0,7/4*self.size)
-                corps = self.pos + ga.math.Vector2(0,3*self.size)
-                # if self.withFood:
-                #     gfx.filled_circle(self.surface,int(self.pos.x),int(self.pos.y),self.size,(255,0,255,150))
-                # else:
-                #     gfx.filled_circle(self.surface,int(self.pos.x),int(self.pos.y),self.size,(0,255,120,150))
-                gfx.filled_circle(self.surface,int(tete.x),int(tete.y),int(self.size),(255,255,255))
-                gfx.filled_circle(self.surface,int(patte.x),int(patte.y),int(self.size//5),(255,255,255))
-                gfx.filled_ellipse(self.surface,int(inter.x),int(inter.y),int(self.size//2),int(self.size),(255,255,255))
-                gfx.filled_ellipse(self.surface,int(corps.x),int(corps.y),int(3*self.size//2),int(2*self.size),(255,255,255))
+                r=4
+                f_sprite = self.sprite.copy()
+                if self.withFood:
+                    gfx.filled_circle(f_sprite,int(r+r),int(r//2),r//2,(0,255,0,255))
+
+                rotated_surface = ga.transform.rotate(f_sprite, 270 - self.dir)
+                rect = rotated_surface.get_rect(center = (int(self.pos.x),int(self.pos.y)))
+                self.surface.blit(rotated_surface, (rect.x, rect.y))
     
+    def makeSprite(self):
+        r=4
+        f_sprite = ga.Surface((4*r,5*r), ga.SRCALPHA)
+        f_sprite.fill((0,0,0,0))
+        tete = ga.math.Vector2(2*r,r)
+        inter = tete + ga.math.Vector2(0,r)
+        patte = tete  + ga.math.Vector2(0,7/4*r)
+        corps = tete + ga.math.Vector2(0,3*r)
+
+        gfx.filled_circle(f_sprite,int(tete.x),int(tete.y),int(r//2),(255,255,255))
+        gfx.filled_circle(f_sprite,int(patte.x),int(patte.y),int(r//4),(255,255,255))
+        gfx.filled_ellipse(f_sprite,int(inter.x),int(inter.y),int(r//4),int(r//2),(255,255,255))
+        gfx.filled_ellipse(f_sprite,int(corps.x),int(corps.y),int(3*r//4),int(r),self.color)
+
+        gfx.line(f_sprite,int(patte.x),int(patte.y),int(3*r),int(r),(255,255,255,255))
+        gfx.line(f_sprite,int(3*r),int(r),int(3*r),int(tete.y),(255,255,255,255))
+        gfx.line(f_sprite,int(patte.x),int(patte.y),int(r),int(r),(255,255,255,255))
+        gfx.line(f_sprite,int(r),int(r),int(r),int(tete.y),(255,255,255,255))
+
+        gfx.line(f_sprite,int(patte.x),int(patte.y),int(3*r),int(patte.y),(255,255,255,255))
+        gfx.line(f_sprite,int(3*r),int(patte.y),int(r+r+r+r//2),int(patte.y+r//2),(255,255,255,255))
+        gfx.line(f_sprite,int(patte.x),int(patte.y),int(r),int(patte.y),(255,255,255,255))
+        gfx.line(f_sprite,int(r),int(patte.y),int(r//2),int(patte.y+r//2),(255,255,255,255))
+
+        gfx.line(f_sprite,int(patte.x),int(patte.y+r//2),int(3*r),int(patte.y+r//4),(255,255,255,255))
+        gfx.line(f_sprite,int(3*r),int(patte.y+r//4),int(3*r+r//2),int(corps.y+r+r//2),(255,255,255,255))
+        gfx.line(f_sprite,int(patte.x),int(patte.y+r//2),int(r),int(patte.y+r//4),(255,255,255,255))
+        gfx.line(f_sprite,int(r),int(patte.y+r//4),int(r//2),int(corps.y+r+r//2),(255,255,255,255))
+
+        return f_sprite
+ 
     def newSet(self,target):
         self.forFood = True
         self.withFood = False

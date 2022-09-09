@@ -8,13 +8,15 @@ from math import *
 from random import *
 import quadtree as qt
 import timeit
+from perlin_noise import PerlinNoise
 
 width = 800
 height = 600
 N = 10
 DEC = 1
-GRID =30
+GRID =50
 LIMITE = 1000
+WALL = (80,80,80,255)
 
 np_v1 = np.array([2.35,5.56])
 np_v2 = np.array([-3.35,1.56])
@@ -32,6 +34,25 @@ def numpy_add():
 def pygame_add():
     return ga_v1+ga_v2
 
+class Colony():
+    surface = None
+    def __init__(self,x,y,color) -> None:
+        self.pos = ga.math.Vector2(x,y)
+        self.fourmi_list = []
+        self.color = color
+        for _ in range(N):
+            self.fourmi_list.append(Ant(self.pos.x,self.pos.y,self.color))
+
+    def Show(self,message):
+        gfx.circle(self.surface,int(self.pos.x),int(self.pos.y),30,self.color)
+        mess_nour = str(len(self.fourmi_list))
+        # text_rect = message.get_rect(mess_nour, size = 12)
+        # text_rect.center = self.surface.get_rect().center 
+        message.render_to(self.surface,self.pos, mess_nour, 0xFFFFFFFF)
+
+
+def getPid(f,i,j):
+    return 8*ceil(f[i,j])+4*ceil(f[i+1,j])+2*ceil(f[i+1,j+1])+ceil(f[i,j+1])
 #---------
 def main() -> int:
     # init pygame avec la fenetre win
@@ -58,29 +79,103 @@ def main() -> int:
 
     foods = []
     Food.surface=win
-    foods.append(Food(500,400))
-    # target = ga.math.Vector2(500,400)
-    base = ga.math.Vector2(100,100)
-    colonie = []
-    for _ in range(N):
-        colonie.append(Ant(base.x,base.y))
+    # fond d'écran marching squared
+    noise = PerlinNoise(octaves=12, seed=1)
+    seuil = 0.
+    # xpix, ypix = 100, 100
+    # pic = [[noise([i/xpix, j/ypix]) for j in range(xpix)] for i in range(ypix)]
+
+    # fond = ga.Surface([width,height],ga.SRCALPHA)
+    win.fill(0)
+    res_x, res_y = (width//GRID, height//GRID)
+    print(res_x,res_y)
+    field = np.zeros((res_x+1,res_y+1))
+    offset=0.
+    for x in range(res_x+1):
+        for y in range(res_y+1):
+            field[x,y] = noise([x/res_x/5, y/res_y/5,offset]) #randint(0,4)
+            # if field[x,y] < seuil:
+            #     gfx.filled_circle(fond,int(x*GRID),int(y*GRID),3,(255,255,255))
+            # else:
+            #     gfx.filled_circle(fond,int(x*GRID),int(y*GRID),3,(55,55,55))
+            offset += 1
+
+    for i in range(res_x):
+        for j in range(res_y):
+            x= i*GRID
+            y = j*GRID
+            l=field[i,j]+1 # intervalle [0,2] car noise de (-1,1)
+            m=field[i+1,j]+1
+            n=field[i+1,j+1]+1
+            o=field[i,j+1]+1
+            A = ga.math.Vector2(x,y)
+            B = ga.math.Vector2(x+GRID,y)
+            C = ga.math.Vector2(x+GRID,y+GRID)
+            D = ga.math.Vector2(x,y+GRID)
+            a = ga.math.Vector2(x+GRID*m/(l+m),y)
+            b = ga.math.Vector2(x+ GRID,y+GRID*m/(n+m))
+            c = ga.math.Vector2(x+GRID*n/(n+o),y+GRID)
+            d = ga.math.Vector2(x,y+GRID*l/(l+o))
+            id = getPid(field,i,j)
+            if (id==14):
+                ga.draw.polygon(win,(80,80,80,255),[c,d,(x,y+GRID)])
+            elif (id==1):
+                ga.draw.polygon(win,(80,80,80,255),[d,(x,y),(x+GRID,y),(x+GRID,y+GRID),c])
+            elif (id==2):
+                ga.draw.polygon(win,(80,80,80,255),[A,B,b,c,D])
+            elif (id==13):
+                ga.draw.polygon(win,(80,80,80,255),[b,C,c])
+            elif (id==12):
+                ga.draw.polygon(win,(80,80,80,255),[d,b,C,D])
+            elif (id==3):
+                ga.draw.polygon(win,(80,80,80,255),[d,b,B,A])
+            elif (id==11):
+                ga.draw.polygon(win,(80,80,80,255),[a,B,b])
+            elif (id==4):
+                ga.draw.polygon(win,(80,80,80,255),[a,b,C,D,A])
+            elif (id==10):
+                ga.draw.polygon(win,(80,80,80,255),[a,B,b])
+                ga.draw.polygon(win,(80,80,80,255),[d,c,D])
+            elif (id==6): #ok
+                ga.draw.polygon(win,(80,80,80,255),[A,a,c,D])
+            elif (id==9): #ok
+                ga.draw.polygon(win,(80,80,80,255),[a,B,C,c])
+            elif (id==7): #ok
+                ga.draw.polygon(win,(80,80,80,255),[A,a,d])
+            elif (id==8): #ok
+                ga.draw.polygon(win,(80,80,80,255),[a,B,C,D,d])
+            elif (id==5):
+                ga.draw.polygon(win,(80,80,80,255),[a,d,A])
+                ga.draw.polygon(win,(80,80,80,255),[b,c,C])
+            elif (id==0):
+                ga.draw.polygon(win,(80,80,80,255),[A,B,C,D])
+            # if field[i,j] < seuil:
+            #     gfx.filled_circle(fond,int(i*GRID),int(j*GRID),3,(255,255,255))
+            # else:
+            #     gfx.filled_circle(fond,int(i*GRID),int(j*GRID),3,(55,55,55))
+    cadre = ga.Rect(0,0,width,height)
+    ga.draw.rect(win,WALL,cadre,20)
+    fond = np.zeros((width,height),dtype=np.int64)
+    ga.display.flip()
+    ga.pixelcopy.surface_to_array(fond,win,'P')
+
+    colonies = []
+    Colony.surface = win
     Ant.surface = win
     Ant.width = width
     Ant.height = height
+    Ant.wall = WALL
     Ant.grid = np.zeros((width,height),dtype=np.int64)
     Ant.phe_food = np.zeros((width,height),dtype=np.int64)
     Ant.phe_base = np.zeros((width,height),dtype=np.int64)
     ga.pixelcopy.surface_to_array(Ant.grid,win,'P')
-    #try
     Ant.food = foods
-    Ant.food[0].pid = Ant.food[0]
-    # Ant.food.append(target)
-    Ant.getFood = 10
-    while run:
-        if not(pause):
-            win.fill(0)
 
-    # Gestion interface
+    while run:
+        # if not(pause):
+        #     # win.fill(0)
+        #     win.blit(fond,(0,0))
+        # Gestion interface
         for event in ga.event.get():
             if event.type == ga.QUIT:
                 run = False
@@ -99,28 +194,11 @@ def main() -> int:
                     run = False
                 if event.key == ga.K_SPACE:
                     affichage = (affichage + 1) % 4
-                    # f = colonie[0]
-                    # choix=[]
-                    # for i in range(3):
-                    #     p=colonie[0].look[i]
-                    #     a = int(p.x)
-                    #     b = int(p.y)
-                    #     w = 20
-                    #     # print(int(p.x),int(p.y), Ant.PheroSq)
-                    #     print('le val',a,b,w)
-                    #     arr = (Ant.phe_base[a:(a+w),b:(b+20)])
-                    #     n = np.sum(arr)
-                    #     choix.append(n)
-                    #     # print(arr) 
-                    #     # print(n)
-                    # print('choix:',np.argmax(choix),choix)
-                    # print(Ant.phe_food[47:67][74:94])
+                # new Colonie
                 if event.unicode == 'n' or event.unicode == 'N':
-                    # new set
-                    # colonie = []
-                    pos = ga.math.Vector2(randint(0,width),randint(0,height))
-                    for _ in range(N):
-                        colonie.append(Ant(pos.x,pos.y))
+                    x,y = ga.mouse.get_pos()
+                    pos = ga.math.Vector2(x,y)
+                    colonies.append(Colony(pos.x,pos.y,(randint(1,4)*63,randint(1,4)*63,randint(1,4)*63,255)))
                 if event.unicode == '0':
                     mode = 0
                 if event.unicode == '1':
@@ -154,66 +232,71 @@ def main() -> int:
                     Ant.setMaxSpeed( 0.1)
 
         start = tm.time()
+        Ant.grid = fond.copy()
         if affichage==0:
-            Ant.grid = Ant.phe_food + 65536 * Ant.phe_base
+            Ant.grid += Ant.phe_food + 65536 * Ant.phe_base
         elif affichage==1:
-            Ant.grid = Ant.phe_food
+            Ant.grid += Ant.phe_food
         elif affichage==2:
-            Ant.grid =  65536 * Ant.phe_base
+            Ant.grid +=  65536 * Ant.phe_base
         else:
-            Ant.grid = 0 * Ant.phe_food
+            Ant.grid += 0 * Ant.phe_food
         ga.surfarray.blit_array(win,Ant.grid)
         Ant.phe_food = (Ant.phe_food - 1).clip(0,255)
         Ant.phe_base = (Ant.phe_base - 1).clip(0,255)
-        nFo = len(foods)
-        for i in range(nFo-1,-1,-1):
-            foods[i].Show()
-            if foods[i].fin:
-                foods.pop(i)
-        # for f in Ant.food:
-        #     gfx.filled_circle(win,int(f.x),int(f.y),5,(0,255,0))
-        gfx.filled_circle(win,int(base.x),int(base.y),6,(255,0,0))
-        nF = len(colonie)
-        for i in range(nF-1,-1,-1):
-            f = colonie[i]
-            if mode == 0:
-                f.Behavior()
-            elif mode == 1:
-                f.Force(f.Wander())
+        # la barre
+        # ga.draw.line(win,WALL,(width/2,200),(width/2,400),30)
+        for colonie in colonies:
+            nFo = len(foods)
+            for i in range(nFo-1,-1,-1):
+                foods[i].Show()
+                if foods[i].fin:
+                    foods.pop(i)
+            nF = len(colonie.fourmi_list)
+            for i in range(nF-1,-1,-1):
+                f = colonie.fourmi_list[i]
+                if mode == 0:
+                    f.Behavior()
+                elif mode == 1:
+                    f.Force(f.Wander())
             # f.Force(f.Seek(target))
-            elif mode == 2:
-                f.Force(f.Arrive(target))
-            f.Update()
-            # f.Edge()
-            # f.Behavior()
-            # f.HandleBase()
-            f.Show()
-            if f.aLive():
-                colonie.pop(i)
-            if f.getFood:
-                f.getFood = 0
-                nbGenese += 1
-        if (nbGenese >= 20 and nF <=LIMITE):
-            nbGenese = 0
-            colonie.append(Ant(f.base.x,f.base.y))
+                elif mode == 2:
+                    f.Force(f.Arrive(target))
+                elif mode == 3:
+                    f.Edge()
+                    f.HandleBase()
+                f.Update()
+                f.Show()
+                if f.aLive():
+                    colonie.fourmi_list.pop(i)
+                if f.getFood:
+                    f.getFood = 0
+                    nbGenese += 1
+            if (nbGenese >= 20 and nF <=LIMITE):
+                nbGenese = 0
+                colonie.fourmi_list.append(Ant(f.base.x,f.base.y,colonie.color))
+            end = tm.time()
+            delta = round((end-start)*1000)
+            mx = width-150
+            # mess_nour = 'Speed = ' + str(Ant.maxSpeed)
+            # message.render_to(win, (mx, 10), mess_nour, 0xFFFFFF)
+            # mess_nour = 'Force = ' + str(Ant.maxForce)
+            # message.render_to(win, (mx, 22), mess_nour, 0xFFFFFF)
+            # mess_nour = 'Projection = ' + str(Ant.wanderProjection)
+            # message.render_to(win, (mx, 34), mess_nour, 0xFFFFFF)
+            # mess_nour = 'Radius = ' + str(Ant.wanderRadius)
+            # message.render_to(win, (mx, 46), mess_nour, 0xFFFFFF)
+
+            # mess_nour = 'colonie = ' + str(len(colonie))
+            # message.render_to(win, (mx, 82), mess_nour, 0xFFFFFF)
+            # mess_nour = 'Génèse = ' + str(nbGenese)
+            # message.render_to(win, (mx, 94), mess_nour, 0xFFFFFF)
+            colonie.Show(message)
         end = tm.time()
         delta = round((end-start)*1000)
-        mx = width-150
-        mess_nour = 'Speed = ' + str(Ant.maxSpeed)
-        message.render_to(win, (mx, 10), mess_nour, 0xFFFFFF)
-        mess_nour = 'Force = ' + str(Ant.maxForce)
-        message.render_to(win, (mx, 22), mess_nour, 0xFFFFFF)
-        mess_nour = 'Projection = ' + str(Ant.wanderProjection)
-        message.render_to(win, (mx, 34), mess_nour, 0xFFFFFF)
-        mess_nour = 'Radius = ' + str(Ant.wanderRadius)
-        message.render_to(win, (mx, 46), mess_nour, 0xFFFFFF)
-
         mess_nour = 'time = ' + str(delta)
-        message.render_to(win, (mx, 70), mess_nour, 0xFFFFFF)
-        mess_nour = 'colonie = ' + str(len(colonie))
-        message.render_to(win, (mx, 82), mess_nour, 0xFFFFFF)
-        mess_nour = 'Génèse = ' + str(nbGenese)
-        message.render_to(win, (mx, 94), mess_nour, 0xFFFFFF)
+        message.render_to(win, (width-150, 20), mess_nour, 0xFFFFFF)
+        # win.blit(fond,(0,0))
         ga.display.flip()
         if speed > 1:
             ga.time.wait(speed)
