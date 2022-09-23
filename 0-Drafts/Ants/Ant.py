@@ -1,16 +1,17 @@
-from ast import walk
-from textwrap import fill
 import pygame as ga
 import numpy as np
 from math import *
 import pygame.gfxdraw as gfx
 from random import *
 
+import numba as nb
+
 class Ant():
     # visualisation pygame
     surface = None
     phe_food = None
     phe_base = None
+    monde = None
     grid = None
     width = 100
     height = 100
@@ -19,20 +20,20 @@ class Ant():
     size = 6
     wanderTheta = pi/2
     wanderRadius = 2
-    wanderProjection = 8
-    maxSpeed = 2.5
+    wanderProjection = 9
+    maxSpeed = 5
     maxSpeed_squared = 100
-    maxForce = 0.35
+    maxForce = 0.45
     # detections nourriture/base
     dArrive_sq = 2500
-    foodDetection = 70
-    foodDetection_sq = 4900
+    foodDetection = 50
+    foodDetection_sq = 2500
     food = []
     PheroAngle = [-45,0,45]
     PheroSq = 10
     PheroDist = 16
 
-    LIFE = 2048
+    LIFE = 4096
     PHERO = 255
     # animation
     debug = True
@@ -79,7 +80,7 @@ class Ant():
         for f in self.food:
             self.desired = (f.pos-self.pos)
             d,a = self.desired.as_polar()
-            if d < self.foodDetection:
+            if d < self.foodDetection and abs(self.dir-a)<45:
                 food.append(f)
         if len(food)>0:
             self.target = food[0].pos
@@ -96,6 +97,11 @@ class Ant():
         return False
 
     def HandleFood(self):
+        #befire reactivate phero
+        test = (self.base-self.pos)
+        d,a = test.as_polar()
+        if d < self.foodDetection:
+            self.pheroCpt = self.PHERO
         vlook =[]
         self.look = []
         p = ga.math.Vector2(0,0)
@@ -169,8 +175,13 @@ class Ant():
         if self.pos.y >= self.height:
             self.vel.y = -self.vel.y
             self.pos.y = self.height-1
-        couleur = ga.Surface.get_at(self.surface,(int(self.pos.x),int(self.pos.y)))
-        if couleur==self.wall:
+        # couleur = ga.Surface.get_at(self.surface,(int(self.pos.x),int(self.pos.y)))
+        futur = self.pos #+ self.vel
+        couleur = self.monde[int(futur.x),int(futur.y)]
+        # if couleur==color(self.wall):
+        if couleur== 0xFF505050:
+            # r,a = self.vel.as_polar()
+            # self.vel.from_polar((1,randint(70,110)+a))
             self.vel.x = -self.vel.x
             self.vel.y = -self.vel.y
             self.pos += self.vel
@@ -180,7 +191,7 @@ class Ant():
         return self.life<=0
 
     def Update(self):
-        if self.pheroCpt > 1:
+        if self.pheroCpt>20:
             self.pheroCpt -= 1
         self.vel += self.acc
         m = self.vel.magnitude_squared()
@@ -263,7 +274,7 @@ class Ant():
             ga.draw.line(self.surface,(255,255,255),self.pos,self.pos+self.vel*10,1)
         else:
             if self.anim==0: # un pixel est c'est tout
-                gfx.pixel(self.surface,int(self.pos.x),int(self.pos.y),self.color)
+                gfx.pixel(self.surface,int(self.pos.x),int(self.pos.y),(255,255,255,255))
             elif self.anim == 1: # une jolie petite fourmi : switch a/A
                 oeil1 = ga.math.Vector2()
                 oeil2 = ga.math.Vector2()

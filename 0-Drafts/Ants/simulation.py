@@ -7,14 +7,15 @@ import pygame.gfxdraw as gfx
 from math import *
 from random import *
 import quadtree as qt
+from Maze import *
 import timeit
 from perlin_noise import PerlinNoise
 
 width = 800
-height = 600
-N = 10
+height = 800
+N = 1
 DEC = 1
-GRID =50
+GRID =70
 LIMITE = 1000
 WALL = (80,80,80,255)
 
@@ -51,55 +52,25 @@ class Colony():
         message.render_to(self.surface,self.pos, mess_nour, 0xFFFFFFFF)
 
 
-def getPid(f,i,j):
-    return 8*ceil(f[i,j])+4*ceil(f[i+1,j])+2*ceil(f[i+1,j+1])+ceil(f[i,j+1])
-#---------
-def main() -> int:
-    # init pygame avec la fenetre win
-    ga.init()
-    win = ga.display.set_mode([width,height])
-    message = ga.freetype.SysFont("couriernew", 14, bold=False, italic=False)
-    win.fill(0)
-    # Essai
-    n = 10000
-    t1 = timeit.timeit(pure_add, number = n)
-    print('Pure Python:', t1)
-    t2 = timeit.timeit(numpy_add, number = n)
-    print('Numpy:', t2)
-    t3 = timeit.timeit(pygame_add, number = n)
-    print('Pygame:', t3)
-    # init de la boucle
-    run = True
-    mode=0 # en mode behavior
-    mousse = False
-    pause = False
-    speed = 100
-    affichage = 0
-    nbGenese = 0
-
-    foods = []
-    Food.surface=win
-    # fond d'écran marching squared
-    noise = PerlinNoise(octaves=12, seed=1)
-    seuil = 0.
-    # xpix, ypix = 100, 100
-    # pic = [[noise([i/xpix, j/ypix]) for j in range(xpix)] for i in range(ypix)]
-
-    # fond = ga.Surface([width,height],ga.SRCALPHA)
-    win.fill(0)
-    res_x, res_y = (width//GRID, height//GRID)
-    print(res_x,res_y)
+def randomCave(noise,res_x,res_y):
     field = np.zeros((res_x+1,res_y+1))
-    offset=0.
+    offset=random.random()
     for x in range(res_x+1):
         for y in range(res_y+1):
-            field[x,y] = noise([x/res_x/5, y/res_y/5,offset]) #randint(0,4)
+            field[x,y] = noise([x/res_x/1000, y/res_y/1000,offset]) #randint(0,4)
             # if field[x,y] < seuil:
             #     gfx.filled_circle(fond,int(x*GRID),int(y*GRID),3,(255,255,255))
             # else:
             #     gfx.filled_circle(fond,int(x*GRID),int(y*GRID),3,(55,55,55))
-            offset += 1
+            offset += 0.1
+    print('field 0',field)
+    return field
 
+def printCave(field,res_x,res_y):
+    # fond = ga.Surface([width,height],ga.SRCALPHA)
+    win = ga.Surface((width,height))
+    print('field2',field)
+    print(win)
     for i in range(res_x):
         for j in range(res_y):
             x= i*GRID
@@ -158,6 +129,47 @@ def main() -> int:
     fond = np.zeros((width,height),dtype=np.int64)
     ga.display.flip()
     ga.pixelcopy.surface_to_array(fond,win,'P')
+    return fond
+
+def getPid(f,i,j):
+    return 8*ceil(f[i,j])+4*ceil(f[i+1,j])+2*ceil(f[i+1,j+1])+ceil(f[i,j+1])
+#---------
+def main() -> int:
+    # init pygame avec la fenetre win
+    ga.init()
+    noise = PerlinNoise(octaves=2, seed=1)
+    res_x, res_y = (width//GRID, height//GRID)
+    field = np.zeros((res_x+1,res_y+1))
+    win = ga.display.set_mode([width,height])
+    message = ga.freetype.SysFont("couriernew", 14, bold=False, italic=False)
+    win.fill(0)
+    # Essai
+    n = 10000
+    t1 = timeit.timeit(pure_add, number = n)
+    print('Pure Python:', t1)
+    t2 = timeit.timeit(numpy_add, number = n)
+    print('Numpy:', t2)
+    t3 = timeit.timeit(pygame_add, number = n)
+    print('Pygame:', t3)
+    # init de la boucle
+    run = True
+    mode=0 # en mode behavior
+    cycle = 0
+    pause = False
+    speed = 100
+    affichage = 0
+    nbGenese = 0
+
+    foods = []
+    Food.surface=win
+    # fond d'écran marching squared
+    noise = PerlinNoise(octaves=12, seed=1)
+
+    #genartion du labyrinthe
+    Maze.width =width
+    Maze.height = height
+
+    Ant.monde = np.zeros((width,height),np.int64)
 
     colonies = []
     Colony.surface = win
@@ -230,22 +242,34 @@ def main() -> int:
                     Ant.setMaxSpeed( -0.1)
                 if event.unicode == 'S':
                     Ant.setMaxSpeed( 0.1)
+                if event.unicode == 'b' or event.unicode == 'B':
+                    monde = randomCave(noise,res_x,res_y)
+                    Ant.monde = np.zeros((width,height),np.int64)
+                if event.unicode == '8':
+                    res = 100
+                    maze = Maze(width//res,height//res,res)
+                    maze.Build(0)
+                    Ant.monde = maze.Show()
+                if event.unicode == '9':
+                    monde = randomCave(noise,res_x,res_y)
+                    Ant.monde = printCave(monde,res_x,res_y)
 
         start = tm.time()
-        Ant.grid = fond.copy()
+        Ant.grid = Ant.monde.copy()
         if affichage==0:
             Ant.grid += Ant.phe_food + 65536 * Ant.phe_base
         elif affichage==1:
             Ant.grid += Ant.phe_food
         elif affichage==2:
             Ant.grid +=  65536 * Ant.phe_base
-        else:
-            Ant.grid += 0 * Ant.phe_food
         ga.surfarray.blit_array(win,Ant.grid)
-        Ant.phe_food = (Ant.phe_food - 1).clip(0,255)
-        Ant.phe_base = (Ant.phe_base - 1).clip(0,255)
+        cycle += 1
+        if (cycle % 2) == 0:
+            Ant.phe_food = (Ant.phe_food - DEC).clip(0,255)
+            Ant.phe_base = (Ant.phe_base - DEC).clip(0,255)
         # la barre
         # ga.draw.line(win,WALL,(width/2,200),(width/2,400),30)
+
         for colonie in colonies:
             nFo = len(foods)
             for i in range(nFo-1,-1,-1):
@@ -256,17 +280,16 @@ def main() -> int:
             for i in range(nF-1,-1,-1):
                 f = colonie.fourmi_list[i]
                 if mode == 0:
-                    f.Behavior()
+                    nb.jit(f.Behavior())
                 elif mode == 1:
                     f.Force(f.Wander())
-            # f.Force(f.Seek(target))
                 elif mode == 2:
                     f.Force(f.Arrive(target))
                 elif mode == 3:
                     f.Edge()
                     f.HandleBase()
-                f.Update()
-                f.Show()
+                nb.jit(f.Update())
+                nb.jit(f.Show())
                 if f.aLive():
                     colonie.fourmi_list.pop(i)
                 if f.getFood:
