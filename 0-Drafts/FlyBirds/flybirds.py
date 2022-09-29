@@ -1,9 +1,12 @@
 import pygame as ga
+import pygame.gfxdraw as gfx
 import numpy as np
 import math
 import sys
 import time as tm
 import random
+from json import JSONEncoder
+import json
 
 import NN as nn
 # import ga
@@ -11,6 +14,13 @@ import NN as nn
 width = 900
 height = 600
 N = 255
+LIMIT = 11
+
+class NumpyArrayEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return JSONEncoder.default(self, obj)
 
 def picOne(birds):
     index = 0
@@ -53,13 +63,10 @@ def fitness(birds):
         bird.fitness = bird.score/cumul
         row.append(bird.fitness)
         if Bird.maxFitness<bird.fitness:
-            Bird.maxFitness = bird.fitness    
-    # print('max Fitness',max,row)
-    # print(row,sum(row))
-    # birds.sort()
+            Bird.maxFitness = bird.fitness
 
 class Bird():
-    surface  = None
+    surface  = ga.Surface((10,10))
     highScore=0
     maxFitness = 0
     best = None
@@ -76,11 +83,11 @@ class Bird():
         else:
             self.brain = nn.NNs_ep([5,8,2])
         self.score=0
-        self.fitness = 0 #score normalisé
+        self.fitness = 0
     
     def update(self):
         self.vel.y += self.gravity
-        self.vel.y = self.vel.y * 10 /(max(10,abs(self.vel.y)))
+        self.vel.y = self.vel.y * LIMIT /(max(LIMIT,abs(self.vel.y)))
         self.pos.y += self.vel.y
         if self.pos.y <=0 :
             return True
@@ -108,20 +115,17 @@ class Bird():
             input[3] = pipeOne.haut.bottom/height
             input[4] = self.vel.y / 10.
             action = self.brain.predict(input)
-            # print(action)
-            # if action:
-            # print(action[0], action[0,0])
             if (action[0,0]>action[0,1]):
                 self.pick()
-                # self.applyF((0,-4))
     def pick(self):
         self.vel.y += -12
 
     def show(self):
-        ga.draw.circle(self.surface,self.color,self.pos,10)
+        # ga.draw.circle(self.surface,self.color,self.pos,10)  # type: ignore
+        gfx.filled_circle(self.surface, int(self.pos.x), int(self.pos.y), 10, self.color)
 
 class Pipe():
-    surface = None
+    surface = ga.Surface((10,10))
     inc = 5
     w= 55
     
@@ -130,6 +134,7 @@ class Pipe():
         h = random.randint(0,height-250)
         self.haut = ga.Rect(width-self.w,0,self.w,h)
         self.bas = ga.Rect(width-self.w,h+gap,self.w,height)
+        self.colorBase = ga.Color(255,255,255,200)
         self.color = ga.Color(255,255,255,25)
 
     def update(self):
@@ -141,15 +146,18 @@ class Pipe():
 
     def hits(self,bird_):
         if (bird_.pos.x>self.bas.left and bird_.pos.x<self.bas.right) and (bird_.pos.y < self.haut.bottom or bird_.pos.y>self.bas.top):
-            self.color = (0,255,255,120)
+            self.colorBase = (255,25,25,220)
             return True
         return False
 
     def show(self):
-        ga.draw.rect(self.surface, self.color,self.bas)
-        ga.draw.rect(self.surface, self.color,self.haut)
-        ga.draw.circle(self.surface, (255,0,0,128),(self.haut.left,self.haut.bottom),3)
-        ga.draw.circle(self.surface, (255,0,0,128),(self.bas.left,self.bas.top),3)
+        gfx.box(self.surface,self.bas,self.colorBase)
+        gfx.box(self.surface,self.haut,self.colorBase)
+        # ga.draw.rect(self.surface, self.colorBase,self.bas)  # type: ignore
+        # ga.draw.rect(self.surface, self.colorBase,self.haut)  # type: ignore
+        ga.draw.circle(self.surface, self.color,(self.haut.left,self.haut.bottom),5)  # type: ignore
+        ga.draw.circle(self.surface, self.color,(self.bas.left,self.bas.top),5)  # type: ignore
+        gfx.vline(self.surface,self.bas.left,0,height,self.color)  # type: ignore
 
 #---------
 def main() -> int:
@@ -165,40 +173,17 @@ def main() -> int:
     birds = []
     savedbirds =[]
     for i in range(N):
-        color_ = (255,i,0,120)
+        color_ = (0,i%128+128,96+i%128,200)
         birds.append(Bird(color_=color_))
     savedbirds = []
     pipes.append(Pipe())
-    Pipe.surface = surface
-    Bird.surface = surface
+    Pipe.surface = surface  # type: ignore
+    Bird.surface = surface  # type: ignore
 
     count = 0
     vitesse = 1
-
-    # #test
-    a = np.random.randn(100)
-    print(a)
-    s = np.array(list(map(mutate,a)))
-    print(s-a)
-
-    print('init')
-    a= nn.NNs_ep([5,8,2])
-    b= nn.NNs_ep(a.layers)
-    b.W = a.copy()
-    b.mutate(mutate)
-    print((b.W) - np.array(a.W))
-    # c = a.copy()
-    # d = np.vectorize(mutate)
-    # print(d(c[0])-b.W[0])
-    # b.mutate(mutate)
-    # print(b.W[0].shape,len(b.W))
-    # print(b.W[0])
-    # print(a.W - b.W)
-    # print(list(map(mutate,c[0])))
-    # s0 = np.array(list(map(mutate,c[0][0])))
-    # print(s0-c[0][0])
-
-
+    #---
+    # Boucle principale
     while run:
         # Gestion interface
         for event in ga.event.get():
@@ -211,8 +196,18 @@ def main() -> int:
                     run = False
                 if event.unicode == ' ':
                     birds[0].pick()
+                if event.unicode == 'l':
+                    print('load bird')
+                    with open("best_bird.json", "r") as read_file:
+                        decodedArray = json.load(read_file)
+                        birds[0].brain.W = np.asarray(decodedArray)
+
                 if event.unicode == 'b':
-                    print(Bird.best)
+                    # print(Bird.best)
+                    print('save Best Bird')
+                    with open("best_bird.json", "w") as write_file:
+                        json.dump(Bird.best, write_file, cls=NumpyArrayEncoder)
+
                 if event.unicode == 's':
                     if vitesse==100:
                         vitesse = 1
