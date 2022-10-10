@@ -285,7 +285,7 @@ def main() -> int:
         obs, r, done, info = blob.play()
         if done:
             print('GameOver')
-            print(obs)
+            print(np.vstack(obs))  # type: ignore
             print(r)
         if count%vitesse ==0 :
             # win.fill((0,0,0,128))

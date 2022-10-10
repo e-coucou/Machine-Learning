@@ -3,6 +3,66 @@ import numpy as np
 # from keras import Input
 # from keras import layers
 
+class NN_ep():
+    def __init__(self,X_,y_,layers_,learning_rate_=0.1) -> None:
+        self.layers = layers_
+        self.lr = learning_rate_
+        self.X = X_
+        self.y = y_
+        self.layers.insert(0,X_.shape[0])
+        self.layers.append(y_.shape[0])
+        self.W = []
+        self.c = len(self.layers)-1
+        for i in np.arange(0,len(self.layers)-2):
+            w = np.random.randn(self.layers[i] + 1, self.layers[i + 1] + 1)
+            self.W.append(w / np.sqrt(self.layers[i]))
+        w = np.random.randn(self.layers[-2] + 1, self.layers[-1])
+        self.W.append(w / np.sqrt(self.layers[-2]))     
+
+    def sigmoid(self, x):
+        return 1.0 / (1 + np.exp(-x))
+    def sigmoid_prime(self, x):
+        return x * (1 - x)
+
+    def log_loss(self,A,y):
+        return 1 / len(y) * np.sum(-y * np.log(A) - (1-y)*np.log(1-A))
+
+    def predict(self,X_):
+        A = np.c_[X_,np.ones(X_.shape[0])]
+        for l in range(self.c):
+            A = self.sigmoid(np.dot(A,self.W[l]))
+        return A
+
+    def forward(self,X_):
+        A = np.c_[X_,np.ones(X_.shape[0])]
+        A = [np.atleast_2d(A)] # x en colonne
+        for l in range(self.c):
+            a = self.sigmoid(np.dot(A[l],self.W[l]))
+            A.append(a)
+        return A
+
+    def fit(self, X_, y_):
+        A = self.forward(X_)
+
+    def backward(self,A_,y_):
+        error = A_[-1] - y_
+        print('$$$$$$')
+        print(A_[-1])
+        print('y',y_)
+        print('error',error)
+        D = [error * self.sigmoid_prime(A_[-1])]
+        print('dérivées partielles : ',D)
+        for l in np.arange(len(A_) - 2, 0, -1):
+            delta = D[-1].dot(self.W[l].T)
+            delta = delta * self.sigmoid_prime(A_[l])
+            D.append(delta)
+        print('de0',D)
+        D = D[::-1]
+        print('de1',D)
+        for l in np.arange(0, self.c):
+            print(A_[l].shape,D[l].shape)
+            self.W[l] += -self.lr * A_[l].T.dot(D[l])
+
 class NNs_ep():
     def __init__(self,layers, alpha_=0.1) -> None:
         self.layers = layers
@@ -24,9 +84,11 @@ class NNs_ep():
         return x * (1 - x)
 
     def fit(self, X, y, epochs=1000, displayUpdate=100):
-        X = np.c_[X, np.ones((X.shape[0]))]
+        X = np.c_[X, np.ones((X.shape[0]))] # [Xi,1]
         for epoch in np.arange(0, epochs):
-            for (x, target) in zip(X, y):
+            print('zip',zip(X,y))
+            for (x, target) in zip(X, y): # [ (Xi,yi) ]
+                print(x,target)
                 self.fit_partial(x, target)
             # if epoch == 0 or (epoch + 1) % displayUpdate == 0:
             #     loss = self.calculate_loss(X, y)
@@ -34,18 +96,26 @@ class NNs_ep():
 			# 	# print("[INFO] epoch={}, loss={:.7f}".format(epoch + 1, loss))
     
     def fit_partial(self, x, y):
-        A = [np.atleast_2d(x)]
+        A = [np.atleast_2d(x)] # x en colonne
         for layer in np.arange(0, len(self.W)):
             net = A[layer].dot(self.W[layer])
             out = self.sigmoid(net)
             A.append(out)
+        print('base A',A)
         error = A[-1] - y
+        print('$$$$$$')
+        print(A[-1])
+        print('y',y)
+        print('error',error)
         D = [error * self.sigmoid_deriv(A[-1])]
+        print('D',D)
+        print('len A',len(A))
         for layer in np.arange(len(A) - 2, 0, -1):
             delta = D[-1].dot(self.W[layer].T)
             delta = delta * self.sigmoid_deriv(A[layer])
             D.append(delta)
         D = D[::-1]
+        print('base D, reverse',D)
         for layer in np.arange(0, len(self.W)):
             self.W[layer] += -self.alpha * A[layer].T.dot(D[layer])
 
