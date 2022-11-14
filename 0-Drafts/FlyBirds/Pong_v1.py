@@ -45,24 +45,29 @@ class DQNAgent():
         self.dim = _dim
         self.rem = 4
         self.size =80
+        self.EPOCHS = 10
+        # self.LR = 0.000025
+        self.LR = 0.0001
 
         self.obs_size = (self.rem,self.size,self.size) 
         self.memory = np.zeros(self.obs_size)
+        self.A_file, self.C_file, self.J_file = '', '', ''
 
-        self.Actor, self.Critic = nnK.myModel(input_shape=self.obs_size, action_space = self.dim, lr=0.000025)
+        self.Actor, self.Critic = nnK.myModel(input_shape=self.obs_size, action_space = self.dim, lr=self.LR)
 
         # self.replay_memory = deque(maxlen=REPLAY_MEMORY_SIZE)
         # self.target_update_counter = 0
 
-        self.obs, self.rewards, self.actions = [], [], []
+        self.obs, self.rewards, self.actions, self.predictions = [], [], [], []
         # self.pred = []
     
-    def record(self,o_,r_,a_,i_):
+    def record(self,o_,r_,a_,i_,p_):
         self.obs.append(o_)
         self.rewards.append(r_)
         a_r = np.zeros([self.dim])
         a_r[a_] = 1
         self.actions.append(a_r)
+        self.predictions.append(p_)
 
     def discount_rewards(self, r):
         discounted_r = np.zeros_like(r)
@@ -82,31 +87,36 @@ class DQNAgent():
 
     def act(self, state):
         # Use the network to predict the next action to take, using the model
-        prediction = self.Actor.predict(state,verbose=0,)[0]
+        prediction = self.Actor.predict(state,verbose=0)[0]
         # self.pred.append(prediction)
         action = np.random.choice(self.dim, p=prediction)
-        return action
+        return action, prediction
 
     def replay(self):
         # print('obs/actions')
         start=tm.time()
         obs = np.vstack(self.obs)
         actions = np.vstack(self.actions)
+        predictions = np.vstack(self.predictions)
         delta = []
         start = cpt_elapse(start,delta)
         # dicount rewards by gamma
-        rewards = self.discount_rewards(self.rewards)
+        # rewards = self.discount_rewards(self.rewards) #v0
+        rewards = np.vstack(self.discount_rewards(self.rewards))
         start = cpt_elapse(start,delta)
-        values = self.Critic.predict(obs,verbose=0)[:,0]
+        values = self.Critic.predict(obs,verbose=0)  #[:,0]
         avantages = rewards - values
+        y_true = np.hstack([avantages, predictions, actions])
+        print(y_true.shape,obs.shape)
         start = cpt_elapse(start,delta)
-        h_A = self.Actor.fit(obs,actions,sample_weight= [avantages],epochs=1,verbose=0)
+        # h_A = self.Actor.fit(obs,actions,sample_weight= [avantages],epochs=1,verbose=0)
+        h_A = self.Actor.fit(obs,y_true,epochs=self.EPOCHS,batch_size=len(self.rewards),verbose=0,shuffle=True)
         start = cpt_elapse(start,delta)
-        h_C = self.Critic.fit(obs,rewards,epochs=1, verbose=0)
+        h_C = self.Critic.fit(obs,rewards,epochs=self.EPOCHS, verbose=0,batch_size=len(self.rewards),shuffle=True)
         start = cpt_elapse(start,delta)
         print(f'prep/rew/cpt/actor/critic : {delta}')
         # reset des tableaux
-        self.obs, self.rewards, self.actions = [], [], []
+        self.obs, self.rewards, self.actions, self.predictions = [], [], [], []
         # self.pred = []
         return h_A,h_C
 
@@ -195,13 +205,13 @@ def cpt_elapse(start,delta):
 
 def load_agent(agent):
     print("load Actor/Critic")
-    agent.Actor = nnK.load_model('pongActor_voff1.h5',compile=True)
-    agent.Critic = nnK.load_model('pongCritic_voff1.h5',compile=True)
-
+    agent.Actor = nnK.load_model(agent.A_file,compile=False)
+    agent.Critic = nnK.load_model(agent.C_file,compile=True)
+    agent.Actor = nnK.comp(agent.Actor,agent.LR)
 def save_agent(agent):
     print("Save Actor/Critic")
-    agent.Actor.save('pongActor_voff1.h5')
-    agent.Critic.save('pongCritic_voff1.h5')
+    agent.Actor.save(agent.A_file)
+    agent.Critic.save(agent.C_file)
 
 class epPlot():
     def __init__(self,width_,height_,**kwargs) -> None:
@@ -271,14 +281,31 @@ class epPlot():
             else:
                 gfx.vline(self.s,x,y0,y1,color)
         return self.s
+
+    def etoile(self,data_):
+        data = np.array(data_)
+        sum = np.sum(data,axis=1)
+        m = np.average(sum)*1.3
+        n = data.shape[0]
+        a = 2*math.pi / n
+        x0 = self.w // 2
+        y0 = self.h // 2
+        for i in range(n):
+            x1 = int(x0 + data[i][0]/m*x0*math.cos(a*i))
+            y1 = int(y0 + data[i][0]/m*x0*math.sin(a*i))
+            if i==n-1:
+                gfx.line(self.s,x0,y0,x1,y1,(0,0,255,255))
+            else:
+                gfx.line(self.s,x0,y0,x1,y1,self.color)
+        return self.s
     
-def load_game():
-    with open("pong_voff1.json", "r") as read_file:
+def load_game(file):
+    with open(file, "r") as read_file:
         return  json.load(read_file)
 
-def save_game(data):
+def save_game(data,file):
     print('Save info')
-    with open("pong_voff1.json", "w") as write_file:
+    with open(file, "w") as write_file:
         json.dump(data, write_file, cls=NumpyArrayEncoder)
 
 def display(message,win,font, x, y, **kwargs):
@@ -290,7 +317,11 @@ def display(message,win,font, x, y, **kwargs):
     win.blit(text, textRect)
 
 #---------------------------------------------------------------------------------------------------
-def main() -> int:
+def main(load=False,**kwargs) -> int:
+    #load param
+    A_file = kwargs.get('A_file','pong_Adef.h5')
+    C_file = kwargs.get('C_file','pong_Cdef.h5')
+    J_file = kwargs.get('J_file','pong_Jdef.json')
     # init pygame avec la fenetre win
     ga.init()
     win = ga.display.set_mode([width,height])
@@ -298,6 +329,7 @@ def main() -> int:
     Graph = epPlot(G_w,G_h,color=(210,210,210,255), bkcolor=(0,0,60,255))
     Graph2 = epPlot(G_w,50,color=(170,170,170,255), bkcolor=(0,0,60,255))
     Graph3 = epPlot(D_w,70,color=(170,170,170,255), bkcolor=(0,0,60,255))
+    Graph4 = epPlot(D_w,200,color=(170,170,170,255), bkcolor=(0,0,60,255))
     h_A, h_C = None, None
 
     message = ga.freetype.SysFont("freesansbold.ttf", 14, bold=False, italic=False) # couriernew
@@ -316,17 +348,20 @@ def main() -> int:
     info_game = {}
     hist_A, hist_C, cycles, elapse = [], [], [], []
 
-    blob = gym.make('ALE/Pong-v5',render_mode = 'rgb_array') # 'human'
+    blob = gym.make('PongDeterministic-v4',render_mode = 'rgb_array') # 'human'
     blob.seed(0) # print(blob.action_space)
     N_ACTIONS = blob.action_space.n
     agent  = DQNAgent(N_ACTIONS)
-    load_agent(agent)
-    #vep à supp
-    info_game = load_game()
-    info_score = info_game['score']
+    agent.A_file = A_file
+    agent.C_file = C_file
+    agent.J_file = J_file
+    if load:
+        load_agent(agent)
+        info_game = load_game(agent.J_file)
+        info_score = info_game['score']
     game = len(info_score)
     for key in info_game:
-        print(key)
+        # print(key)
         if key == 'lossActor':
             hist_A = info_game['lossActor']
         if key == 'lossCritic':
@@ -339,6 +374,7 @@ def main() -> int:
     graphe_s = Graph.plot(info_score)
     graphe_s2 = Graph2.bar([1],lo=0)
     graphe_s3 = Graph3.bar([1])
+    graphe_s4 = Graph4.etoile([[10,10]])
 
     #init round 0
     state, info = blob.reset()
@@ -378,7 +414,7 @@ def main() -> int:
                     graphe_s = Graph.plot(info_score)
 
         cycle += 1
-        action = agent.act(obs)
+        action, prediction = agent.act(obs)
         # - apply action
         state, r, done, _, info = blob.step(action)
         score += r
@@ -386,7 +422,7 @@ def main() -> int:
         if r ==  1: score_P+=1
         new_obs = agent._Obs(state)
         # - record
-        agent.record(obs,r,action,info)
+        agent.record(obs,r,action,info,prediction)
         actions_record.append(action)
         obs = new_obs
         # Print Info
@@ -414,10 +450,12 @@ def main() -> int:
             # win.blit(graphe_s,(25,(height-G_h)//2))
             if len(cycles)>0:
                 graphe_s2 = Graph2.bar(cycles,lo=0)
+                graphe_s4 = Graph4.etoile(elapse)
             display('(c) eCoucou',win,font,width-60,height-7,fontsize=10)
             win.blit(graphe_s,(15,25))
             win.blit(graphe_s2,(15,(height-70)))
             win.blit(graphe_s3,(15+10+G_w,185))
+            win.blit(graphe_s4,(15+10+G_w,185+70+10))
             ga.display.flip()
         if done:
             info_score.append(score)
@@ -441,10 +479,10 @@ def main() -> int:
             game += 1
             save_agent(agent)
             info_game= {'score':info_score, 'game': game, 'lossActor':hist_A, 'lossCritic': hist_C, 'elapse': elapse, 'cycles': cycles}
-            save_game(info_game)
+            save_game(info_game,agent.J_file)
             delta, actions_record, score, cycle ,score_C, score_P = [], [], 0, 0, 0, 0
         # ga.time.wait(20)
     return 0
 ##
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main(True,A_file='00_Actor.h5',C_file='00_Critic.h5',J_file='00_Game.json'))
