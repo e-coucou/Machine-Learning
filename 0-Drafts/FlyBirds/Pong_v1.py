@@ -37,10 +37,6 @@ class NumpyArrayEncoder(JSONEncoder):
 
 class DQNAgent():
     def __init__(self,_dim,gamma_=0.99) -> None:
-        # self.actor = nn.NN_ep([0],[1],[625,200,2],0.01)
-        # brain_ = self.actor.copy()
-        # self.critic = nn.NN_ep([0],[1],[625,200,2],0.01)
-        # self.critic.W = brain_
         self.gamma = gamma_
         self.dim = _dim
         self.rem = 4
@@ -55,11 +51,7 @@ class DQNAgent():
 
         self.Actor, self.Critic = nnK.myModel(input_shape=self.obs_size, action_space = self.dim, lr=self.LR)
 
-        # self.replay_memory = deque(maxlen=REPLAY_MEMORY_SIZE)
-        # self.target_update_counter = 0
-
         self.obs, self.rewards, self.actions, self.predictions = [], [], [], []
-        # self.pred = []
     
     def record(self,o_,r_,a_,i_,p_):
         self.obs.append(o_)
@@ -85,29 +77,24 @@ class DQNAgent():
         discounted_r *= np.std(discounted_r)
         return discounted_r
 
-    def act(self, state):
-        # Use the network to predict the next action to take, using the model
-        prediction = self.Actor.predict(state,verbose=0)[0]
-        # self.pred.append(prediction)
+    def act(self, state): # On utilise le réseau de Neurone pour déterminer l'action du joueur
+        prediction = self.Actor.predict(state,verbose='0')[0]
         action = np.random.choice(self.dim, p=prediction)
         return action, prediction
 
-    def replay(self):
-        # print('obs/actions')
+    def replay(self): # après chaque partie on rejoue chaque action en entrainant le modele (actor vs critic)
         start=tm.time()
         obs = np.vstack(self.obs)
         actions = np.vstack(self.actions)
         predictions = np.vstack(self.predictions)
         delta = []
         start = cpt_elapse(start,delta)
-        # dicount rewards by gamma
-        # rewards = self.discount_rewards(self.rewards) #v0
         rewards = np.vstack(self.discount_rewards(self.rewards))
         start = cpt_elapse(start,delta)
-        values = self.Critic.predict(obs,verbose=0)  #[:,0]
+        values = self.Critic.predict(obs,verbose='0')  #[:,0]
         avantages = rewards - values
         y_true = np.hstack([avantages, predictions, actions])
-        print(y_true.shape,obs.shape)
+        # print(y_true.shape,obs.shape)
         start = cpt_elapse(start,delta)
         # h_A = self.Actor.fit(obs,actions,sample_weight= [avantages],epochs=1,verbose=0)
         h_A = self.Actor.fit(obs,y_true,epochs=self.EPOCHS,batch_size=len(self.rewards),verbose=0,shuffle=True)
@@ -268,7 +255,7 @@ class epPlot():
     def bar(self,data,**kwargs):
         gfx.box(self.s,self.c,self.bkcolor)
         lo = kwargs.get('lo',min(data))
-        hi = kwargs.get('hi',max(data)*1.05)
+        hi = kwargs.get('hi',max(data)*1.05+0.01)
         color = kwargs.get('color',self.color)
         SCALE = self.h/(hi-lo)
         l = kwargs.get('largeur',1)
@@ -283,9 +270,10 @@ class epPlot():
         return self.s
 
     def etoile(self,data_):
+        gfx.box(self.s,self.c,self.bkcolor)
         data = np.array(data_)
         sum = np.sum(data,axis=1)
-        m = np.average(sum)*1.3
+        m = np.average(sum)*2.0
         n = data.shape[0]
         a = 2*math.pi / n
         x0 = self.w // 2
@@ -293,10 +281,14 @@ class epPlot():
         for i in range(n):
             x1 = int(x0 + data[i][0]/m*x0*math.cos(a*i))
             y1 = int(y0 + data[i][0]/m*x0*math.sin(a*i))
+            x2 = int(x1 + data[i][1]/m*x0*math.cos(a*i))
+            y2 = int(y1 + data[i][1]/m*x0*math.sin(a*i))
             if i==n-1:
                 gfx.line(self.s,x0,y0,x1,y1,(0,0,255,255))
+                gfx.line(self.s,x1,y1,x2,y2,(255,255,0,255))
             else:
                 gfx.line(self.s,x0,y0,x1,y1,self.color)
+                gfx.line(self.s,x1,y1,x2,y2,(255,255,0,255))
         return self.s
     
 def load_game(file):
@@ -316,6 +308,37 @@ def display(message,win,font, x, y, **kwargs):
     textRect.center = (x, y)
     win.blit(text, textRect)
 
+#-----------------------------------------------------
+def train():
+    pass
+#--------------------------
+def run(**kwargs):
+    A_file = kwargs.get('A_file','pong_Adef.h5')
+    C_file = kwargs.get('C_file','pong_Cdef.h5')
+    blobP = gym.make('PongDeterministic-v4',render_mode = 'human') # 'human'
+    # blobP = gym.make('ALE/Pong-v5',render_mode = 'human') # 'human'
+    blobP.seed(0) # print(blob.action_space)
+    N_ACTIONS = blobP.action_space.n
+    agent  = DQNAgent(N_ACTIONS)
+    agent.A_file = A_file
+    agent.C_file = C_file
+    load_agent(agent)
+    ga.init()
+    state, _ = blobP.reset()
+    obs = agent.reset(state)
+    live = True
+    while live:
+        for event in ga.event.get():
+            if event.type == ga.QUIT:
+                live = False
+            if event.type == ga.KEYDOWN:
+                if event.key == ga.K_ESCAPE:
+                    live = False
+        action, _ = agent.act(obs)
+        state, _, done, _, _ = blobP.step(action)
+        obs = agent._Obs(state)
+        if done: live=False
+
 #---------------------------------------------------------------------------------------------------
 def main(load=False,**kwargs) -> int:
     #load param
@@ -327,9 +350,9 @@ def main(load=False,**kwargs) -> int:
     win = ga.display.set_mode([width,height])
     # surface= ga.Surface([width,height],ga.SRCALPHA)
     Graph = epPlot(G_w,G_h,color=(210,210,210,255), bkcolor=(0,0,60,255))
-    Graph2 = epPlot(G_w,50,color=(170,170,170,255), bkcolor=(0,0,60,255))
+    Graph2 = epPlot(G_w,60,color=(170,170,170,255), bkcolor=(0,0,60,255))
     Graph3 = epPlot(D_w,70,color=(170,170,170,255), bkcolor=(0,0,60,255))
-    Graph4 = epPlot(D_w,200,color=(170,170,170,255), bkcolor=(0,0,60,255))
+    Graph4 = epPlot(D_w,D_w,color=(170,170,170,255), bkcolor=(0,0,60,255))
     h_A, h_C = None, None
 
     message = ga.freetype.SysFont("freesansbold.ttf", 14, bold=False, italic=False) # couriernew
@@ -348,7 +371,8 @@ def main(load=False,**kwargs) -> int:
     info_game = {}
     hist_A, hist_C, cycles, elapse = [], [], [], []
 
-    blob = gym.make('PongDeterministic-v4',render_mode = 'rgb_array') # 'human'
+    # blob = gym.make('PongDeterministic-v4',render_mode = 'rgb_array') # 'human'
+    blob = gym.make('ALE/Pong-v5',render_mode = 'rgb_array') # 'human'
     blob.seed(0) # print(blob.action_space)
     N_ACTIONS = blob.action_space.n
     agent  = DQNAgent(N_ACTIONS)
@@ -431,31 +455,31 @@ def main(load=False,**kwargs) -> int:
             dT = round((tm.time() - startCycle))
             moyenne = sum(info_score[-50:]) / max(len(info_score[-50:]),1)
             mess_nour = 'Partie #' + str(int(game)) + '   -> ' +str(dT)+' s'
-            display(mess_nour, win, font, 850, 30)
+            display(mess_nour, win, font, 850, 10)
             # message.render_to(win, (width-250, 30), mess_nour, (255,255,255,255))
             mess_nour = 'Cycles : [' + str(cycle)+']'
-            display(mess_nour, win, font, 850, 55)
+            display(mess_nour, win, font, 850, 33)
             mess_nour = 'Score : ' + str(int(score)) + ' § ['+str(round(moyenne*100)/100)+']'
-            display(mess_nour, win, font, 850, 80)
+            display(mess_nour, win, font, 850, 56)
             mess_nour = '/ ' + str(int(score_C)) + '  vs  ' + str(int(score_P)) + ' \\'
-            display(mess_nour, win, font, 850, 110, fontsize=32)
+            display(mess_nour, win, font, 850, 88, fontsize=32)
             graphe_s = Graph.plot(info_score,score,echLO=score_P-21,echHI=21-score_C,moyenne=moyenne)
             # graphe_s3 = Graph3.bar([ 79,454, 250, 167, 311, 411],lo=0,largeur=(D_w//6)) ## TEST
             if h_A != None:
                 mess_nour = 'loss Actor ' + str(round(h_A.history['loss'][0]*100000)/100000.0)
-                display(mess_nour, win, font, 850, 140)
+                display(mess_nour, win, font, 850, 121)
             if h_C != None:
                 mess_nour = 'loss Critic ' + str(round(h_C.history['loss'][0]*100000)/100000.0)
-                display(mess_nour, win, font, 850, 165)
+                display(mess_nour, win, font, 850, 141)
             # win.blit(graphe_s,(25,(height-G_h)//2))
             if len(cycles)>0:
                 graphe_s2 = Graph2.bar(cycles,lo=0)
                 graphe_s4 = Graph4.etoile(elapse)
             display('(c) eCoucou',win,font,width-60,height-7,fontsize=10)
-            win.blit(graphe_s,(15,25))
-            win.blit(graphe_s2,(15,(height-70)))
-            win.blit(graphe_s3,(15+10+G_w,185))
-            win.blit(graphe_s4,(15+10+G_w,185+70+10))
+            win.blit(graphe_s,(15,15))
+            win.blit(graphe_s2,(15,(height-75)))
+            win.blit(graphe_s3,(15+10+G_w,158))
+            win.blit(graphe_s4,(15+10+G_w,168+70+1))
             ga.display.flip()
         if done:
             info_score.append(score)
@@ -483,6 +507,7 @@ def main(load=False,**kwargs) -> int:
             delta, actions_record, score, cycle ,score_C, score_P = [], [], 0, 0, 0, 0
         # ga.time.wait(20)
     return 0
-##
+######
 if __name__ == '__main__':
-    sys.exit(main(True,A_file='00_Actor.h5',C_file='00_Critic.h5',J_file='00_Game.json'))
+    sys.exit(main(True,A_file='a00_Actor.h5',C_file='a00_Critic.h5',J_file='a00_Game.json'))
+    # sys.exit(run(A_file='00_Actor.h5',C_file='00_Critic.h5'))

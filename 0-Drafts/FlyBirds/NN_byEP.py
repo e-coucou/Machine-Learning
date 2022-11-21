@@ -43,5 +43,7 @@ def main() -> int:
 
     W = NN.backward(A_ep,y)
 
+    return(0)
+
 if __name__ == '__main__':
     sys.exit(main())
