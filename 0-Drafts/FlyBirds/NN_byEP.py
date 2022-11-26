@@ -22,7 +22,7 @@ def main() -> int:
     # X = np.c_[ X, np.ones((2))]
     # print(X)
 
-    print('Nombre de couche du réseu : ', NN.c)
+    print('Nombre de couche du réseau : ', NN.c)
     for i in range(NN.c):
         print(i,NN.W[i].shape,NN.W[i])
 
