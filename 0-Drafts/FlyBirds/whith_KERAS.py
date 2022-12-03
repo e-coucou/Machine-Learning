@@ -29,7 +29,7 @@ def main():
     # plt.scatter(X[:,0],X[:,1],c=y,cmap='summer')    
 
     Ain = Input(X.shape[1])
-    A = Dense(32,activation='sigmoid')(Ain)
+    A = Dense(32,activation='ReLU')(Ain)
     Aout = Dense(1,activation='sigmoid')(A)
     model = Model(inputs=Ain, outputs=Aout)
     sgd = SGD(learning_rate=0.1, decay=1e-6, momentum=0.9, nesterov=True)

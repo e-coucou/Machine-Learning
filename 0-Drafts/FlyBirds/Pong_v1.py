@@ -13,6 +13,7 @@ import json
 import matplotlib.pyplot as plt
 import NN as nn
 import NN_keras as nnK
+import NN_rky as nnRky
 
 # import ga
 
@@ -49,7 +50,8 @@ class DQNAgent():
         self.memory = np.zeros(self.obs_size)
         self.A_file, self.C_file, self.J_file = '', '', ''
 
-        self.Actor, self.Critic = nnK.myModel(input_shape=self.obs_size, action_space = self.dim, lr=self.LR)
+        # self.Actor, self.Critic = nnK.myModel(input_shape=self.obs_size, action_space = self.dim, lr=self.LR)
+        self.Actor, self.Critic = nnRky.myModel(input_shape=self.obs_size, action_space = self.dim, lr=self.LR)
 
         self.obs, self.rewards, self.actions, self.predictions = [], [], [], []
     
@@ -501,7 +503,7 @@ def main(load=False,**kwargs) -> int:
             cycles.append(cycle)
             elapse.append(delta)
             game += 1
-            save_agent(agent)
+            # save_agent(agent)
             info_game= {'score':info_score, 'game': game, 'lossActor':hist_A, 'lossCritic': hist_C, 'elapse': elapse, 'cycles': cycles}
             save_game(info_game,agent.J_file)
             delta, actions_record, score, cycle ,score_C, score_P = [], [], 0, 0, 0, 0
@@ -509,5 +511,6 @@ def main(load=False,**kwargs) -> int:
     return 0
 ######
 if __name__ == '__main__':
-    sys.exit(main(True,A_file='a00_Actor.h5',C_file='a00_Critic.h5',J_file='a00_Game.json'))
+    sys.exit(main(False,A_file='aep0_Actor.h5',C_file='aep0_Critic.h5',J_file='aep0_Game.json'))
+    # sys.exit(main(True,A_file='a00_Actor.h5',C_file='a00_Critic.h5',J_file='a00_Game.json'))
     # sys.exit(run(A_file='00_Actor.h5',C_file='00_Critic.h5'))
