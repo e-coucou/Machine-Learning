@@ -1,4 +1,5 @@
 import numpy as np
+import h5py
 import math
 import sys
 import matplotlib.pyplot as plt
@@ -76,14 +77,14 @@ class none:
 class init():
     @staticmethod
     def normal(_in, _out):
-        W = np.random.randn(_in, _out)
+        W = np.random.randn(_in, _out) * np.sqrt(1/_in)
         b = np.zeros((1,_out))
         vdw = np.zeros((_in,_out))
         vdb = np.zeros((1,_out))
         return W, b, vdw, vdb
     def uniform(_in, _out):
-        print(_in,_out)
-        W = np.random.uniform(-1,1,(_in, _out))
+        # print('uniform',_in,_out)
+        W = np.random.uniform(-1,1,(_in, _out)) * np.sqrt(2/_in)
         b = np.zeros((1,_out))
         vdw = np.zeros((_in,_out))
         vdb = np.zeros((1,_out))
@@ -144,6 +145,7 @@ class layer():
         def __init__(self,_in,_out, _activation,_initialisation):
             self.W , self.b, self.vdw, self.vdb = eval(_initialisation)(_in, _out)
             self.a = _activation
+            self.back = True
         
         def forward(self,_X):
             self.X = _X
@@ -166,13 +168,14 @@ class layer():
             self.W , self.b, self.vdw, self.vdb = [],[],[],[]
             self.a = 'none'
             self.dim = np.prod(_in)
+            self.back = False
         def forward(self, _X):
             d=_X.shape[0]
             return _X.reshape(d,-1)
         def predict(self,_X):
             return self.forward(_X)
         def update(self,dw,db,lr,_,epoch=1):
-            pass
+            print('ici ....')
 
 class CategoricalCrossEntropy():
     def __init__(self, a, y_true,_m):
@@ -184,6 +187,14 @@ class CategoricalCrossEntropy():
     # def backward(self):
     #     delta = self.y_predict - self.y_true
     #     return delta
+class MSE():
+    def __init__(self, p, y, _m):
+        self.p = p
+        self.y = y
+        self.m = _m
+    def forward(self):
+        m = self.p.shape[0]
+        return (1 / m) * (np.sum(np.square(self.y - self.p)))
 class BinaryCrossEntropy:
     def __init__(self, p, y,_m):
         self.p = p
@@ -197,9 +208,12 @@ class BinaryCrossEntropy:
         delta = self.p - self.y
         return delta
 
-def shuffle(a,b):
+def Shuffle(a,b,c=None):
     p = np.random.permutation(len(a))
-    return a[p], b[p]
+    if c==None:
+        return a[p], b[p]
+    else:
+        return a[p], b[p], c[p]
 
 class sequentiel():
     def __init__(self, **kwargs):
@@ -225,34 +239,47 @@ class sequentiel():
         self.lossFCT = _loss
 
     def fit(self,_X,_y,batch_size=32,epochs=100, **kwargs):
-        print('- Fit ------')
+        # print('- Fit ------')
+        shuffle = kwargs.get('shuffle',False)
+        sample_weight = kwargs.get('sample_weight',[])
         self.loss, self.accuracy = [], []
         m = _X.shape[0]
         nb = m // batch_size
         a, y = [], []
         for idx in ProgressDisplay(range(epochs)):
+            # print('idx',idx)
             for b in range(nb):
                 k=b*batch_size
                 l=k+batch_size
                 a = _X[k:l]
                 y = _y[k:l]
-                a, y = shuffle(a, y)
+                if len(sample_weight)!=0:
+                    sw = sample_weight[k:l]
+                    if shuffle:
+                        a, y ,sw = Shuffle(a, y, sw)
+                else:
+                    if shuffle:
+                        a, y = Shuffle(a, y)
                 _A, _Z = [], []
                 _A.append(a)
-                #forward
+                # forward -----
                 for n, layer in enumerate(self.layers):
                     z = layer.forward(a)
                     a = eval(layer.a).activation(z)
                     _A.append(a)
                     _Z.append(z)
-                diff = a - y
-                #backward
+                lossFCT=MSE(a,y,0)
+                loss= lossFCT.forward()
+                diff = (a - y)
+                # backward -----
                 for i in reversed(range(0,n+1)):
-                    dw = (1 / m) * np.dot(_A[i].T,diff)
-                    db = (1 / m) * np.sum(diff,keepdims=True)
-                    if i>0:
-                        diff =np.dot( diff, self.layers[i].W.T) * eval(self.activations[i-1]).prime(_Z[i-1])
-                    self.layers[i].update(dw,db,self.lr,self.optimiseur,i)
+                    if self.layers[i].back:
+                        if len(sample_weight)!=0: diff *=sw
+                        dw = (1 / m) * np.dot(_A[i].T,diff)
+                        db = (1 / m) * np.sum(diff,keepdims=True)
+                        if i>0:
+                            diff =np.dot( diff, self.layers[i].W.T) * eval(self.activations[i-1]).prime(_Z[i-1])
+                        self.layers[i].update(dw,db,self.lr,self.optimiseur,i)
             if self.metrics:
                 if idx%10:
                     # loss = eval(self.lossFCT)(a,y,m)
@@ -262,6 +289,34 @@ class sequentiel():
                     # accuracy = accuracy_score(y.flatten(),a.flatten())
                     self.loss.append(cost)
                     self.accuracy.append(accuracy)
+        hist=Hist()
+        hist.history['loss']=[loss]
+        return hist
+    def save(self,fichier):
+        h5File = h5py.File(fichier, 'w')
+        h5File.create_dataset('dataset_1',data=np.array(self.layers,dtype=np.str0))
+        h5File.create_dataset('activation',self.activations)
+        h5File.create_dataset('loss',self.loss)
+        i=0
+        for layer in self.layers:
+            name = 'layer'+i+'W'
+            h5File.create_dataset(name,layer.W)
+            name = 'layer'+i+'b'
+            h5File.create_dataset(name,layer.b)
+            name = 'layer'+i+'vwd'
+            h5File.create_dataset(name,layer.vdw)
+            name = 'layer'+i+'vdb'
+            h5File.create_dataset(name,layer.vdb)
+            name = 'layer'+i+'a'
+            h5File.create_dataset(name,layer.a)
+            name = 'layer'+i+'back'
+            h5File.create_dataset(name,layer.back)
+            i += 1
+        h5File.close()
+
+class Hist():
+    def __init__(self):
+        self.history = {}
 
 def main():
     (X_train, y_train), (X_test, y_test) = mnist.load_data()
@@ -345,17 +400,16 @@ def confusion_matrix(p,y,dim):
 
 def myModel(input_shape, action_space, lr):
     d=np.prod(input_shape)
-    print(input_shape, action_space,d)
     Actor = sequentiel(metrics=True)
     Actor.add(layer.flatten(input_shape,d,_activation='none',_initialisation='init.zero'))
     Actor.add(layer.dense(d,512,_activation='elu',_initialisation='init.uniform'))
-    Actor.add(layer.dense(512,action_space,_activation='softmax',_initialisation='init.normal'))
-    Actor.compile(_lr=lr,_optimiseur='RMSprop',_loss='BinaryCrossEntropy')
+    Actor.add(layer.dense(512,action_space,_activation='softmax',_initialisation='init.uniform'))
+    Actor.compile(_lr=lr,_optimiseur='RMSprop',_loss='CategoricalCrossEntropy')
 
     Critic = sequentiel(metrics=True)
     Critic.add(layer.flatten(input_shape,d,_activation='none',_initialisation='init.zero'))
     Critic.add(layer.dense(d,512,_activation='elu',_initialisation='init.uniform'))
-    Critic.add(layer.dense(512,1,_activation='softmax',_initialisation='init.normal'))
+    Critic.add(layer.dense(512,1,_activation='sigmoid',_initialisation='init.uniform'))
     Critic.compile(_lr=lr,_optimiseur='RMSprop',_loss='BinaryCrossEntropy')
 
     return Actor, Critic

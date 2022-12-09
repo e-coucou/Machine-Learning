@@ -42,8 +42,8 @@ def myModel(input_shape, action_space, lr):
     Critic.compile(loss='mse', optimizer=RMSprop(learning_rate=lr))
 
     # print(Actor.summary())
-    # print(Critic.summary())
-
+    # print(Critic.summary()) 
+    Actor.fit()
     return Actor, Critic
 
 def ppo_loss(y_true, y_pred):

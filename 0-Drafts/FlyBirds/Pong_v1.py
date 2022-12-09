@@ -44,7 +44,7 @@ class DQNAgent():
         self.size =80
         self.EPOCHS = 10
         # self.LR = 0.000025
-        self.LR = 0.0001
+        self.LR = 0.00025
 
         self.obs_size = (self.rem,self.size,self.size) 
         self.memory = np.zeros(self.obs_size)
@@ -95,13 +95,17 @@ class DQNAgent():
         start = cpt_elapse(start,delta)
         values = self.Critic.predict(obs,verbose='0')  #[:,0]
         avantages = rewards - values
-        y_true = np.hstack([avantages, predictions, actions])
-        # print(y_true.shape,obs.shape)
+        # y_true = np.hstack([avantages, predictions, actions])
+        y_true = np.hstack([actions])
         start = cpt_elapse(start,delta)
-        # h_A = self.Actor.fit(obs,actions,sample_weight= [avantages],epochs=1,verbose=0)
-        h_A = self.Actor.fit(obs,y_true,epochs=self.EPOCHS,batch_size=len(self.rewards),verbose=0,shuffle=True)
+        # h_A = self.Actor.fit(obs,actions,epochs=1,batch_size=128,verbose=0,suffle=False)
+        h_A = self.Actor.fit(obs,actions,sample_weight= avantages,epochs=1,batch_size=128,verbose=0,suffle=False)
+        # print(y_true.shape,avantages.shape,predictions.shape,actions.shape)
+        # h_A = self.Actor.fit(obs,y_true,epochs=self.EPOCHS,batch_size=len(self.rewards),verbose=0,shuffle=True)
         start = cpt_elapse(start,delta)
-        h_C = self.Critic.fit(obs,rewards,epochs=self.EPOCHS, verbose=0,batch_size=len(self.rewards),shuffle=True)
+        h_C = self.Critic.fit(obs,rewards,epochs=1, verbose=0,batch_size=128,shuffle=False)
+        # h_C = h_A
+        # h_C = self.Critic.fit(obs,rewards,epochs=self.EPOCHS, verbose=0,batch_size=len(self.rewards),shuffle=True)
         start = cpt_elapse(start,delta)
         print(f'prep/rew/cpt/actor/critic : {delta}')
         # reset des tableaux
@@ -373,8 +377,8 @@ def main(load=False,**kwargs) -> int:
     info_game = {}
     hist_A, hist_C, cycles, elapse = [], [], [], []
 
-    # blob = gym.make('PongDeterministic-v4',render_mode = 'rgb_array') # 'human'
-    blob = gym.make('ALE/Pong-v5',render_mode = 'rgb_array') # 'human'
+    blob = gym.make('PongDeterministic-v4',render_mode = 'rgb_array') # 'human'
+    # blob = gym.make('ALE/Pong-v5',render_mode = 'rgb_array') # 'human'
     blob.seed(0) # print(blob.action_space)
     N_ACTIONS = blob.action_space.n
     agent  = DQNAgent(N_ACTIONS)
@@ -497,7 +501,6 @@ def main(load=False,**kwargs) -> int:
             obs = agent.reset(state)
             start = cpt_elapse(start,delta)
             startCycle = start
-            print(delta)
             hist_A.append(h_A.history['loss'][0])
             hist_C.append(h_C.history['loss'][0])
             cycles.append(cycle)
@@ -511,6 +514,6 @@ def main(load=False,**kwargs) -> int:
     return 0
 ######
 if __name__ == '__main__':
-    sys.exit(main(False,A_file='aep0_Actor.h5',C_file='aep0_Critic.h5',J_file='aep0_Game.json'))
+    sys.exit(main(False,A_file='epNN000_Actor.h5',C_file='epNN000.h5',J_file='aep0_Game.json'))
     # sys.exit(main(True,A_file='a00_Actor.h5',C_file='a00_Critic.h5',J_file='a00_Game.json'))
     # sys.exit(run(A_file='00_Actor.h5',C_file='00_Critic.h5'))
