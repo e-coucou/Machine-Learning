@@ -2,6 +2,7 @@ import numpy as np
 import h5py
 import math
 import sys
+import tensorflow as tf
 import matplotlib.pyplot as plt
 # import seaborn as sn
 from keras.datasets import mnist
@@ -61,8 +62,24 @@ class tanh():
 class softmax:
     @staticmethod
     def activation(x):
-        e_x = np.exp(x - np.max(x,axis=-1).reshape(-1,1)) 
+        # e_x = np.exp(x).reshape(-1,1)
+        e_x = np.exp(x - np.max(x,axis=-1).reshape(-1,1))
         return e_x / e_x.sum(axis=-1).reshape(-1,1)
+    @staticmethod
+    def primeP(y): #marche pas
+        n = y.shape[1]
+        print(n,y.shape)
+        i = np.identity(n)
+        un = np.ones((n,y.shape[1]))
+        SM = y.reshape((-1,1))
+        print(SM.shape)
+        jac = np.diagflat(y) - np.dot(SM, SM.T)
+        j = np.dot((i* jac),un)
+        # x = np.dot(jac,y.T)
+        return j.T
+    @staticmethod
+    def prime(y):
+        return(y * (1-y))
 class ep:
     @staticmethod
     def activation(_X):
@@ -82,6 +99,7 @@ class init():
         vdw = np.zeros((_in,_out))
         vdb = np.zeros((1,_out))
         return W, b, vdw, vdb
+    @staticmethod
     def uniform(_in, _out):
         # print('uniform',_in,_out)
         W = np.random.uniform(-1,1,(_in, _out)) * np.sqrt(2/_in)
@@ -89,6 +107,7 @@ class init():
         vdw = np.zeros((_in,_out))
         vdb = np.zeros((1,_out))
         return W, b, vdw, vdb
+    @staticmethod
     def rand(_in, _out):
         W = np.random.randn(_in, _out) * np.sqrt(1/_in)
         b = np.zeros((1,_out))
@@ -179,20 +198,28 @@ class layer():
 
 class CategoricalCrossEntropy():
     def __init__(self, a, y_true,_m):
-        self.y_predict = a / np.sum(a,axis=-1)
-        self.y_true = y_true
+        self.p = a / np.sum(a,axis=-1)
+        self.y = y_true
         self.m = _m
-    def forward(self):
-        return (-1 / self.m) * np.sum((self.y_true * np.log(self.y_predict)))
-    # def backward(self):
-    #     delta = self.y_predict - self.y_true
-    #     return delta
+    def metrics(self): # -y.log(p)
+        m = self.p.shape[0]
+        return (-1 / m) * np.sum((self.y * np.log(self.p+1e-8)))
+    def forward(self): # -y.log(p)
+        m = self.p.shape[0]
+        return np.sum((-self.y * np.log(self.p+1e-8)))
+    def backward(self):
+    # -y/p
+        return (-self.y/(self.p+1e-8))
 class MSE():
     def __init__(self, p, y, _m):
         self.p = p
         self.y = y
         self.m = _m
     def forward(self):
+        return (np.square(self.y - self.p))
+    def backward(self):
+        return (2*(self.y - self.p))
+    def metrics(self):
         m = self.p.shape[0]
         return (1 / m) * (np.sum(np.square(self.y - self.p)))
 class BinaryCrossEntropy:
@@ -200,13 +227,15 @@ class BinaryCrossEntropy:
         self.p = p
         self.y = y
         self.m = _m
-    def forward(self):
+    def metrics(self):
         m = self.p.shape[0]
         return (-1 / m) * (np.sum((self.y * np.log(self.p + 1e-8)) + ((1 - self.y) * (np.log(1 - self.p + 1e-8)))))
-
+    def forward(self):
+    # (-y.log(p) + (1-y).log(1-p))
+        return (-self.y * np.log(self.p + 1e-8)) + ((1 - self.y) * (np.log(1 - self.p + 1e-8)))
     def backward(self):
-        delta = self.p - self.y
-        return delta
+    # -y/p _ (1-y)/(1-p)
+        return (-self.y/(self.p+1e-8) + (1 - self.y)/(1 - self.p+1e-8))
 
 def Shuffle(a,b,c=None):
     p = np.random.permutation(len(a))
@@ -245,7 +274,8 @@ class sequentiel():
         self.loss, self.accuracy = [], []
         m = _X.shape[0]
         nb = m // batch_size
-        a, y = [], []
+        a, y , sw = [], [], []
+        loss=0
         for idx in ProgressDisplay(range(epochs)):
             # print('idx',idx)
             for b in range(nb):
@@ -268,13 +298,18 @@ class sequentiel():
                     a = eval(layer.a).activation(z)
                     _A.append(a)
                     _Z.append(z)
-                lossFCT=MSE(a,y,0)
-                loss= lossFCT.forward()
-                diff = (a - y)
-                # backward -----
+                # loss init backward
+                # if len(sample_weight)!=0: a *= sw
+                lossFCT = eval(self.lossFCT)(a,y,0)
+                loss = lossFCT.metrics()
+                # print(self.lossFCT, loss)
+                dL = lossFCT.backward()
+                da_dz = eval(self.activations[n]).prime(a)
+                diff = dL * da_dz
+                # diff = a - y
+                # backward pass-----
                 for i in reversed(range(0,n+1)):
                     if self.layers[i].back:
-                        if len(sample_weight)!=0: diff *=sw
                         dw = (1 / m) * np.dot(_A[i].T,diff)
                         db = (1 / m) * np.sum(diff,keepdims=True)
                         if i>0:
@@ -342,11 +377,11 @@ def main():
     # plt.scatter(X[:,0],X[:,1],c=y,cmap='summer')
 
     model = sequentiel(metrics=True)
-    model.add(layer.dense(X.shape[1],100,_activation='prelu',_initialisation='init.uniform'))
+    model.add(layer.dense(X.shape[1],100,_activation='relu',_initialisation='init.he'))
     # model.add(layer.dense(50,100,_activation='elu',_initialisation='init.he'))
     # model.add(layer.dense(100,32,_activation='relu',_initialisation='init.he'))
-    model.add(layer.dense(100,y.shape[1],_activation='softmax',_initialisation='init.normal'))
-    model.compile(_lr=0.006,_optimiseur='RMSprop',_loss='CategoricalCrossEntropy')
+    model.add(layer.dense(100,y.shape[1],_activation='softmax',_initialisation='init.he'))
+    model.compile(_lr=0.006,_optimiseur='RMSprop',_loss='BinaryCrossEntropy')
 
     # y_pred = model.predict(X)
     # print(y,(y_pred>0.5)*1)
@@ -404,7 +439,7 @@ def myModel(input_shape, action_space, lr):
     Actor.add(layer.flatten(input_shape,d,_activation='none',_initialisation='init.zero'))
     Actor.add(layer.dense(d,512,_activation='elu',_initialisation='init.uniform'))
     Actor.add(layer.dense(512,action_space,_activation='softmax',_initialisation='init.uniform'))
-    Actor.compile(_lr=lr,_optimiseur='RMSprop',_loss='CategoricalCrossEntropy')
+    Actor.compile(_lr=lr,_optimiseur='RMSprop',_loss='MSE')
 
     Critic = sequentiel(metrics=True)
     Critic.add(layer.flatten(input_shape,d,_activation='none',_initialisation='init.zero'))

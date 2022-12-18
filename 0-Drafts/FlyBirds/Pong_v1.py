@@ -44,7 +44,7 @@ class DQNAgent():
         self.size =80
         self.EPOCHS = 10
         # self.LR = 0.000025
-        self.LR = 0.00025
+        self.LR = 0.000025
 
         self.obs_size = (self.rem,self.size,self.size) 
         self.memory = np.zeros(self.obs_size)
@@ -99,11 +99,11 @@ class DQNAgent():
         y_true = np.hstack([actions])
         start = cpt_elapse(start,delta)
         # h_A = self.Actor.fit(obs,actions,epochs=1,batch_size=128,verbose=0,suffle=False)
-        h_A = self.Actor.fit(obs,actions,sample_weight= avantages,epochs=1,batch_size=128,verbose=0,suffle=False)
+        h_A = self.Actor.fit(obs,actions,sample_weight= avantages,epochs=1,batch_size=32,verbose=0,suffle=False)
         # print(y_true.shape,avantages.shape,predictions.shape,actions.shape)
         # h_A = self.Actor.fit(obs,y_true,epochs=self.EPOCHS,batch_size=len(self.rewards),verbose=0,shuffle=True)
         start = cpt_elapse(start,delta)
-        h_C = self.Critic.fit(obs,rewards,epochs=1, verbose=0,batch_size=128,shuffle=False)
+        h_C = self.Critic.fit(obs,rewards,epochs=1, verbose=0,batch_size=32,shuffle=False)
         # h_C = h_A
         # h_C = self.Critic.fit(obs,rewards,epochs=self.EPOCHS, verbose=0,batch_size=len(self.rewards),shuffle=True)
         start = cpt_elapse(start,delta)
