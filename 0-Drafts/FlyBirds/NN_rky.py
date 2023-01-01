@@ -46,6 +46,8 @@ def plot_mini_images(x, y, y_pred,indices,c,**kwargs):
         ax.set_xlabel(f'{y_pred[i]} ({y[i]})',fontsize=fontsize)
     plt.show()
 
+EPSILON = 1e-12
+
 class relu():
     @staticmethod
     def activation(x):
@@ -235,21 +237,20 @@ class layer():
 
 class CategoricalCrossEntropy():
     def __init__(self, a, y_true , _m, **kwargs):
-        self.p = a / np.sum(a,axis=-1,keepdims=True)
+        self.p = a / (np.sum(a,axis=-1,keepdims=True)+EPSILON)
         self.y = y_true
         self.m = _m
         self.sw = kwargs.get('sample_weight',1)
     def normalized(self,a,y_true):
-        self.p = a / np.sum(a)
-        self.y = y_true / np.sum(y_true)
-        self.c = self.y.shape[-1] #nb de class
+        self.p = a / (np.sum(a,axis=-1,keepdims=True)+EPSILON)
+        self.y = y_true
     def metrics(self): # -y.log(p)
         return (1 / self.m) * np.sum(self.forward())
     def forward(self): # -y.log(p)
-        return (-self.y * np.log(self.p+1e-8)) * self.sw
+        return (-self.y * np.log(self.p+EPSILON)) * self.sw
     def backward(self):
-    # -y/p
-        return (-self.y/(self.p+1e-8)) * self.sw
+        # -y/p
+        return (-self.y/(self.p+EPSILON)) * self.sw
 class MSE():
     def __init__(self, p, y, _m, **kwargs):
         self.p = p
@@ -279,17 +280,16 @@ class BinaryCrossEntropy:
         self.y = y
         self.c = self.y.shape[-1] #nb de class
     def metrics(self):
-        # r = (-1 / self.m) * (np.sum((self.y * np.log(self.p + 1e-8)) + ((1 - self.y) * (np.log(1 - self.p + 1e-8)))))/self.c
-        r = (1 / self.m) * np.sum(self.forward())
+        r = (1 / self.m) * np.sum(self.forward()) / self.c
         return r
     def forward(self):
     # (-y.log(p) - (1-y).log(1-p))
-        f = ((-self.y * np.log(self.p + 1e-8)) - ((1 - self.y) * (np.log(1 - self.p + 1e-8))))/self.c * self.sw
+        f = ((-self.y * np.log(self.p + EPSILON)) - ((1 - self.y) * (np.log(1 - self.p + EPSILON)))) * self.sw
         return f
     def backward(self):
     # -y/p + (1-y)/(1-p)
         # n = self.p.shape[0]
-        return (-self.y/(self.p+1e-8) + (1 - self.y)/(1 - self.p+1e-8)) * self.sw
+        return (-self.y/(self.p + EPSILON) + (1 - self.y)/(1 - self.p + EPSILON)) * self.sw 
 class ppo:
     def __init__(self,y_true, y_pred):
         self.action_space = 6
