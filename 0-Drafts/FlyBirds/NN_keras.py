@@ -36,14 +36,14 @@ def myModel(input_shape, action_space, lr):
 
     Actor = Model(inputs = X_input, outputs = action)
     # Actor.compile(loss='categorical_crossentropy', optimizer=RMSprop(learning_rate=lr))
-    Actor.compile(loss=ppo_loss, optimizer=RMSprop(learning_rate=lr))
+    Actor.compile(loss='categorical_crossentropy', optimizer=RMSprop(learning_rate=lr))
 
     Critic = Model(inputs = X_input, outputs = value)
     Critic.compile(loss='mse', optimizer=RMSprop(learning_rate=lr))
 
     # print(Actor.summary())
     # print(Critic.summary()) 
-    Actor.fit()
+    # Actor.fit()
     return Actor, Critic
 
 def ppo_loss(y_true, y_pred):

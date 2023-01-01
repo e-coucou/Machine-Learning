@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+import pickle
 import math
 import sys
 import tensorflow as tf
@@ -9,6 +10,41 @@ from keras.datasets import mnist
 from sklearn.datasets import make_blobs, make_circles
 from sklearn.metrics import accuracy_score, log_loss
 from tqdm import tqdm as ProgressDisplay
+
+def plot_image(x,cm='binary', figsize=(4,4),interpolation='lanczos'):
+    """
+    Draw a single image.
+    Image shape can be (lx,ly), (lx,ly,1) or (lx,ly,n)
+    args:
+        x       : image as np array
+        cm      : color map ('binary')
+        figsize : fig size (4,4)
+    """
+    xx=x
+    # ---- Draw it
+    plt.figure(figsize=figsize)
+    plt.imshow(xx,   cmap = cm, interpolation=interpolation)
+    plt.show()
+
+def plot_mini_images(x, y, y_pred,indices,c,**kwargs):
+    """
+    Draw une série d'images de x en fonction la liste indices en affichant la valeur réelle y et y_pred
+    """
+    cm = 'binary'
+    interpolation = kwargs.get('interpolation','lanczos')
+    norm = kwargs.get('norm',None)
+    fontsize = kwargs.get('fontsize',8)
+    n=1
+    r=int(len(indices)//c+1)
+    fig = plt.figure(figsize=(c,r*1.2))
+    for i in indices:
+        ax = fig.add_subplot(r,c,n)
+        ax.set_yticks([])
+        ax.set_xticks([])
+        n += 1
+        img=ax.imshow(x[i],   cmap = cm, norm=norm, interpolation=interpolation)
+        ax.set_xlabel(f'{y_pred[i]} ({y[i]})',fontsize=fontsize)
+    plt.show()
 
 class relu():
     @staticmethod
@@ -42,7 +78,8 @@ class linear():
         return x
     @staticmethod
     def prime(y):
-        return [1]*len(y)
+        # return [1]*len(y)
+        return np.ones(y.shape)
 class sigmoid():
     @staticmethod
     def activation(x):
@@ -134,7 +171,7 @@ class optimiseur():
     def GD(w,b,dw,db,lr,_a,_b,_i):
         w -= dw * lr
         b -= db * lr
-        return w,b
+        return w,b,0,0
     @staticmethod
     def RMSprop(w,b,dw,db,lr,vdw,vdb,_):
         gamma = 0.9
@@ -142,7 +179,7 @@ class optimiseur():
         vdb = gamma * vdb + (1 - gamma) * db ** 2
         w -= dw * lr / (np.sqrt(vdw + 1e-08))
         b -= db * lr / (np.sqrt(vdb + 1e-08))
-        return w,b
+        return w,b,vdw, vdb
     @staticmethod
     def Adam(w,b,dw,db,lr,vdw,vdb,epoch):
         gamma = 0.9
@@ -157,7 +194,7 @@ class optimiseur():
         vdb_corr = vdb / (1 - np.power(theta, epoch + 1))
         w -= mdw_corr * lr / (np.sqrt(vdw_corr + 1e-08))
         b -= mdb_corr * lr / (np.sqrt(vdb_corr + 1e-08))
-        return w,b
+        return w,b,vdw,vdb
 
 class layer():
     class dense():
@@ -180,7 +217,7 @@ class layer():
             return y
         
         def update(self, dw, db, lr,  _optimiseur='GD',epoch=1):
-            self.W, self.b = eval('optimiseur.'+_optimiseur)(self.W,self.b,dw,db,lr,self.vdw,self.vdb,epoch)
+            self.W, self.b, self.vdw, self.vdb = eval('optimiseur.'+_optimiseur)(self.W,self.b,dw,db,lr,self.vdw,self.vdb,epoch)
 
     class flatten():
         def __init__(self,_in,_out,_activation,_initialisation):
@@ -197,45 +234,80 @@ class layer():
             print('ici ....')
 
 class CategoricalCrossEntropy():
-    def __init__(self, a, y_true,_m):
-        self.p = a / np.sum(a,axis=-1)
+    def __init__(self, a, y_true , _m, **kwargs):
+        self.p = a / np.sum(a,axis=-1,keepdims=True)
         self.y = y_true
         self.m = _m
+        self.sw = kwargs.get('sample_weight',1)
+    def normalized(self,a,y_true):
+        self.p = a / np.sum(a)
+        self.y = y_true / np.sum(y_true)
+        self.c = self.y.shape[-1] #nb de class
     def metrics(self): # -y.log(p)
-        m = self.p.shape[0]
-        return (-1 / m) * np.sum((self.y * np.log(self.p+1e-8)))
+        return (1 / self.m) * np.sum(self.forward())
     def forward(self): # -y.log(p)
-        m = self.p.shape[0]
-        return np.sum((-self.y * np.log(self.p+1e-8)))
+        return (-self.y * np.log(self.p+1e-8)) * self.sw
     def backward(self):
     # -y/p
-        return (-self.y/(self.p+1e-8))
+        return (-self.y/(self.p+1e-8)) * self.sw
 class MSE():
-    def __init__(self, p, y, _m):
+    def __init__(self, p, y, _m, **kwargs):
         self.p = p
         self.y = y
         self.m = _m
+        self.sw = kwargs.get('sample_weight',1)
+    def normalized(self,a,y):
+        self.p = a
+        self.y = y
+        self.c = self.y.shape[-1] #nb de class
     def forward(self):
-        return (np.square(self.y - self.p))
+        return (np.square(self.p - self.y)) / self.c * self.sw
     def backward(self):
-        return (2*(self.y - self.p))
+        return (2*(self.p - self.y)) * self.sw
     def metrics(self):
-        m = self.p.shape[0]
-        return (1 / m) * (np.sum(np.square(self.y - self.p)))
+        return (1 / self.m) * (np.sum(self.forward()))
+        # return 1/self.m *np.sum(np.square(self.p - self.y))
 class BinaryCrossEntropy:
-    def __init__(self, p, y,_m):
+    def __init__(self, p, y,_m,**kwargs):
         self.p = p
         self.y = y
         self.m = _m
+        self.sw = kwargs.get('sample_weight',1)
+
+    def normalized(self,a,y):
+        self.p = a
+        self.y = y
+        self.c = self.y.shape[-1] #nb de class
     def metrics(self):
-        m = self.p.shape[0]
-        return (-1 / m) * (np.sum((self.y * np.log(self.p + 1e-8)) + ((1 - self.y) * (np.log(1 - self.p + 1e-8)))))
+        # r = (-1 / self.m) * (np.sum((self.y * np.log(self.p + 1e-8)) + ((1 - self.y) * (np.log(1 - self.p + 1e-8)))))/self.c
+        r = (1 / self.m) * np.sum(self.forward())
+        return r
     def forward(self):
-    # (-y.log(p) + (1-y).log(1-p))
-        return (-self.y * np.log(self.p + 1e-8)) + ((1 - self.y) * (np.log(1 - self.p + 1e-8)))
+    # (-y.log(p) - (1-y).log(1-p))
+        f = ((-self.y * np.log(self.p + 1e-8)) - ((1 - self.y) * (np.log(1 - self.p + 1e-8))))/self.c * self.sw
+        return f
     def backward(self):
-    # -y/p _ (1-y)/(1-p)
-        return (-self.y/(self.p+1e-8) + (1 - self.y)/(1 - self.p+1e-8))
+    # -y/p + (1-y)/(1-p)
+        # n = self.p.shape[0]
+        return (-self.y/(self.p+1e-8) + (1 - self.y)/(1 - self.p+1e-8)) * self.sw
+class ppo:
+    def __init__(self,y_true, y_pred):
+        self.action_space = 6
+        self.p = y_pred
+        self.advantages, self.prediction_picks, self.actions = y_true[:, :1], y_true[:, 1:1+self.action_space], y_true[:, 1+self.action_space:]
+        self.LOSS_CLIPPING = 0.2
+        self.ENTROPY_LOSS = 5e-3
+        
+    def forward(self):
+    # Defined in https://arxiv.org/abs/1707.06347
+
+        prob = self.p * self.actions
+        old_prob = self.actions * self.prediction_picks
+        r = prob/(old_prob + 1e-10)
+        p1 = r * self.advantages
+        p2 = np.clip(r, a_min=1 - self.LOSS_CLIPPING, a_max=1 + self.LOSS_CLIPPING) * self.advantages
+        loss =  -np.mean(np.minimum(p1, p2) + self.ENTROPY_LOSS * -(prob * np.log(prob + 1e-10)))
+        return loss
 
 def Shuffle(a,b,c=None):
     p = np.random.permutation(len(a))
@@ -270,66 +342,74 @@ class sequentiel():
     def fit(self,_X,_y,batch_size=32,epochs=100, **kwargs):
         # print('- Fit ------')
         shuffle = kwargs.get('shuffle',False)
-        sample_weight = kwargs.get('sample_weight',[])
+        sample_weight = kwargs.get('sample_weight',None)
         self.loss, self.accuracy = [], []
         m = _X.shape[0]
         nb = m // batch_size
-        a, y , sw = [], [], []
+        a, y  = [], []
+        lossFCT = eval(self.lossFCT)(a,y,m,sample_weight=sample_weight)
         loss=0
+        # if len(sample_weight)!=0: _y *= sample_weight
         for idx in ProgressDisplay(range(epochs)):
             # print('idx',idx)
+            loss=0
             for b in range(nb):
                 k=b*batch_size
                 l=k+batch_size
                 a = _X[k:l]
                 y = _y[k:l]
-                if len(sample_weight)!=0:
+                if (sample_weight is not None):
                     sw = sample_weight[k:l]
                     if shuffle:
-                        a, y ,sw = Shuffle(a, y, sw)
+                        a, y , sw = Shuffle(a, y, sw)
+                    lossFCT.sw = sw
                 else:
+                    lossFCT.sw = 1
                     if shuffle:
                         a, y = Shuffle(a, y)
                 _A, _Z = [], []
                 _A.append(a)
                 # forward -----
                 for n, layer in enumerate(self.layers):
+                    # print('layer',n)
                     z = layer.forward(a)
                     a = eval(layer.a).activation(z)
                     _A.append(a)
                     _Z.append(z)
                 # loss init backward
-                # if len(sample_weight)!=0: a *= sw
-                lossFCT = eval(self.lossFCT)(a,y,0)
-                loss = lossFCT.metrics()
+                lossFCT.normalized(a,y)
+                loss_id = lossFCT.metrics()
+                loss += loss_id
                 # print(self.lossFCT, loss)
                 dL = lossFCT.backward()
+                # if len(sample_weight)!=0: dL *= sw
+                # print(a.shape,dL.shape)
                 da_dz = eval(self.activations[n]).prime(a)
-                diff = dL * da_dz
+                diff = (dL * da_dz)
                 # diff = a - y
                 # backward pass-----
                 for i in reversed(range(0,n+1)):
                     if self.layers[i].back:
                         dw = (1 / m) * np.dot(_A[i].T,diff)
-                        db = (1 / m) * np.sum(diff,keepdims=True)
+                        db = (1 / m) * np.sum(diff,axis=0,keepdims=True)
                         if i>0:
                             diff =np.dot( diff, self.layers[i].W.T) * eval(self.activations[i-1]).prime(_Z[i-1])
-                        self.layers[i].update(dw,db,self.lr,self.optimiseur,i)
+                        self.layers[i].update(dw,db,self.lr,self.optimiseur,idx)
             if self.metrics:
                 if idx%10:
                     # loss = eval(self.lossFCT)(a,y,m)
-                    # cost = loss.forward()
-                    cost = log_loss(y,a)
+                    # cost += lossFCT.metrics()
+                    # cost = log_loss(y,a)
                     accuracy = np.mean(np.equal(np.argmax(y, axis=-1), np.argmax(a, axis=-1))) * 100
                     # accuracy = accuracy_score(y.flatten(),a.flatten())
-                    self.loss.append(cost)
+                    self.loss.append(loss)
                     self.accuracy.append(accuracy)
         hist=Hist()
         hist.history['loss']=[loss]
         return hist
-    def save(self,fichier):
+    def saveH5(self,fichier):
         h5File = h5py.File(fichier, 'w')
-        h5File.create_dataset('dataset_1',data=np.array(self.layers,dtype=np.str0))
+        h5File.create_dataset('dataset_1',data=np.array(self.layers))
         h5File.create_dataset('activation',self.activations)
         h5File.create_dataset('loss',self.loss)
         i=0
@@ -348,7 +428,9 @@ class sequentiel():
             h5File.create_dataset(name,layer.back)
             i += 1
         h5File.close()
-
+    def save(self,fichier):
+        f =  open(fichier,'wb')
+        pickle.dump(self.layers,f)
 class Hist():
     def __init__(self):
         self.history = {}
@@ -377,20 +459,26 @@ def main():
     # plt.scatter(X[:,0],X[:,1],c=y,cmap='summer')
 
     model = sequentiel(metrics=True)
-    model.add(layer.dense(X.shape[1],100,_activation='relu',_initialisation='init.he'))
+    model.add(layer.flatten(X_train.shape[0],28*28,_activation='none',_initialisation='init.zero'))
+    model.add(layer.dense(28*28,100,_activation='relu',_initialisation='init.he'))
     # model.add(layer.dense(50,100,_activation='elu',_initialisation='init.he'))
     # model.add(layer.dense(100,32,_activation='relu',_initialisation='init.he'))
     model.add(layer.dense(100,y.shape[1],_activation='softmax',_initialisation='init.he'))
-    model.compile(_lr=0.006,_optimiseur='RMSprop',_loss='BinaryCrossEntropy')
+    model.compile(_lr=0.01,_optimiseur='RMSprop',_loss='BinaryCrossEntropy')
 
     # y_pred = model.predict(X)
     # print(y,(y_pred>0.5)*1)
     # print(y,y_pred)
 
-    model.fit(X,y,batch_size=6000,epochs=100)
+    X_train_i = X_train / 255.0
+    model.fit(X_train_i,y,batch_size=6000,epochs=10,shuffle=True)
 
-    y_pred = model.predict(Xt)
+    y_pred = model.predict(X_test/255.)
     yp = np.argmax(y_pred,axis=-1)
+    print(yp.shape,X_test.shape,yt.shape)
+    y_error = [i for i in range(len(X_test)) if yp[i]!=y_test[i]]
+    print(yp[:10],y_test[:10],y_error[:10],len(y_error))
+    plot_mini_images(X_test,y_test,yp,y_error[:144],18)
     # print(y_pred[:10,:],yt[:10,:])
     # print(yp[:10], y_test[:10])
     # print(y,(y_pred>0.5)*1)
@@ -437,15 +525,15 @@ def myModel(input_shape, action_space, lr):
     d=np.prod(input_shape)
     Actor = sequentiel(metrics=True)
     Actor.add(layer.flatten(input_shape,d,_activation='none',_initialisation='init.zero'))
-    Actor.add(layer.dense(d,512,_activation='elu',_initialisation='init.uniform'))
-    Actor.add(layer.dense(512,action_space,_activation='softmax',_initialisation='init.uniform'))
-    Actor.compile(_lr=lr,_optimiseur='RMSprop',_loss='MSE')
+    Actor.add(layer.dense(d,512,_activation='elu',_initialisation='init.he'))
+    Actor.add(layer.dense(512,action_space,_activation='softmax',_initialisation='init.he'))
+    Actor.compile(_lr=lr,_optimiseur='RMSprop',_loss='CategoricalCrossEntropy')
 
     Critic = sequentiel(metrics=True)
     Critic.add(layer.flatten(input_shape,d,_activation='none',_initialisation='init.zero'))
-    Critic.add(layer.dense(d,512,_activation='elu',_initialisation='init.uniform'))
-    Critic.add(layer.dense(512,1,_activation='sigmoid',_initialisation='init.uniform'))
-    Critic.compile(_lr=lr,_optimiseur='RMSprop',_loss='BinaryCrossEntropy')
+    Critic.add(layer.dense(d,512,_activation='elu',_initialisation='init.he'))
+    Critic.add(layer.dense(512,1,_activation='linear',_initialisation='init.he'))
+    Critic.compile(_lr=lr,_optimiseur='RMSprop',_loss='MSE')
 
     return Actor, Critic
 

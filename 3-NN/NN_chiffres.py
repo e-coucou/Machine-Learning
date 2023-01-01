@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import make_blobs,make_circles
 from sklearn.metrics import accuracy_score, log_loss
 from tqdm import tqdm
-import plotly.graph_objects as go
+# import plotly.graph_objects as go
 # Import datasets, classifiers and performance metrics
 from sklearn import datasets, svm, metrics
 from sklearn.model_selection import train_test_split
@@ -145,7 +145,7 @@ def neural_network(X,y,hidden_layer,lr=0.1,n_iter=1000): #n1 nombre d neurones d
 
 # Reseua final
 
-W_param = neural_network(X_train,y_train,[2],lr=0.05,n_iter=50)
+W_param = neural_network(X_train,y_train,[2],lr=0.05,n_iter=5000)
 # print (len(W_param))
 # print('W1:',W_param['W1'].shape)
 # print('W2:',W_param['W2'].shape)

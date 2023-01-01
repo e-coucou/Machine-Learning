@@ -9,6 +9,7 @@ import time as tm
 import random
 from json import JSONEncoder
 import json
+import pickle
 # from collections import deque
 import matplotlib.pyplot as plt
 import NN as nn
@@ -76,7 +77,7 @@ class DQNAgent():
             discounted_r[t] = running_add
         # on normalise : xm = (x-m)/std
         discounted_r -= np.mean(discounted_r)
-        discounted_r *= np.std(discounted_r)
+        discounted_r /= np.std(discounted_r)
         return discounted_r
 
     def act(self, state): # On utilise le réseau de Neurone pour déterminer l'action du joueur
@@ -92,18 +93,30 @@ class DQNAgent():
         delta = []
         start = cpt_elapse(start,delta)
         rewards = np.vstack(self.discount_rewards(self.rewards))
+        # rewards = (self.discount_rewards(self.rewards))
         start = cpt_elapse(start,delta)
-        values = self.Critic.predict(obs,verbose='0')  #[:,0]
+        values = self.Critic.predict(obs,verbose='0') #[:,0]
         avantages = rewards - values
+        # print(actions.shape, obs.shape)
+        # y_ = actions + rewards
+        # y_1 = actions * rewards
+        # print(y_.shape, actions.shape, rewards.shape)
+        # print(y_[:10],actions[:10])
+        # plt.figure(figsize=(12,6))
+        # plt.plot(rewards,c='b')
+        # plt.plot(self.rewards,c='r')
+        # # plt.plot(y_1[:,0],c='y')
+        # # plt.plot(avantages,c='y')
+        # plt.show()
         # y_true = np.hstack([avantages, predictions, actions])
-        y_true = np.hstack([actions])
+        # y_true = np.hstack([actions])
         start = cpt_elapse(start,delta)
-        # h_A = self.Actor.fit(obs,actions,epochs=1,batch_size=128,verbose=0,suffle=False)
-        h_A = self.Actor.fit(obs,actions,sample_weight= avantages,epochs=1,batch_size=32,verbose=0,suffle=False)
+        h_A = self.Actor.fit(obs,actions,epochs=1,sample_weight=avantages,batch_size=128,verbose=0) #suffle=False)
+        # h_A = self.Actor.fit(obs,actions,sample_weight= avantages,epochs=1,batch_size=250,verbose=0,suffle=False)
         # print(y_true.shape,avantages.shape,predictions.shape,actions.shape)
         # h_A = self.Actor.fit(obs,y_true,epochs=self.EPOCHS,batch_size=len(self.rewards),verbose=0,shuffle=True)
-        start = cpt_elapse(start,delta)
-        h_C = self.Critic.fit(obs,rewards,epochs=1, verbose=0,batch_size=32,shuffle=False)
+        # start = cpt_elapse(start,delta)
+        h_C = self.Critic.fit(obs,rewards,epochs=1, verbose=0,batch_size=128)
         # h_C = h_A
         # h_C = self.Critic.fit(obs,rewards,epochs=self.EPOCHS, verbose=0,batch_size=len(self.rewards),shuffle=True)
         start = cpt_elapse(start,delta)
@@ -198,13 +211,25 @@ def cpt_elapse(start,delta):
 
 def load_agent(agent):
     print("load Actor/Critic")
-    agent.Actor = nnK.load_model(agent.A_file,compile=False)
-    agent.Critic = nnK.load_model(agent.C_file,compile=True)
-    agent.Actor = nnK.comp(agent.Actor,agent.LR)
+    # agent.Actor = nnK.load_model(agent.A_file,compile=False)
+    # agent.Critic = nnK.load_model(agent.C_file,compile=True)
+    # agent.Actor = nnK.comp(agent.Actor,agent.LR)
+    f =  open(agent.A_file,'rb')
+    agent.Actor = pickle.load(f)
+    f.close()
+    f =  open(agent.C_file,'rb')
+    agent.Critic = pickle.load(f)
+    f.close()
 def save_agent(agent):
     print("Save Actor/Critic")
-    agent.Actor.save(agent.A_file)
-    agent.Critic.save(agent.C_file)
+    f =  open(agent.A_file,'wb')
+    pickle.dump(agent.Actor,f)
+    f.close()
+    f =  open(agent.C_file,'wb')
+    pickle.dump(agent.Critic,f)
+    f.close()
+    # agent.Actor.save(agent.A_file)
+    # agent.Critic.save(agent.C_file)
 
 class epPlot():
     def __init__(self,width_,height_,**kwargs) -> None:
@@ -215,13 +240,14 @@ class epPlot():
         self.color = kwargs.get('color',(255,255,255,255))
         self.bkcolor = kwargs.get('bkcolor',(0,0,30,255))
     
-    def plot_ax(self):
+    def plot_ax(self,scale):
         centre = self.h //2
-        for x in range(self.w//10):
+        step = int(10 / scale)
+        for x in range(self.w//step):
             if x%10==0:
-                gfx.vline(self.s,int(x*10),centre-7,centre+7,(130,130,0,255))
+                gfx.vline(self.s,int(x*step),centre-7,centre+7,(130,130,0,255))
             else:
-                gfx.vline(self.s,int(x*10),centre-5,centre+5,(100,100,0,255))
+                gfx.vline(self.s,int(x*step),centre-5,centre+5,(100,100,0,255))
         b, h = 0, self.h
         for c in range(6):
             b += centre // pow(2,c)
@@ -234,13 +260,17 @@ class epPlot():
         SCALE = 10
         old = self.h
         AVG=50
+        scaleX=1
+        l = len(data)-1
+        if l>=self.w: scaleX = (l/self.w+0.2)
         gfx.box(self.s,self.c,self.bkcolor)
-        for v in range(len(data)-1):
+        for v in range(l):
+            x = v/scaleX
             average = int( self.h//2 - SCALE * sum(data[max(v-AVG,0):v+1])/min(AVG,v+1))
-            gfx.vline(self.s,int(v),int(self.h/2-SCALE*data[v]),int(self.h/2-SCALE*data[v+1]),self.color)
-            gfx.line(self.s,int(v),int(old),int(v+1),int(average),(255,255,0,255))
+            gfx.vline(self.s,int(x),int(self.h/2-SCALE*data[v]),int(self.h/2-SCALE*data[v+1]),self.color)
+            gfx.line(self.s,int(x),int(old),int(x+1),int(average),(255,255,0,255))
             old = average
-        self.plot_ax()
+        self.plot_ax(scaleX)
         echSize = kwargs.get('echSize',10)
         avg = kwargs.get('moyenne',None)
         if avg:
@@ -264,6 +294,9 @@ class epPlot():
         hi = kwargs.get('hi',max(data)*1.05+0.01)
         color = kwargs.get('color',self.color)
         SCALE = self.h/(hi-lo)
+        lg = len(data)-1
+        scaleX=1
+        if lg>=self.w: scaleX = (lg/self.w+0.2)
         l = kwargs.get('largeur',1)
         for x in range(len(data)):
             y0=int(self.h - lo*SCALE)
@@ -272,7 +305,7 @@ class epPlot():
                 r = ga.Rect(x*l+1,y1,l-2,y0-y1)
                 gfx.box(self.s,r,color)
             else:
-                gfx.vline(self.s,x,y0,y1,color)
+                gfx.vline(self.s,int(x/scaleX),y0,y1,color)
         return self.s
 
     def etoile(self,data_):
@@ -506,7 +539,7 @@ def main(load=False,**kwargs) -> int:
             cycles.append(cycle)
             elapse.append(delta)
             game += 1
-            # save_agent(agent)
+            save_agent(agent)
             info_game= {'score':info_score, 'game': game, 'lossActor':hist_A, 'lossCritic': hist_C, 'elapse': elapse, 'cycles': cycles}
             save_game(info_game,agent.J_file)
             delta, actions_record, score, cycle ,score_C, score_P = [], [], 0, 0, 0, 0
@@ -514,6 +547,6 @@ def main(load=False,**kwargs) -> int:
     return 0
 ######
 if __name__ == '__main__':
-    sys.exit(main(False,A_file='epNN000_Actor.h5',C_file='epNN000.h5',J_file='aep0_Game.json'))
+    sys.exit(main(True,A_file='epNN005_Actor.h5',C_file='epNN005_Critic.h5',J_file='aep005_Game.json'))
     # sys.exit(main(True,A_file='a00_Actor.h5',C_file='a00_Critic.h5',J_file='a00_Game.json'))
     # sys.exit(run(A_file='00_Actor.h5',C_file='00_Critic.h5'))
