@@ -55,6 +55,7 @@ class DQNAgent():
         self.Actor, self.Critic = nnRky.myModel(input_shape=self.obs_size, action_space = self.dim, lr=self.LR)
 
         self.obs, self.rewards, self.actions, self.predictions = [], [], [], []
+        self.rewards_h = []
     
     def record(self,o_,r_,a_,i_,p_):
         self.obs.append(o_)
@@ -97,6 +98,7 @@ class DQNAgent():
         start = cpt_elapse(start,delta)
         values = self.Critic.predict(obs,verbose='0') #[:,0]
         avantages = rewards - values
+        self.rewards_h = rewards
         # print(actions.shape, obs.shape)
         # y_ = actions + rewards
         # y_1 = actions * rewards
@@ -232,6 +234,7 @@ def save_agent(agent):
     # agent.Critic.save(agent.C_file)
 
 class epPlot():
+    win = None
     def __init__(self,width_,height_,**kwargs) -> None:
         self.w = width_
         self.h = height_
@@ -239,6 +242,7 @@ class epPlot():
         self.c = ga.Rect(0,0,width_,height_)
         self.color = kwargs.get('color',(255,255,255,255))
         self.bkcolor = kwargs.get('bkcolor',(0,0,30,255))
+        self.font = ga.font.Font('freesansbold.ttf', 12)
     
     def plot_ax(self,scale):
         centre = self.h //2
@@ -264,18 +268,24 @@ class epPlot():
         l = len(data)-1
         if l>=self.w: scaleX = (l/self.w+0.2)
         gfx.box(self.s,self.c,self.bkcolor)
+        noMean = kwargs.get('noMean',False)
+        noAxes = kwargs.get('noAxes',False)
+        SCALE = kwargs.get('SCALE',10)
         for v in range(l):
             x = v/scaleX
-            average = int( self.h//2 - SCALE * sum(data[max(v-AVG,0):v+1])/min(AVG,v+1))
             gfx.vline(self.s,int(x),int(self.h/2-SCALE*data[v]),int(self.h/2-SCALE*data[v+1]),self.color)
-            gfx.line(self.s,int(x),int(old),int(x+1),int(average),(255,255,0,255))
-            old = average
-        self.plot_ax(scaleX)
+            if not noMean:
+                average = int( self.h//2 - SCALE * sum(data[max(v-AVG,0):v+1])/min(AVG,v+1))
+                gfx.line(self.s,int(x),int(old),int(x+1),int(average),(255,255,0,255))
+                old = average
+        if not noAxes:
+            self.plot_ax(scaleX)
         echSize = kwargs.get('echSize',10)
         avg = kwargs.get('moyenne',None)
-        if avg:
-            y = int(self.h/2-SCALE*avg)
-            gfx.hline(self.s,len(data)+1,self.w,y,(255,255,100,255))
+        if not noMean:
+            if avg:
+                y = int(self.h/2-SCALE*avg)
+                gfx.hline(self.s,int((len(data)+1)/scaleX),self.w,y,(255,255,100,255))
         for _, point in enumerate(points):
             gfx.filled_circle(self.s,self.w-5,int(self.h/2-SCALE*point),echSize//2,(0,255,255,255))
         echHI = kwargs.get('echHI',None)
@@ -293,6 +303,7 @@ class epPlot():
         lo = kwargs.get('lo',min(data))
         hi = kwargs.get('hi',max(data)*1.05+0.01)
         color = kwargs.get('color',self.color)
+        mess=kwargs.get('mess',False)
         SCALE = self.h/(hi-lo)
         lg = len(data)-1
         scaleX=1
@@ -304,6 +315,12 @@ class epPlot():
             if l>1:
                 r = ga.Rect(x*l+1,y1,l-2,y0-y1)
                 gfx.box(self.s,r,color)
+                if mess:
+                    message = str(data[x])
+                    text = self.font.render(message, True, (255,255,255), (0,0,0))
+                    textRect = text.get_rect()
+                    textRect.center = ((x*l+l//2), (y0+y1)//2)
+                    self.s.blit(text, textRect)
             else:
                 gfx.vline(self.s,int(x/scaleX),y0,y1,color)
         return self.s
@@ -388,10 +405,12 @@ def main(load=False,**kwargs) -> int:
     ga.init()
     win = ga.display.set_mode([width,height])
     # surface= ga.Surface([width,height],ga.SRCALPHA)
+    epPlot.win = win
     Graph = epPlot(G_w,G_h,color=(210,210,210,255), bkcolor=(0,0,60,255))
     Graph2 = epPlot(G_w,60,color=(170,170,170,255), bkcolor=(0,0,60,255))
     Graph3 = epPlot(D_w,70,color=(170,170,170,255), bkcolor=(0,0,60,255))
     Graph4 = epPlot(D_w,D_w,color=(170,170,170,255), bkcolor=(0,0,60,255))
+    Graph5 = epPlot(G_w//2,G_h//4,color=(210,210,210,255), bkcolor=(0,0,60,255))
     h_A, h_C = None, None
 
     message = ga.freetype.SysFont("freesansbold.ttf", 14, bold=False, italic=False) # couriernew
@@ -438,6 +457,7 @@ def main(load=False,**kwargs) -> int:
     graphe_s2 = Graph2.bar([1],lo=0)
     graphe_s3 = Graph3.bar([1])
     graphe_s4 = Graph4.etoile([[10,10]])
+    graphe_s5 = Graph5.plot([1])
 
     #init round 0
     state, info = blob.reset()
@@ -519,6 +539,7 @@ def main(load=False,**kwargs) -> int:
             win.blit(graphe_s2,(15,(height-75)))
             win.blit(graphe_s3,(15+10+G_w,158))
             win.blit(graphe_s4,(15+10+G_w,168+70+1))
+            win.blit(graphe_s5,(15,15))
             ga.display.flip()
         if done:
             info_score.append(score)
@@ -527,11 +548,12 @@ def main(load=False,**kwargs) -> int:
             print(f'#Game: {game} -- {score} / {cycle}, moyenne= {moyenne}')
             print(actions,len(agent.actions))
             graphe_s = Graph.plot(info_score)
-            graphe_s3 = Graph3.bar(actions,lo=0,largeur=(D_w//N_ACTIONS))
+            graphe_s3 = Graph3.bar(actions,lo=0,largeur=(D_w//N_ACTIONS),mess=True)
             start = cpt_elapse(start,delta)
             h_A, h_C = agent.replay()
             state, info = blob.reset()
             obs = agent.reset(state)
+            graphe_s5 = Graph5.plot(agent.rewards_h,noAxes=True,noMean=True,SCALE=20)
             start = cpt_elapse(start,delta)
             startCycle = start
             hist_A.append(h_A.history['loss'][0])

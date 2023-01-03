@@ -471,7 +471,7 @@ def main():
     # print(y,y_pred)
 
     X_train_i = X_train / 255.0
-    model.fit(X_train_i,y,batch_size=6000,epochs=10,shuffle=True)
+    model.fit(X_train_i,y,batch_size=6000,epochs=100,shuffle=True)
 
     y_pred = model.predict(X_test/255.)
     yp = np.argmax(y_pred,axis=-1)
