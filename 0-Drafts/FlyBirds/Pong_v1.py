@@ -569,6 +569,6 @@ def main(load=False,**kwargs) -> int:
     return 0
 ######
 if __name__ == '__main__':
-    sys.exit(main(True,A_file='epNN005_Actor.h5',C_file='epNN005_Critic.h5',J_file='aep005_Game.json'))
+    sys.exit(main(False,A_file='epNN006_Actor.h5',C_file='epNN006_Critic.h5',J_file='aep006_Game.json'))
     # sys.exit(main(True,A_file='a00_Actor.h5',C_file='a00_Critic.h5',J_file='a00_Game.json'))
     # sys.exit(run(A_file='00_Actor.h5',C_file='00_Critic.h5'))

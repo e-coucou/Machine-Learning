@@ -55,7 +55,11 @@ class relu():
         # y = np.maximum(_X,0)
         return x
     @staticmethod
-    def prime(y):
+    def prime(y,x):
+        d = relu.grad(y)
+        return d * x
+    @staticmethod
+    def grad(y):
         y[y<=0]=0  # type: ignore
         y[y>0]=1  # type: ignore
         return y
@@ -64,7 +68,11 @@ class elu():
     def activation(x,a=2.):
         return np.where(x <= 0, a*(np.exp(x) - 1), x)
     @staticmethod
-    def prime(y,a=2.):
+    def prime(y,x):
+        d = elu.grad(y)
+        return d * x
+    @staticmethod
+    def grad(y,a=2.):
         return np.where(y <= 0, a*np.exp(y), 1)
 class prelu():
     a=0.02
@@ -72,14 +80,22 @@ class prelu():
     def activation(x):
         return np.where(x<0, prelu.a*x, x)
     @staticmethod
-    def prime(y):
+    def prime(y,x):
+        d = prelu.grad(y)
+        return d * x
+    @staticmethod
+    def grad(y):
         return np.where(y<0, prelu.a, 1)
 class linear():
     @staticmethod
     def activation(x):
         return x
     @staticmethod
-    def prime(y):
+    def prime(y,x):
+        d = linear.grad(y)
+        return d * x
+    @staticmethod
+    def grad(y):
         # return [1]*len(y)
         return np.ones(y.shape)
 class sigmoid():
@@ -88,7 +104,11 @@ class sigmoid():
         y = 1 / (1 + np.exp(-x))
         return y
     @staticmethod
-    def prime(y):
+    def prime(y,x):
+        d = sigmoid.grad(y)
+        return d * x
+    @staticmethod
+    def grad(y):
         f = sigmoid.activation(y)
         return (f * (1 - f))
 class tanh():
@@ -96,7 +116,11 @@ class tanh():
     def activation(x):
         return np.tanh(x)
     @staticmethod
-    def prime(y):
+    def prime(y,x):
+        d = tanh.grad(y)
+        return d * x
+    @staticmethod
+    def grad(y):
         return (1-np.tanh(y)**2)
 class softmax:
     @staticmethod
@@ -105,19 +129,22 @@ class softmax:
         e_x = np.exp(x - np.max(x,axis=-1).reshape(-1,1))
         return e_x / e_x.sum(axis=-1).reshape(-1,1)
     @staticmethod
-    def primeP(y): #marche pas
-        n = y.shape[1]
-        print(n,y.shape)
-        i = np.identity(n)
-        un = np.ones((n,y.shape[1]))
+    def prime(y,x):
+        d = softmax.grad(y)
+        return d * x
+    @staticmethod
+    def gradA(y):
         SM = y.reshape((-1,1))
         print(SM.shape)
+        a=np.diagflat(y)
+        print(a)
+        b=np.dot(SM,SM.T)
+        print(b)
         jac = np.diagflat(y) - np.dot(SM, SM.T)
-        j = np.dot((i* jac),un)
-        # x = np.dot(jac,y.T)
-        return j.T
+        print('return')
+        return jac
     @staticmethod
-    def prime(y):
+    def grad(y):
         return(y * (1-y))
 class ep:
     @staticmethod
@@ -127,7 +154,12 @@ class none:
     @staticmethod
     def activation(x):
         return x
-    def prime(y):
+    @staticmethod
+    def prime(y,x):
+        d = none.grad(y)
+        return d * x
+    @staticmethod
+    def grad(y):
         return y
 
 class init():
@@ -384,8 +416,9 @@ class sequentiel():
                 dL = lossFCT.backward()
                 # if len(sample_weight)!=0: dL *= sw
                 # print(a.shape,dL.shape)
-                da_dz = eval(self.activations[n]).prime(a)
-                diff = (dL * da_dz)
+                # print(self.activations[n])
+                diff = eval(self.activations[n]).prime(a,dL)
+                # diff = (dL * da_dz)
                 # diff = a - y
                 # backward pass-----
                 for i in reversed(range(0,n+1)):
@@ -393,7 +426,8 @@ class sequentiel():
                         dw = (1 / m) * np.dot(_A[i].T,diff)
                         db = (1 / m) * np.sum(diff,axis=0,keepdims=True)
                         if i>0:
-                            diff =np.dot( diff, self.layers[i].W.T) * eval(self.activations[i-1]).prime(_Z[i-1])
+                            dl = np.dot( diff, self.layers[i].W.T)
+                            diff = eval(self.activations[i-1]).prime(_Z[i-1],dl)
                         self.layers[i].update(dw,db,self.lr,self.optimiseur,idx)
             if self.metrics:
                 if idx%10:
