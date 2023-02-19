@@ -10,7 +10,7 @@ import pygame as ga
 import pygame.gfxdraw as gfx
 from math import *
 from random import *
-import quadtree as qt
+# import quadtree as qt
 import timeit
 
 
