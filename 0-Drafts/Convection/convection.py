@@ -8,8 +8,8 @@ import time as tm
 from matplotlib import pyplot as plt
 
 MAX_ITER = 30000
-width = 400
-height = 100
+width = 600
+height = 200
 def dist(x1,y1,x2,y2):
     return np.sqrt((x2-x1)**2 + (y2-y1)**2)
 
@@ -34,7 +34,7 @@ class Fluid():
         self.cylindre = np.full((self.ny,self.nx),False)
         for y in range(0,self.ny):
             for x in range(0,self.nx):
-                if dist(self.nx//4,self.ny//2,x,y) < 7: #self.ny//3:
+                if dist(self.nx//4,self.ny//2,x,y) < 12: #self.ny//3:
                     self.cylindre[y][x] = True
         # self.cylindre2 = np.full((self.ny,self.nx),False)
         # for y in range(0,self.ny):
@@ -115,8 +115,8 @@ def main()->int:
             # M = np.max(curl)
             # m = np.min(curl)
             # image = (np.int16((curl-m) / (M-m) * 0x100) & 0xFF)
-            image = curl * 0x100 #+ curl*0x10000
-            ga.surfarray.blit_array(surface,image.T)
+            image = curl.T * 0x100 #+ curl*0x10000
+            ga.surfarray.blit_array(surface,image) # type: ignore
             # surface = ga.pixelcopy.make_surface(image.T)
             # arr = ga.surfarray.array2d(surface)
             # ga.pixelcopy.surface_to_array(arr,surface)
