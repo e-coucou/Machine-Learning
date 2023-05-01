@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../fidle-master"
+		}
+	],
+	"settings": {
+		"notebook.output.textLineLimit": 1000
+	}
+}

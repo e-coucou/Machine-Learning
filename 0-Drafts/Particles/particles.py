@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 width = 600
 height = 600
 Origine = Vc(width//2,150)
-GRID = 25
+GRID = 20
 SIZE = width // GRID
 
 def dist(x1,y1,x2,y2):
@@ -69,10 +69,12 @@ class Solver():
                     self.collisions(s)
 
     def collisions(self, s):
-        for a in s:
-            p=self.particules[a]
-            for b in s:
-                o=self.particules[b]
+        nb = s.size
+        for i in range(nb):
+            p=self.particules[s[i]]
+            # print(i,nb)
+            for j in range(i,nb):
+                o=self.particules[s[j]]
                 if (o != p):
                     o_p = p.pos - o.pos
                     d = o_p.length()
@@ -194,7 +196,7 @@ def main()->int:
     #     particules.append(Particule(400,120))
 
     solver = Solver(particules,monde)
-
+    start = tm.time()
     while run:
         # Gestion interface
         for event in ga.event.get():
@@ -212,12 +214,16 @@ def main()->int:
         #-----
         # Ajout des particules ...
         iter += 1
-        if (iter%7 == 0 and nb<1000):
+        if (iter%7 == 0 and nb<500):
             nb += 1
             dir = math.sin(iter/100)*90 + 90
             direction.from_polar((.9,dir))
             # particules.append(Particule(Origine.x-100, Origine.y,direction,getRainbow(iter/1000)))
             particules.append(Particule(Origine.x+100, Origine.y,direction,getRainbow(iter/1000)))
+            if (nb==500):
+                end = tm.time()
+                print(end-start, GRID)
+
         solver.update()
         win.fill(ga.Color(120,120,120,120))
         win.blit(monde_s,(0,0))
