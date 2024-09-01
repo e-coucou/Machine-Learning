@@ -1,17 +1,84 @@
 import tensorflow as tf
 from tensorflow.keras.optimizers import RMSprop, Adam, SGD
-from tensorflow.keras.layers import Dense, Layer, Dropout, LayerNormalization, ReLU, Embedding,Conv1D
+from tensorflow.keras.layers import Dense, Layer, Dropout, LayerNormalization, ReLU, Embedding,Conv1D, ELU,BatchNormalization,MaxPooling1D
 
 from model.attention import MultiHeadAttention, AddNormalization, FeedForward
 
+
+# Conv Layer
+class ConvLayer(Layer):
+    def __init__(self, d_model):
+        super(ConvLayer, self).__init__()
+        self.downConv = Conv1D( filters=d_model, kernel_size=3, padding="causal")
+        self.norm = BatchNormalization(d_model)
+        self.activation = ELU()
+        self.maxPool = MaxPooling1D(pool_size=3, stride=2, padding='same')
+
+    def forward(self, x):
+        x = self.downConv(x.permute(0, 2, 1))
+        x = self.norm(x)
+        x = self.activation(x)
+        x = self.maxPool(x)
+        x = x.transpose(1,2)
+        return x
+
+# Implementation Enocder for Informer
+class EncoderInfLayer(Layer):
+    def __init__(self,attention, d_model, rate, d_ff, **kwargs):
+        super(EncoderInfLayer, self).__init__(**kwargs)
+        self.multiheadAttention = attention
+        self.conv1 = Conv1D(filters=d_ff,kernel_size=3,padding="causal", kernel_initializer="he_uniform") # vs "same"
+        self.conv2 = Conv1D(filters=d_model,kernel_size=3,padding="causal", kernel_initializer="he_uniform") # vs "same"
+        self.norm1 = LayerNormalization()
+        self.norm2 = LayerNormalization()
+        self.dropout = Dropout(rate)
+        self.activation = ReLU
+
+    def call(self, x, a_mask=None, training=False):
+        new_x, attn = self.attention(
+            x, x, x,
+            attn_mask = a_mask
+        )
+        x = x + self.dropout(new_x)
+
+        y = x = self.norm1(x)
+        y = self.dropout(self.activation(self.conv1(y)))
+        y = self.dropout(self.conv2(y))
+
+        return self.norm2(x+y), attn    
+        
+class EncoderInf(Layer):
+    def __init__(self, attn_layers, conv_layers=None, N=1):
+        super(Encoder, self).__init__()
+        self.attn_layers = [ attn_layers for _ in range(N) ]
+        self.conv_layers = [ conv_layers if conv_layers is not None else None for _ in range(N) ]
+        self.norm = LayerNormalization()
+
+    def forward(self, x, attn_mask=None):
+        # x [B, L, D] D = features
+        attns = []
+        if self.conv_layers is not None:
+            for attn_layer, conv_layer in zip(self.attn_layers, self.conv_layers):
+                x, attn = attn_layer(x, attn_mask=attn_mask)
+                x = conv_layer(x)
+                attns.append(attn)
+            x, attn = self.attn_layers[-1](x, attn_mask=attn_mask)
+            attns.append(attn)
+        else:
+            for attn_layer in self.attn_layers:
+                x, attn = attn_layer(x, attn_mask=attn_mask)
+                attns.append(attn)
+
+        if self.norm is not None:
+            x = self.norm(x)
+
+        return x, attns
+   
 # Implementing Encoder
 class EncoderLayer(Layer):
     def __init__(self, h, d_model, rate, d_ff, **kwargs):
         super(EncoderLayer, self).__init__(**kwargs)
-        self.h = h
         # self.build(input_shape=[None, sequence_length, d_model])
-        self.d_model = d_model
-        # self.sequence_length = sequence_length
         self.multihead_attention = MultiHeadAttention(h, d_model)
         self.dropout1 = Dropout(rate)
         self.add_norm1 = AddNormalization()
