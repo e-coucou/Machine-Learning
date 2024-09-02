@@ -12,7 +12,7 @@ class ConvLayer(Layer):
         self.downConv = Conv1D( filters=d_model, kernel_size=3, padding="causal")
         self.norm = BatchNormalization(d_model)
         self.activation = ELU()
-        self.maxPool = MaxPooling1D(pool_size=3, stride=2, padding='same')
+        self.maxPool = MaxPooling1D(pool_size=3, strides=2, padding='same')
 
     def forward(self, x):
         x = self.downConv(x.permute(0, 2, 1))
@@ -26,20 +26,20 @@ class ConvLayer(Layer):
 class EncoderInfLayer(Layer):
     def __init__(self,attention, d_model, rate, d_ff, **kwargs):
         super(EncoderInfLayer, self).__init__(**kwargs)
-        self.multiheadAttention = attention
+        self.attention = attention
         self.conv1 = Conv1D(filters=d_ff,kernel_size=3,padding="causal", kernel_initializer="he_uniform") # vs "same"
         self.conv2 = Conv1D(filters=d_model,kernel_size=3,padding="causal", kernel_initializer="he_uniform") # vs "same"
         self.norm1 = LayerNormalization()
         self.norm2 = LayerNormalization()
         self.dropout = Dropout(rate)
-        self.activation = ReLU
+        self.activation = ReLU()
 
-    def call(self, x, a_mask=None, training=False):
+    def call(self, x, attn_mask=None, training=False):
         new_x, attn = self.attention(
             x, x, x,
-            attn_mask = a_mask
+            attn_mask = attn_mask
         )
-        x = x + self.dropout(new_x)
+        x = x + self.dropout(new_x,training=True)
 
         y = x = self.norm1(x)
         y = self.dropout(self.activation(self.conv1(y)))
@@ -49,12 +49,12 @@ class EncoderInfLayer(Layer):
         
 class EncoderInf(Layer):
     def __init__(self, attn_layers, conv_layers=None, N=1):
-        super(Encoder, self).__init__()
+        super(EncoderInf, self).__init__()
         self.attn_layers = [ attn_layers for _ in range(N) ]
         self.conv_layers = [ conv_layers if conv_layers is not None else None for _ in range(N) ]
         self.norm = LayerNormalization()
 
-    def forward(self, x, attn_mask=None):
+    def call(self, x, attn_mask=None):
         # x [B, L, D] D = features
         attns = []
         if self.conv_layers is not None:

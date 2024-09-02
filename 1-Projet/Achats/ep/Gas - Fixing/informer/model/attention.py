@@ -72,11 +72,10 @@ class ProbAttention(Layer):
         _, _, L_Q, _ = Q.shape
 
         # calculate the sampled Q_K
-        print(K.shape)
-        Ktmp = tf.expand_dims(K,axis=-2)
-        print(Ktmp.shape)
-        Ktmp2 = tf.broadcast_to(Ktmp, shape=(B, H, L_Q, L_K, E))
-        print(Ktmp2.shape)
+        # Ktmp = tf.expand_dims(K,axis=-2)
+        # print(Ktmp.shape)
+        # Ktmp2 = tf.broadcast_to(Ktmp, shape=(B, H, L_Q, L_K, E))
+        # print(Ktmp2.shape)
         K_expand = tf.broadcast_to(tf.expand_dims(K,axis=-3), (B, H, L_Q, L_K, E))
         index_sample = tf.random.uniform(maxval=L_K, shape=(L_Q, sample_k),dtype=tf.dtypes.int64)
         # K_expand = K.unsqueeze(-3).expand(B, H, L_Q, L_K, E)
@@ -100,7 +99,7 @@ class ProbAttention(Layer):
         Q_reduce = Q.numpy()[np.arange(B)[:, None, None],
                     np.arange(H)[None, :, None],
                     M_top.numpy(), :] # factor*ln(L_q)
-        Q_K = tf.matmul(Q_reduce, tf.transpose(K, perm=(0,1,2,4,3))) # factor*ln(L_q)*L_k
+        Q_K = tf.matmul(Q_reduce, tf.transpose(K, perm=(0,1,3,2))) # factor*ln(L_q)*L_k
 
         return Q_K, M_top
 
@@ -158,7 +157,8 @@ class ProbAttention(Layer):
         scores_top, index = self._prob_QK(q, k, sample_k=U_part, n_top=u) 
 
         # add scale factor
-        scale = self.scale or 1./math.sqrt(D)
+        # scale = self.scale or 1./math.sqrt(D)
+        scale = 1./math.sqrt(float(D))
         if scale is not None:
             scores_top = scores_top * scale
         # get the context
