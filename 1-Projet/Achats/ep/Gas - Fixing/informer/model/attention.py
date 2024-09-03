@@ -135,7 +135,7 @@ class ProbAttention(Layer):
             # attns = (torch.ones([B, H, L_V, L_V])/L_V).type_as(attn).to(attn.device)
             # attns[torch.arange(B)[:, None, None], torch.arange(H)[None, :, None], index, :] = attn
             attns = (np.ones([B, H, L_V, L_V], dtype=np.float32)/L_V)
-            attns[np.arange(B)[:, None, None], np.arange(H)[None, :, None], index.numpy, :] = attn.numpy
+            attns[np.arange(B)[:, None, None], np.arange(H)[None, :, None], index.numpy(), :] = attn.numpy()
             return (tf.convert_to_tensor(context_np),  tf.convert_to_tensor(attns))
         else:
             return (tf.convert_to_tensor(context_np),  None)

@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.keras import Sequential
 from tensorflow.keras.optimizers import RMSprop, Adam, SGD
 from tensorflow.keras.layers import Dense, Layer, Dropout, LayerNormalization, ReLU, Embedding,Conv1D, ELU,BatchNormalization,MaxPooling1D
 
@@ -7,19 +8,21 @@ from model.attention import MultiHeadAttention, AddNormalization, FeedForward
 
 # Conv Layer
 class ConvLayer(Layer):
-    def __init__(self, d_model):
+    def __init__(self, seq_len):
         super(ConvLayer, self).__init__()
-        self.downConv = Conv1D( filters=d_model, kernel_size=3, padding="causal")
-        self.norm = BatchNormalization(d_model)
+        self.downConv = Conv1D( filters=seq_len, kernel_size=3, padding="causal")
+        self.norm = BatchNormalization(axis=0)
         self.activation = ELU()
         self.maxPool = MaxPooling1D(pool_size=3, strides=2, padding='same')
 
-    def forward(self, x):
-        x = self.downConv(x.permute(0, 2, 1))
+    def call(self, x):
+        print(x.shape)
+        x = tf.transpose(x, perm=(0, 2, 1))
+        x = self.downConv(x)
         x = self.norm(x)
         x = self.activation(x)
+        x = tf.transpose(x,perm=(0,2,1))
         x = self.maxPool(x)
-        x = x.transpose(1,2)
         return x
 
 # Implementation Enocder for Informer
@@ -39,19 +42,20 @@ class EncoderInfLayer(Layer):
             x, x, x,
             attn_mask = attn_mask
         )
-        x = x + self.dropout(new_x,training=True)
+        x = x + self.dropout(new_x,training=training)
 
         y = x = self.norm1(x)
-        y = self.dropout(self.activation(self.conv1(y)))
-        y = self.dropout(self.conv2(y))
+        print('training',training)
+        y = self.dropout(self.activation(self.conv1(y)), training=training)
+        y = self.dropout(self.conv2(y), training=training)
 
         return self.norm2(x+y), attn    
         
 class EncoderInf(Layer):
     def __init__(self, attn_layers, conv_layers=None, N=1):
         super(EncoderInf, self).__init__()
-        self.attn_layers = [ attn_layers for _ in range(N) ]
-        self.conv_layers = [ conv_layers if conv_layers is not None else None for _ in range(N) ]
+        self.attn_layers = ([attn_layers])
+        self.conv_layers = ([conv_layers if conv_layers is not None else None])
         self.norm = LayerNormalization()
 
     def call(self, x, attn_mask=None):
@@ -59,14 +63,14 @@ class EncoderInf(Layer):
         attns = []
         if self.conv_layers is not None:
             for attn_layer, conv_layer in zip(self.attn_layers, self.conv_layers):
-                x, attn = attn_layer(x, attn_mask=attn_mask)
-                x = conv_layer(x)
+                x, attn = attn_layer[0](x, attn_mask=attn_mask)
+                x = conv_layer[0](x)
                 attns.append(attn)
-            x, attn = self.attn_layers[-1](x, attn_mask=attn_mask)
+            x, attn = self.attn_layers[0][-1](x, attn_mask=attn_mask)
             attns.append(attn)
         else:
             for attn_layer in self.attn_layers:
-                x, attn = attn_layer(x, attn_mask=attn_mask)
+                x, attn = attn_layer[0](x, attn_mask=attn_mask)
                 attns.append(attn)
 
         if self.norm is not None:

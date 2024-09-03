@@ -5,7 +5,7 @@ from keras.losses import sparse_categorical_crossentropy, binary_focal_crossentr
 from tensorflow import data, train, math, reduce_sum, cast, equal, argmax, float32, GradientTape, TensorSpec, function, int64
 from tensorflow.keras import Model
 
-from model.embedding import myEmbedding
+from model.embedding import myEmbedding, DataEmbedding
 from model.encoder import Encoder
 
 
@@ -27,7 +27,8 @@ def accuracy_fcn(y_true, y_pred):
 class myForcast(Model):
     def __init__(self,seq_len, h, d_model,rate, d_ff, N, **kwargs):
         super(myForcast, self).__init__(**kwargs)
-        self.MyE = myEmbedding(seq_len,d_model,rate)
+        # self.MyE = myEmbedding(seq_len,d_model,rate)
+        self.MyE = DataEmbedding(seq_len,d_model,rate, 'fixed','h',False)
         self.Encoder = Encoder(h,d_model,rate,d_ff,N)
         self.linear1 = Dense(d_ff/2)#, activation='sigmoid')
         self.linear2 = Dense(d_ff/8)#, activation='sigmoid')
@@ -38,7 +39,7 @@ class myForcast(Model):
         self.dropout = Dropout(rate)
 
     def call(self, x, training=False):
-        x = self.MyE(x, conv=False, training=training)
+        x = self.MyE(x, training=training)
         y = self.Encoder(x,training)
         y = tf.reshape(y, shape=[y.shape[0],y.shape[1]*y.shape[2]])
         y = self.linear1(y)

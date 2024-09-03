@@ -117,7 +117,7 @@ class myEmbedding(Layer):
         self.ProjEmb = projEmbedding(d_model,rate)
         self.Norm = LayerNormalization()
 
-    def call(self, x, conv=False, training=False):
+    def call(self, x, training=False):
         # x = tf.cast(x, dtype=tf.float32)
         # x = tf.reshape(x,[x.shape[0],x.shape[1],1])
         x1 = self.PositionEmb(x)
