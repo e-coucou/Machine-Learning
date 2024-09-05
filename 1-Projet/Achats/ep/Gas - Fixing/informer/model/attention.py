@@ -28,38 +28,42 @@ class DotProduct(Layer):
         out = matmul(weights, values)
         # Computing the attention by a weighted sum of the value vectors
         return out, weights
-    
+
+# implemente fullAttention
 class FullAttention(Layer):
-    def __init__(self, mask_flag=True, factor=5, scale=None, rate=0.1, output_attention=False):
-        super(FullAttention, self).__init__()
+    def __init__(self, mask_flag=True, factor=5, scale=None, rate=0.1, output_attention=False, **kwargs):
+        super(FullAttention, self).__init__(**kwargs)
         self.scale = scale
         self.mask_flag = mask_flag
         self.output_attention = output_attention
         self.dropout = Dropout(rate)
         
-    def forward(self, queries, keys, values, attn_mask):
+    def call(self, queries, keys, values, attn_mask):
+        print(queries.shape)
         B, L, H, E = queries.shape
         _, S, _, D = values.shape
-        scale = self.scale or 1./math.sqrt(E)
+        scale = self.scale or 1./math.sqrt(float(E))
 
-        scores = torch.einsum("blhe,bshe->bhls", queries, keys)
-        if self.mask_flag:
-            if attn_mask is None:
-                attn_mask = TriangularCausalMask(B, L, device=queries.device)
+        scores = tf.einsum('blhe,bshe->bhls', queries, keys)
+        print(scores.shape)
+        scores = tf.convert_to_tensor(scores)
+        # if self.mask_flag:
+        #     if attn_mask is None:
+        #         attn_mask = TriangularCausalMask(B, L, device=queries.device)
 
-            scores.masked_fill_(attn_mask.mask, -np.inf)
+        #     scores.masked_fill_(attn_mask.mask, -np.inf)
 
-        A = self.dropout(torch.softmax(scale * scores, dim=-1))
-        V = torch.einsum("bhls,bshd->blhd", A, values)
+        attn = self.dropout(tf.nn.softmax(scale * scores, axis=-1)) #,training=training)
+        out = tf.einsum("bhls,bshd->blhd", attn, values)
         
         if self.output_attention:
-            return (V.contiguous(), A)
+            return out,attn
         else:
-            return (V.contiguous(), None)
-
+            return out,None
+        
 class ProbAttention(Layer):
-    def __init__(self, mask_flag=True, factor=5, scale=None, rate=0.1, output_attention=False):
-        super(ProbAttention, self).__init__()
+    def __init__(self, mask_flag=True, factor=5, scale=None, rate=0.1, output_attention=False, **kwargs):
+        super(ProbAttention, self).__init__(**kwargs)
         self.factor = factor
         self.scale = scale
         self.mask_flag = mask_flag
@@ -157,8 +161,8 @@ class ProbAttention(Layer):
         scores_top, index = self._prob_QK(q, k, sample_k=U_part, n_top=u) 
 
         # add scale factor
-        # scale = self.scale or 1./math.sqrt(D)
-        scale = 1./math.sqrt(float(D))
+        scale = self.scale or 1./math.sqrt(float(D))
+        # scale = 1./math.sqrt(float(D))
         if scale is not None:
             scores_top = scores_top * scale
         # get the context
@@ -193,6 +197,8 @@ class AttentionLayer(Layer):
         k = tf.reshape(self.key_projection(keys), shape=(B, S, H, -1))
         v = tf.reshape(self.value_projection(values), shape=(B, S, H, -1))
 
+        print('attention Layer', q.shape)
+
         out, attn = self.inner_attention( q, k, v, attn_mask )
         if self.mix:
             out = tf.transpose(out, perm=(0,2,1,3))
@@ -213,9 +219,6 @@ class MultiHeadAttention(Layer):
   
     def call(self, x, mask=None, value=None):
         batch_size, seq_len, _ = x.shape
-        # batch_size = x.shape[0]
-        # seq_lenght = x.shape[1]
-        # input_dim = x.shape[2]
         qkv = self.qkv_layer(x)
         qkv = tf.reshape(qkv,shape=[batch_size , seq_len , self.heads , int(3*self.head_dim)])
         qkv = transpose(qkv,perm=(0,2,1,3))
