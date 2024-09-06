@@ -39,13 +39,11 @@ class FullAttention(Layer):
         self.dropout = Dropout(rate)
         
     def call(self, queries, keys, values, attn_mask):
-        print(queries.shape)
         B, L, H, E = queries.shape
         _, S, _, D = values.shape
         scale = self.scale or 1./math.sqrt(float(E))
 
         scores = tf.einsum('blhe,bshe->bhls', queries, keys)
-        print(scores.shape)
         scores = tf.convert_to_tensor(scores)
         # if self.mask_flag:
         #     if attn_mask is None:
@@ -76,30 +74,17 @@ class ProbAttention(Layer):
         _, _, L_Q, _ = Q.shape
 
         # calculate the sampled Q_K
-        # Ktmp = tf.expand_dims(K,axis=-2)
-        # print(Ktmp.shape)
-        # Ktmp2 = tf.broadcast_to(Ktmp, shape=(B, H, L_Q, L_K, E))
-        # print(Ktmp2.shape)
         K_expand = tf.broadcast_to(tf.expand_dims(K,axis=-3), (B, H, L_Q, L_K, E))
         index_sample = tf.random.uniform(maxval=L_K, shape=(L_Q, sample_k),dtype=tf.dtypes.int64)
-        # K_expand = K.unsqueeze(-3).expand(B, H, L_Q, L_K, E)
-        # index_sample = torch.randint(L_K, (L_Q, sample_k)) # real U = U_part(factor*ln(L_k))*L_q
         v = tf.expand_dims(np.arange(L_Q),1)
         K_sample = tf.convert_to_tensor(K_expand.numpy()[:, :, v.numpy(), index_sample.numpy(), :])
-        # K_sample = K_expand[:, :, torch.arange(L_Q).unsqueeze(1), index_sample, :]
-        # Q_K_sample = tf.matmul(Q.unsqueeze(-2), K_sample.transpose(-2, -1)).squeeze(-2)
         Q_K_sample = tf.squeeze(tf.matmul(tf.expand_dims(Q,axis=-2),tf.transpose(K_sample,perm=(0,1,2,4,3))),axis=-2)
 
         # find the Top_k query with sparisty measurement
-        # M = Q_K_sample.max(-1)[0] - torch.div(Q_K_sample.sum(-1), L_K)
-        # M_top = M.topk(n_top, sorted=False)[1]
         M = tf.reduce_max(Q_K_sample, axis=-1) - tf.divide(tf.reduce_sum(Q_K_sample, axis=-1), L_K)
         M_top = tf.math.top_k(M, k=n_top, sorted=False)[1] # [1] on recupere les indices
 
         # use the reduced Q to calculate Q_K
-        # Q_reduce = Q[torch.arange(B)[:, None, None],
-        #              torch.arange(H)[None, :, None],
-        #              M_top, :] # factor*ln(L_q)
         Q_reduce = Q.numpy()[np.arange(B)[:, None, None],
                     np.arange(H)[None, :, None],
                     M_top.numpy(), :] # factor*ln(L_q)
@@ -125,19 +110,13 @@ class ProbAttention(Layer):
             attn_mask = ProbMask(B, H, L_Q, index, scores, device=V.device)
             scores.masked_fill_(attn_mask.mask, -np.inf)
 
-        # attn = torch.softmax(scores, dim=-1) # nn.Softmax(dim=-1)(scores)
         attn = tf.nn.softmax(scores, axis=-1)
         context_np = context_in.numpy()
         context_np[np.arange(B)[:, None, None],
                     np.arange(H)[None, :, None],
                     index.numpy(), :] = (tf.matmul(attn, V).numpy())
 
-        # context_in[torch.arange(B)[:, None, None],
-        #            torch.arange(H)[None, :, None],
-        #            index, :] = torch.matmul(attn, V).type_as(context_in)
         if self.output_attention:
-            # attns = (torch.ones([B, H, L_V, L_V])/L_V).type_as(attn).to(attn.device)
-            # attns[torch.arange(B)[:, None, None], torch.arange(H)[None, :, None], index, :] = attn
             attns = (np.ones([B, H, L_V, L_V], dtype=np.float32)/L_V)
             attns[np.arange(B)[:, None, None], np.arange(H)[None, :, None], index.numpy(), :] = attn.numpy()
             return (tf.convert_to_tensor(context_np),  tf.convert_to_tensor(attns))
@@ -197,8 +176,6 @@ class AttentionLayer(Layer):
         k = tf.reshape(self.key_projection(keys), shape=(B, S, H, -1))
         v = tf.reshape(self.value_projection(values), shape=(B, S, H, -1))
 
-        print('attention Layer', q.shape)
-
         out, attn = self.inner_attention( q, k, v, attn_mask )
         if self.mix:
             out = tf.transpose(out, perm=(0,2,1,3))
@@ -222,7 +199,6 @@ class MultiHeadAttention(Layer):
         qkv = self.qkv_layer(x)
         qkv = tf.reshape(qkv,shape=[batch_size , seq_len , self.heads , int(3*self.head_dim)])
         qkv = transpose(qkv,perm=(0,2,1,3))
-        # print(qkv.shape, batch_size , self.heads, seq_lenght , self.head_dim)
         q = tf.slice(qkv,[0,0,0,0],[batch_size,self.heads,seq_len,self.head_dim])
         k = tf.slice(qkv,[0,0,0,self.head_dim],[batch_size,self.heads,seq_len,self.head_dim])
         if (value==None):
@@ -232,7 +208,6 @@ class MultiHeadAttention(Layer):
  
         # # Compute the multi-head attention output using the reshaped queries, keys and values
         attention, weights = self.attention(q, k, v, mask)
-        # print('attention',attention.shape)
         attention = tf.transpose(attention,perm=(0,2,1,3))
         attention = tf.reshape(attention,shape=[batch_size,seq_len,int(self.heads*self.head_dim)])
 

@@ -3,6 +3,8 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
+import pandas as pd
+import os
 
 from model.utils import Normalize
 
@@ -43,3 +45,42 @@ class getMyData :
     def display(self):
         fig = plt.figure(figsize=(18,3))
         plt.plot(self.Y);
+
+class getDataETTh1:
+    def __init__(self, seq_len,global_size):
+        # Get Features from ETTh1
+        root_path = "../../data/"
+        data_path = "ETTh1.csv"
+        df_raw = pd.read_csv(os.path.join(root_path,data_path))
+
+        # split = re.compile('-|:| ')
+        # featuresDate = (df_raw['date'].str.split(split, expand=True)).astype(np.int64).iloc[:,:4]
+        featuresData = df_raw.iloc[:,1:8].astype(np.float32)
+
+        # On ajoute les infos temporelles : mois/jour/joursemain/heure
+        df_raw['mois'] = df_raw.date.apply(lambda row:int(row[5:7])).astype(np.int64)
+        df_raw['jour'] = df_raw.date.apply(lambda row:int(row[8:10])).astype(np.int64)
+        df_raw['heure'] = df_raw.date.apply(lambda row:int(row[11:13])).astype(np.int64)
+        df_raw['sJour'] = df_raw['date'].astype('datetime64[s]').dt.dayofweek.astype(np.int64)
+        featuresDate = df_raw[['mois','jour','sJour','heure']].astype(np.int64)
+
+        # Convert Features to numpy array
+        featuresData = featuresData.to_numpy()
+        featuresDate = featuresDate.to_numpy()
+        # Create a dataset Feature Data
+        X = np.array([featuresData[i:i+seq_len] for i in range(0, featuresData.shape[0]-seq_len)], dtype=np.float32)
+        Y = np.array([featuresData[i+seq_len] for i in range(0, featuresData.shape[0]-seq_len-1)], dtype=np.float32)
+        self.Xt = tf.convert_to_tensor(X[:global_size,:,:], dtype=tf.float32)
+        self.Yt = tf.convert_to_tensor(Y[:global_size,:], dtype=tf.float32)
+        # XT = torch.from_numpy(X[:global_size,:,:])
+
+        # Create a dataset : Features Date
+        X = np.array([featuresDate[i:i+seq_len] for i in range(0, featuresDate.shape[0]-seq_len)], dtype=np.float32)
+        Y = np.array([featuresDate[i+seq_len] for i in range(0, featuresDate.shape[0]-seq_len-1)], dtype=np.float32)
+        self.XtDate = tf.convert_to_tensor(X[:global_size,:,:], dtype=tf.float32)
+        self.YtDate = tf.convert_to_tensor(Y[:global_size,:], dtype=tf.float32)
+        # XTDate = torch.from_numpy(X[:global_size,:])
+        self.df = df_raw.iloc[0:global_size,:];
+
+    def get(self):
+        return (self.Xt,self.XtDate,self.Yt,self.YtDate,self.df)
