@@ -27,8 +27,10 @@ def accuracy_fcn(y_true, y_pred):
 
 #Informer Model
 class myInformer(Model):
-    def __init__(self, seq_len, pred_len, batch_size, d_model, rate , factor, head,d_ff,e_layer, features, **kwargs):
+    def __init__(self, seq_len, pred_len, batch_size, d_model, rate , factor, head, d_ff, e_layer, features, d_layer=1, **kwargs):
         super(myInformer, self).__init__(**kwargs)
+        self.e_layer = e_layer
+        self.d_layer = d_layer
         self.pred_len = pred_len
         self.seq_len = seq_len
         self.batch_size = batch_size
@@ -37,51 +39,34 @@ class myInformer(Model):
                         AttentionLayer(
                             ProbAttention(False,factor,None,rate,True)
                                 ,d_model, head, None, None, False)
-                            ,d_model, rate,d_ff) for _ in range(e_layer) 
+                            ,d_model, rate,d_ff) for _ in range(self.e_layer) 
                         ]                     ,
-                    [ ConvLayer(seq_len=seq_len) for _ in range (e_layer - 1)
-                    ])
-        self.Decoder = DecoderInf( DecoderInfLayer (
+                    [ ConvLayer(seq_len=seq_len) for _ in range (self.e_layer - 1)
+                    ],self.e_layer)
+        self.Decoder = DecoderInf( [ DecoderInfLayer (
                         AttentionLayer(
                             ProbAttention(False,factor,None,rate,True)
                                 ,d_model,head,None,None,False),
                         AttentionLayer(
                             FullAttention(False,factor,None,rate,False)
                                 ,d_model, head, None, None, False)
-                        ,d_model,None,rate,'relu')
+                        ,d_model,None,rate,'relu') for _ in range(self.d_layer) ]
                     ,norm_layer= LayerNormalization()
                    )
         self.Projection = Dense(features)
 
-    def call(self, x, x_date , start=0 ):
-        L, S, F = x.shape
-        _, _, Fd = x_date.shape
-        x,scaler = Normalize(tf.reshape(x, [L,-1]))
-        x = tf.reshape(x,[L,S,F])
-        x = tf.cast(x,tf.float32)
-        x_date,scaler = Normalize(tf.reshape(x_date,[L,-1]))
-        x_date = tf.reshape(x_date,[L,S,Fd])
-        x_date = tf.cast(x_date,tf.float32)
-
-        dec_len = self.seq_len // 2
-        x_enc, x_date_enc = [ x[start:start+self.batch_size,:self.seq_len,:] , x_date[start:start+self.batch_size,:self.seq_len,:]]
-        x_dec, x_date_dec = [ x[start:start+self.batch_size,:dec_len,:] , x_date[start:start+self.batch_size,:dec_len,:]]
-        x_dec_padd = tf.zeros(shape=(self.batch_size,self.pred_len,x.shape[-1]))
-        x_date_dec_padd = tf.zeros(shape=(self.batch_size,self.pred_len,x_date.shape[-1]))
-        x_dec = tf.concat([x_dec,x_dec_padd],1)
-        x_date_dec = tf.concat([x_date_dec,x_date_dec_padd],1)
-
+    def call(self, x_enc, x_date_enc, x_dec, x_date_dec, training = False ):
         #Embedding
-        encEmb = self.Embedding(x=x_enc, x_mark=x_date_enc, training=True)
-        decEmb = self.Embedding(x=x_dec, x_mark=x_date_dec, training =True)
+        encEmb = self.Embedding(x=x_enc, x_mark=x_date_enc, training=training)
+        decEmb = self.Embedding(x=x_dec, x_mark=x_date_dec, training =training)
         #Encoder
-        outEnc,attnE = self.Encoder(encEmb, training=True)
+        outEnc,attnE = self.Encoder(encEmb, training=training, )
         #Decoder
-        outDec = self.Decoder(decEmb, outEnc,training=True)
+        outDec = self.Decoder(decEmb, outEnc,training=training)
         #Projection
         out = self.Projection(outDec)
 
-        return out, outDec, outEnc, decEmb, encEmb, attnE, x, x_date, x_enc
+        return out, outDec, outEnc, decEmb, encEmb, attnE
 
 #My Forecasting 
 class myForcast(Model):

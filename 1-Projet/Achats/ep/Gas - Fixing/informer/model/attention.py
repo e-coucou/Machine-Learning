@@ -38,7 +38,7 @@ class FullAttention(Layer):
         self.output_attention = output_attention
         self.dropout = Dropout(rate)
         
-    def call(self, queries, keys, values, attn_mask):
+    def call(self, queries, keys, values, attn_mask, training):
         B, L, H, E = queries.shape
         _, S, _, D = values.shape
         scale = self.scale or 1./math.sqrt(float(E))
@@ -51,7 +51,7 @@ class FullAttention(Layer):
 
         #     scores.masked_fill_(attn_mask.mask, -np.inf)
 
-        attn = self.dropout(tf.nn.softmax(scale * scores, axis=-1)) #,training=training)
+        attn = self.dropout(tf.nn.softmax(scale * scores, axis=-1), training=training)
         out = tf.einsum("bhls,bshd->blhd", attn, values)
         
         if self.output_attention:

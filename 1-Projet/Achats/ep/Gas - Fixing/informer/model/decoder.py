@@ -44,7 +44,7 @@ class DecoderInfLayer(Layer):
 class DecoderInf(Layer):
     def __init__(self, layers, norm_layer=None):
         super(DecoderInf, self).__init__()
-        self.layers = [(layers)]
+        self.layers = list(layers)
         self.norm = norm_layer
 
     def call(self, x, cross, x_mask=None, cross_mask=None):

@@ -16,7 +16,6 @@ class ConvLayer(Layer):
         self.maxPool = MaxPooling1D(pool_size=3, strides=2, padding='same')
 
     def call(self, x):
-        print(x.shape)
         x = tf.transpose(x, perm=(0, 2, 1))
         x = self.downConv(x)
         x = self.norm(x)
@@ -45,32 +44,30 @@ class EncoderInfLayer(Layer):
         x = x + self.dropout(new_x,training=training)
 
         y = x = self.norm1(x)
-        print('training',training)
         y = self.dropout(self.activation(self.conv1(y)), training=training)
         y = self.dropout(self.conv2(y), training=training)
 
         return self.norm2(x+y), attn    
         
 class EncoderInf(Layer):
-    def __init__(self, attn_layers, conv_layers=None, N=1):
+    def __init__(self, attn_layers, conv_layers=None, N=2):
         super(EncoderInf, self).__init__()
-        self.attn_layers = ([attn_layers])
-        self.conv_layers = ([conv_layers if conv_layers is not None else None])
+        self.attn_layers = list(attn_layers)
+        self.conv_layers = list(conv_layers if conv_layers is not None else None)
         self.norm = LayerNormalization()
 
     def call(self, x, attn_mask=None):
-        # x [B, L, D] D = features
         attns = []
         if self.conv_layers is not None:
             for attn_layer, conv_layer in zip(self.attn_layers, self.conv_layers):
-                x, attn = attn_layer[0](x, attn_mask=attn_mask)
-                x = conv_layer[0](x)
+                x, attn = attn_layer(x, attn_mask=attn_mask)
+                x = conv_layer(x)
                 attns.append(attn)
-            x, attn = self.attn_layers[0][-1](x, attn_mask=attn_mask)
+            x, attn = self.attn_layers[-1](x, attn_mask=attn_mask)
             attns.append(attn)
         else:
             for attn_layer in self.attn_layers:
-                x, attn = attn_layer[0](x, attn_mask=attn_mask)
+                x, attn = attn_layer(x, attn_mask=attn_mask)
                 attns.append(attn)
 
         if self.norm is not None:

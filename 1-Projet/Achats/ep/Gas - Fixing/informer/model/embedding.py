@@ -140,7 +140,6 @@ class DataEmbedding(Layer):
         self.a = self.token_embedding(x)
         self.b = self.position_embedding(x)
         self.c = self.temporal_embedding(x_mark) if self.timeF else 0
-
         self.out = self.a + self.b + self.c
         self.outD = self.dropout(self.out, training=training)
         
