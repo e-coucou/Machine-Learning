@@ -47,9 +47,9 @@ class DecoderInf(Layer):
         self.layers = list(layers)
         self.norm = norm_layer
 
-    def call(self, x, cross, x_mask=None, cross_mask=None):
+    def call(self, x, cross, x_mask=None, cross_mask=None, training=False):
         for layer in self.layers:
-            x = layer(x, cross, x_mask=x_mask, cross_mask=cross_mask)
+            x = layer(x, cross, x_mask=x_mask, cross_mask=cross_mask,training=training)
 
         if self.norm is not None:
             x = self.norm(x)

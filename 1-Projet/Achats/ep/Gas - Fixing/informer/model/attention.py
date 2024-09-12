@@ -38,7 +38,7 @@ class FullAttention(Layer):
         self.output_attention = output_attention
         self.dropout = Dropout(rate)
         
-    def call(self, queries, keys, values, attn_mask, training):
+    def call(self, queries, keys, values, attn_mask, training=False):
         B, L, H, E = queries.shape
         _, S, _, D = values.shape
         scale = self.scale or 1./math.sqrt(float(E))
@@ -123,7 +123,7 @@ class ProbAttention(Layer):
         else:
             return (tf.convert_to_tensor(context_np),  None)
     
-    def call(self, q, k, v, attn_mask):
+    def call(self, q, k, v, attn_mask, training=False):
         B, L_Q, H, D = q.shape # Batch/Seq_len/Head/reste...
         _, L_K, _, _ = k.shape
 
@@ -154,9 +154,8 @@ class ProbAttention(Layer):
 # AttentionLayer for Informer
 class AttentionLayer(Layer):
     def __init__(self, attention, d_model, heads, 
-                 d_keys=None, d_values=None, mix=False):
-        super(AttentionLayer, self).__init__()
-
+                 d_keys=None, d_values=None, mix=False, **kwargs):
+        super(AttentionLayer, self).__init__(**kwargs)
         d_keys = d_keys or (d_model//heads) #64
         d_values = d_values or (d_model//heads) #64
         self.inner_attention = attention
@@ -167,7 +166,8 @@ class AttentionLayer(Layer):
         self.heads = heads
         self.mix = mix
 
-    def call(self, queries, keys, values, attn_mask):
+    def call(self, queries, keys, values, attn_mask, training=False):
+
         B, L, _ = queries.shape
         _, S, _ = keys.shape
         H = self.heads
@@ -180,8 +180,9 @@ class AttentionLayer(Layer):
         if self.mix:
             out = tf.transpose(out, perm=(0,2,1,3))
         out = tf.reshape(out, shape=(B, L, -1))
+        out = self.out_projection(out)
 
-        return self.out_projection(out), attn
+        return out, attn
     
 # Implementing the Multi-Head Attention
 class MultiHeadAttention(Layer):

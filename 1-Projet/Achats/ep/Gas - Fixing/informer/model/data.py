@@ -102,14 +102,20 @@ class getDataETTh1:
         return (self.Xt,self.XtDate,self.Yt,self.YtDate,self.df)
     
     def buildDataset(self, split=0.2):
-        data = self.df_Data.iloc[:,1:].to_numpy()
-        print(data.shape)
-        X = np.array([data[i:i+self.seq_len] for i in range(0, data.shape[0]-self.seq_len)], dtype=np.float32)
-        Y = np.array([data[i+self.seq_len] for i in range(0, data.shape[0]-self.seq_len)], dtype=np.float32)
-        print('X',X.shape)
-        print('Y',Y.shape)
+        N,F = self.df_Data.shape # global_size, 12
+        if (self.global_size>0):
+            N=self.global_size
+        data_ = self.df_Data.iloc[:self.global_size,1:].to_numpy().reshape((N,-1))
+        print('data_',data_.shape)
+        self.dataN,self.scalerData = Normalize(data_)
+        print('ici',self.dataN.shape)
+        self.data = np.reshape(self.dataN,(N,11))
+        # print(self.dataN.shape)
+        # self.data = np.concatenate((self.dataN,data_[:,7:]),axis=1)
+        self.X = np.array([self.data[i:i+self.seq_len] for i in range(0, self.data.shape[0]-self.seq_len)], dtype=np.float32)
+        self.y = np.array([self.data[i+self.seq_len] for i in range(0, self.data.shape[0]-self.seq_len)], dtype=np.float32)
 
-        X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=split, random_state=1965, shuffle=True) #, stratify=Y)
+        X_train, X_val, y_train, y_val = train_test_split(self.X, self.y, test_size=split, random_state=1965, shuffle=True) #, stratify=Y)
 
         self.dataset = tf.data.Dataset.from_tensor_slices((X_train,y_train))
         self.dataset = self.dataset.batch(self.batch_len)

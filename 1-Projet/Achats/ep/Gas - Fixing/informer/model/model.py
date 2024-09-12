@@ -15,8 +15,6 @@ from model.utils import Normalize
 # Defining the loss function
 def loss_fcn(y_true, y_pred):
     loss = mean_squared_error(y_true=y_true, y_pred=y_pred)
-    # loss = huber_loss(y_true=y_true, y_pred=y_pred)
-    # return loss/loss.shape[0]
     return (reduce_sum(loss)/loss.shape[0])
 
 # Defining the accuracy function
@@ -57,14 +55,15 @@ class myInformer(Model):
 
     def call(self, x_enc, x_date_enc, x_dec, x_date_dec, training = False ):
         #Embedding
-        encEmb = self.Embedding(x=x_enc, x_mark=x_date_enc, training=training)
-        decEmb = self.Embedding(x=x_dec, x_mark=x_date_dec, training =training)
+        encEmb = self.Embedding(x=x_enc, x_mark=x_date_enc, training = training)
+        decEmb = self.Embedding(x=x_dec, x_mark=x_date_dec, training = training)
         #Encoder
-        outEnc,attnE = self.Encoder(encEmb, training=training, )
+        outEnc,attnE = self.Encoder(encEmb,None, training=training )
         #Decoder
-        outDec = self.Decoder(decEmb, outEnc,training=training)
+        outDec = self.Decoder(decEmb, outEnc, None ,training=training)
         #Projection
         out = self.Projection(outDec)
+        out = out[:,-self.pred_len:,:]
 
         return out, outDec, outEnc, decEmb, encEmb, attnE
 

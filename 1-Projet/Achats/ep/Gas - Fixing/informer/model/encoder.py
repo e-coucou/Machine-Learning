@@ -8,10 +8,10 @@ from model.attention import MultiHeadAttention, AddNormalization, FeedForward
 
 # Conv Layer
 class ConvLayer(Layer):
-    def __init__(self, seq_len):
-        super(ConvLayer, self).__init__()
+    def __init__(self, seq_len, **kwargs):
+        super(ConvLayer, self).__init__(**kwargs)
         self.downConv = Conv1D( filters=seq_len, kernel_size=3, padding="causal")
-        self.norm = BatchNormalization(axis=0)
+        self.norm = LayerNormalization()  #vs BatchNormalization axis=0
         self.activation = ELU()
         self.maxPool = MaxPooling1D(pool_size=3, strides=2, padding='same')
 
@@ -50,24 +50,24 @@ class EncoderInfLayer(Layer):
         return self.norm2(x+y), attn    
         
 class EncoderInf(Layer):
-    def __init__(self, attn_layers, conv_layers=None, N=2):
-        super(EncoderInf, self).__init__()
+    def __init__(self, attn_layers, conv_layers=None, N=2, **kwargs):
+        super(EncoderInf, self).__init__(**kwargs)
         self.attn_layers = list(attn_layers)
         self.conv_layers = list(conv_layers if conv_layers is not None else None)
         self.norm = LayerNormalization()
 
-    def call(self, x, attn_mask=None):
+    def call(self, x, attn_mask=None,training=False):
         attns = []
         if self.conv_layers is not None:
             for attn_layer, conv_layer in zip(self.attn_layers, self.conv_layers):
-                x, attn = attn_layer(x, attn_mask=attn_mask)
+                x, attn = attn_layer(x, attn_mask=attn_mask, training=training)
                 x = conv_layer(x)
                 attns.append(attn)
-            x, attn = self.attn_layers[-1](x, attn_mask=attn_mask)
+            x, attn = self.attn_layers[-1](x, attn_mask=attn_mask, training=training)
             attns.append(attn)
         else:
             for attn_layer in self.attn_layers:
-                x, attn = attn_layer(x, attn_mask=attn_mask)
+                x, attn = attn_layer(x, attn_mask=attn_mask, training=training)
                 attns.append(attn)
 
         if self.norm is not None:
