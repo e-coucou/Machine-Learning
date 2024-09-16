@@ -25,28 +25,29 @@ def accuracy_fcn(y_true, y_pred):
 
 #Informer Model
 class myInformer(Model):
-    def __init__(self, seq_len, pred_len, batch_size, d_model, rate , factor, head, d_ff, e_layer, features, d_layer=1, **kwargs):
+    def __init__(self, seq_len, pred_len, batch_size, d_model, rate , factor, head, d_ff, e_layer, features, freq='h', d_layer=1, **kwargs):
         super(myInformer, self).__init__(**kwargs)
         self.e_layer = e_layer
         self.d_layer = d_layer
         self.pred_len = pred_len
         self.seq_len = seq_len
         self.batch_size = batch_size
-        self.Embedding = DataEmbedding(seq_len=seq_len, d_model=d_model,rate=rate,timeF=True )
-        self.Encoder = EncoderInf( [ EncoderInfLayer( 
+        self.freq=freq
+        self.Embedding = DataEmbedding(seq_len=seq_len, d_model=d_model,rate=rate,timeF=True,freq=self.freq )
+        self.Encoder = EncoderInf( [ EncoderInfLayer (
                         AttentionLayer(
                             ProbAttention(False,factor,None,rate,True)
-                                ,d_model, head, None, None, False)
-                            ,d_model, rate,d_ff) for _ in range(self.e_layer) 
-                        ]                     ,
-                    [ ConvLayer(seq_len=seq_len) for _ in range (self.e_layer - 1)
-                    ],self.e_layer)
+                                ,d_model, head, None, None, False) 
+                             ,d_model, rate,d_ff)  for _ in range(self.e_layer) ]
+                                      ,
+                     [ConvLayer(seq_len=seq_len) for _ in range (self.e_layer - 1)]
+                    ,self.e_layer)
         self.Decoder = DecoderInf( [ DecoderInfLayer (
                         AttentionLayer(
                             ProbAttention(False,factor,None,rate,True)
                                 ,d_model,head,None,None,False),
                         AttentionLayer(
-                            FullAttention(False,factor,None,rate,False)
+                            FullAttention(True,factor, None,rate,False)
                                 ,d_model, head, None, None, False)
                         ,d_model,None,rate,'relu') for _ in range(self.d_layer) ]
                     ,norm_layer= LayerNormalization()
@@ -54,12 +55,11 @@ class myInformer(Model):
         self.Projection = Dense(features)
 
     def call(self, x_enc, x_date_enc, x_dec, x_date_dec, training = False ):
-        #Embedding
-        encEmb = self.Embedding(x=x_enc, x_mark=x_date_enc, training = training)
-        decEmb = self.Embedding(x=x_dec, x_mark=x_date_dec, training = training)
         #Encoder
+        encEmb = self.Embedding(x=x_enc, x_mark=x_date_enc, training = training)
         outEnc,attnE = self.Encoder(encEmb,None, training=training )
         #Decoder
+        decEmb = self.Embedding(x=x_dec, x_mark=x_date_dec, training = training)
         outDec = self.Decoder(decEmb, outEnc, None ,training=training)
         #Projection
         out = self.Projection(outDec)

@@ -93,7 +93,8 @@ class TemporalEmbedding(Layer):
         Embed = FixedEmbedding if embed_type=='fixed' else Embedding
         if freq=='t':
             self.minute_embed = Embed(minute_size, d_model)
-        self.hour_embed = Embed(hour_size, d_model)
+        if (freq=='h' or freq=='t'):
+            self.hour_embed = Embed(hour_size, d_model)
         self.weekday_embed = Embed(weekday_size, d_model)
         self.day_embed = Embed(day_size, d_model)
         self.month_embed = Embed(month_size, d_model)
@@ -101,7 +102,7 @@ class TemporalEmbedding(Layer):
     def call(self, x):
         x = tf.cast(x, dtype=tf.int64)
         minute_x = self.minute_embed(x[:,:,4]) if hasattr(self, 'minute_embed') else 0.
-        hour_x = self.hour_embed(x[:,:,3])
+        hour_x = self.hour_embed(x[:,:,3]) if hasattr(self, 'hour_embed') else 0.
         weekday_x = self.weekday_embed(x[:,:,2])
         day_x = self.day_embed(x[:,:,1])
         month_x = self.month_embed(x[:,:,0])
@@ -127,13 +128,12 @@ class myEmbedding(Layer):
         return out
     
 class DataEmbedding(Layer):
-    def __init__(self, seq_len, d_model, rate=0.1, embed_type='fixed', freq='h', timeF=True, token = True):
+    def __init__(self, seq_len, d_model, rate=0.1, embed_type='fixed', freq='j', timeF=True, token = True):
         super(DataEmbedding, self).__init__()
         self.timeF = timeF
         self.token_embedding = TokenEmbedding(d_model=d_model) if token else projEmbedding(d_model=d_model,rate=rate)
         self.position_embedding = PositionEmbedding(seq_len=seq_len,d_model=d_model)
         self.temporal_embedding = TemporalEmbedding(d_model=d_model, embed_type=embed_type, freq=freq) if embed_type!='timeF' else TimeFeatureEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
-
         self.dropout = Dropout(rate)
 
     def call(self, x, x_mark=0, training=False):

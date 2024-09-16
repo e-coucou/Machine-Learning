@@ -45,11 +45,12 @@ class FullAttention(Layer):
 
         scores = tf.einsum('blhe,bshe->bhls', queries, keys)
         scores = tf.convert_to_tensor(scores)
-        # if self.mask_flag:
-        #     if attn_mask is None:
-        #         attn_mask = TriangularCausalMask(B, L, device=queries.device)
+        if self.mask_flag:
+            if attn_mask is None:
+                scores = tf.linalg.band_part(scores,0,-1)
+            #     attn_mask = TriangularCausalMask(B, L, device=queries.device)
 
-        #     scores.masked_fill_(attn_mask.mask, -np.inf)
+            # scores.masked_fill_(attn_mask.mask, -np.inf)
 
         attn = self.dropout(tf.nn.softmax(scale * scores, axis=-1), training=training)
         out = tf.einsum("bhls,bshd->blhd", attn, values)
@@ -159,15 +160,14 @@ class AttentionLayer(Layer):
         d_keys = d_keys or (d_model//heads) #64
         d_values = d_values or (d_model//heads) #64
         self.inner_attention = attention
-        self.query_projection = Dense(d_keys * heads) # d_model
-        self.key_projection = Dense(d_keys * heads)
-        self.value_projection = Dense(d_values * heads)
-        self.out_projection = Dense(d_model) # d_values * n_heads,
+        self.query_projection = Dense(d_keys * heads, use_bias=True) # d_model
+        self.key_projection = Dense(d_keys * heads,use_bias=True)
+        self.value_projection = Dense(d_values * heads, use_bias=True)
+        self.out_projection = Dense(d_model, use_bias=True) # d_values * n_heads,
         self.heads = heads
         self.mix = mix
 
     def call(self, queries, keys, values, attn_mask, training=False):
-
         B, L, _ = queries.shape
         _, S, _ = keys.shape
         H = self.heads

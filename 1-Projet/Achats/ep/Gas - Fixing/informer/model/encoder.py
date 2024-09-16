@@ -72,7 +72,6 @@ class EncoderInf(Layer):
 
         if self.norm is not None:
             x = self.norm(x)
-
         return x, attns
    
 # Implementing Encoder
