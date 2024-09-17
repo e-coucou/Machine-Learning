@@ -15,7 +15,7 @@ class getGasData:
         self.batch_len = batch_len
         self.global_size = global_size
         root_path = "../../data/"
-        data_path = "bloc_ttf_prices_old.csv"
+        data_path = "bloc_ttf_prices.csv"
         df_raw = pd.read_csv(os.path.join(root_path,data_path))
         df_raw = df_raw.drop(columns=['Quarter-ahead','Summer 24','Winter 24'],axis=1)
         df_raw = df_raw.dropna(axis=0)
@@ -31,7 +31,7 @@ class getGasData:
 
         self.df_Data = df_raw.copy()
         # filtre les années Ukraine
-        # self.df_Data = self.df_Data[self.df_Data['Day-ahead']<50]
+        self.df_Data = self.df_Data[self.df_Data['Day-ahead']<50]
 
         size = self.df_Data.shape[0] if self.global_size==0 else self.global_size
         feature = self.df_Data.shape[1]

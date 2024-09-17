@@ -1,2 +1,2 @@
-model_checkpoint_path: "wghts20.ckpt"
-all_model_checkpoint_paths: "wghts20.ckpt"
+model_checkpoint_path: "wghts30.ckpt"
+all_model_checkpoint_paths: "wghts30.ckpt"
