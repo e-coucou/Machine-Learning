@@ -76,8 +76,13 @@ class getGasData:
         plt.legend()
 
     def buildDataset(self, split=0.2):
-        self.X = np.array([self.dataN[i:i+self.seq_len] for i in range(0, self.dataN.shape[0]-self.seq_len)], dtype=np.float32)
-        self.y = np.array([self.dataN[i+self.seq_len] for i in range(0, self.dataN.shape[0]-self.seq_len)], dtype=np.float32)
+        dec_len = self.seq_len//2
+        pred_len = dec_len//2
+        full_len = self.seq_len+pred_len
+        tmp = np.array([self.dataN[i:i+full_len] for i in range(0, self.dataN.shape[0]-full_len)], dtype=np.float32)
+        # self.y = np.array([self.dataN[i+self.seq_len] for i in range(0, self.dataN.shape[0]-self.seq_len)], dtype=np.float32)
+        self.X = tmp[:,:self.seq_len,:]
+        self.y = tmp[:,dec_len:,:]
 
         X_train, X_val, y_train, y_val = train_test_split(self.X, self.y, test_size=split, random_state=1965, shuffle=True) #, stratify=Y)
 

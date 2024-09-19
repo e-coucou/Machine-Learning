@@ -87,7 +87,7 @@ class Exp():
         self.X = self.dataFct.X
         self.y = self.dataFct.y
         self.X_dec_padd = tf.zeros(shape=(self.batch_size,self.pred_len,self.features))
-        self.X_date_dec_padd = tf.zeros(shape=(self.batch_size,self.pred_len,self.timeFeatures))
+        # self.X_date_dec_padd = tf.zeros(shape=(self.batch_size,self.pred_len,self.timeFeatures))
 
 
     def _buildModel(self, LR=0.0001):
@@ -112,16 +112,16 @@ class Exp():
 
     def _step_data(self,dX,dy):
         B,S,F = dX.shape
-        self.x_enc = dX[:,:,0:self.features]
-        self.x_dec = self.x_enc[:,0:self.declen,:]
-        self.X_date_enc = dX[:,:,self.features:]
-        self.X_date_dec = self.X_date_enc[:,0:self.declen,:]
-        self.yR = dX[:,self.declen:self.declen+self.pred_len,0:self.features]
-        x_dec_padd = tf.zeros(shape=(B,self.pred_len,self.features))
-        x_date_dec_padd = tf.zeros(shape=(B,self.pred_len,self.timeFeatures))
-        self.x_dec = tf.concat([self.x_dec,x_dec_padd],axis=1)
-        self.X_date_dec = tf.concat([self.X_date_dec,x_date_dec_padd],axis=1)
-
+        self.x_enc = dX[:,:,0:self.features] # 32 x 96 x 7
+        self.x_dec = dy[:,:self.declen,:self.features]   #32 x 48 x 7 les 48 dernières values de x_enc
+        self.X_date_enc = dX[:,:,self.features:] # 32 x 96 x 4
+        self.X_date_dec = dy[:,:,self.features:] # 32 x 72 x 4
+        # self.yR = dX[:,self.declen:self.declen+self.pred_len,0:self.features]
+        self.yR = self.x_dec[:,-self.pred_len:,:] # 32 x 24 x 7
+        x_dec_padd = tf.zeros(shape=(B,self.pred_len,self.features)) # 32 x 24 x 7 (0)
+        # x_date_dec_padd = tf.zeros(shape=(B,self.pred_len,self.timeFeatures))
+        self.x_dec = tf.concat([self.x_dec,x_dec_padd],axis=1) # 32 x 72 x 7
+        # self.X_date_dec = tf.concat([self.X_date_dec,x_date_dec_padd],axis=1)
 
     def train(self, epochs):
         # Include metrics monitoring
