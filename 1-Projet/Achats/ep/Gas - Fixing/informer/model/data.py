@@ -31,7 +31,7 @@ class getGasData:
 
         self.df_Data = df_raw.copy()
         # filtre les années Ukraine
-        self.df_Data = self.df_Data[self.df_Data['Day-ahead']<50]
+        # self.df_Data = self.df_Data[self.df_Data['Day-ahead']<50]
 
         size = self.df_Data.shape[0] if self.global_size==0 else self.global_size
         feature = self.df_Data.shape[1]
