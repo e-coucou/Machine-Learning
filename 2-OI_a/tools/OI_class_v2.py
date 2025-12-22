@@ -42,12 +42,10 @@ class OI_DataProcessor:
         self.data = None  # Données de travail (Renommées/Traitées)
 
     # --- MÉCANISME DE LOG ET PIPELINE ---
-    
     def _log(self, message):
         """Affiche un message si verbose est True."""
         if self.verbose:
             print(f"[INFO] {message}")
-
     def register_step(func):
         """Décorateur pour enregistrer automatiquement les actions dans le pipeline."""
         @wraps(func)
@@ -58,55 +56,59 @@ class OI_DataProcessor:
                 self._log(f"Étape ajoutée au pipeline : {func.__name__}")
             return result
         return wrapper
-
     # --- RÉCUPÉRATION ET FUSION ---
-
     def get_OI(self, tag):
         """Récupère les données brutes d'un tag spécifique."""
         url = (f"{self.url_base}data-reference={tag}&aggregation=TIME"
                f"&aggregation-function=MEAN&from={self.start}T{self.hS}%3A00%3A00.000Z"
                f"&to={self.end}T{self.hF}%3A59%3A59.000Z&aggregation-period={self.interval}")
+        headers = {'Authorization': f'basic {self.credentials}'}
         try:
-            d_data = pd.read_json(url, storage_options={'Authorization': f'basic {self.credentials}'})
+            d_data = pd.read_json(url, storage_options=headers)
             if 'values' in d_data and len(d_data['values']) > 0:
-                return d_data['values'][0]
+                return d_data['values'][0],d_data['unit'][0]
             return []
         except Exception as e:
             print(f"[ATTENTION] Erreur récupération tag '{tag}': {e}")
+            print(f"📋 [CURL] Commande à copier-coller dans le terminal :")
+            print("-" * 80)
+            # Générer la commande curl
+            curl_cmd = f"curl -X GET '{url}'"
+            for key, value in headers.items():
+                curl_cmd += f" \\\n  -H '{key}: {value}'"
+            print(curl_cmd)
+            print("-" * 80)
             return []
-
     def merge(self):
         """Récupère tous les tags et initialise self.data."""
         self._log(f"Début fusion ({self.start} au {self.end})")
         tags_api = self.tags_other + list(self.rename_mapping.keys())
         df_list = []
-
+        self.unit_tags = []
         for tag in tags_api:
-            encoded_tag = quote(tag, safe=':/?#[]@!$&\'()*+,;=')
-            raw_data = self.get_OI(encoded_tag)
-            
+            encoded_tag = quote(tag, safe=':/?#[]@!$&\'()*+;-=')
+            #encoded_tag = quote(tag)
+            raw_data, unit = self.get_OI(encoded_tag)            
             if raw_data:
                 temp_df = pd.DataFrame(raw_data)
                 temp_df['timestamp'] = pd.to_datetime(temp_df['timestamp'])
                 temp_df.set_index('timestamp', inplace=True)
                 temp_df.rename(columns={'value': tag}, inplace=True)
                 df_list.append(temp_df)
-
+                self.unit_tags.append({'tag': tag, 'unit': unit, 'nom': self.rename_mapping.get(tag, tag)})
         if not df_list:
             print("[ERREUR] Aucune donnée récupérée.")
             return self
-
         self.df = pd.concat(df_list, axis=1)
         self.data = self.df.rename(columns=self.rename_mapping)
         self._log(f"Fusion terminée : {self.data.shape}")
         return self
-
     # --- TRAITEMENTS ENREGISTRÉS DANS LE PIPELINE ---
-
     @register_step
     def filtering(self, tag, min_val, max_val, na=None):
         """Filtre les données. Gère les listes de tags et de valeurs min/max."""
         if self.data is None: return self
+        self.data.dropna(how='all', inplace=True)
         
         tags = [tag] if isinstance(tag, str) else tag
         mins = [min_val] * len(tags) if not isinstance(min_val, list) else min_val
@@ -114,7 +116,7 @@ class OI_DataProcessor:
 
         for t, mi, ma in zip(tags, mins, maxs):
             if t in self.data.columns:
-                self.data = self.data[(self.data[t] >= mi) & (self.data[t] <= ma)]
+                self.data = self.data[(self.data[t].between(mi, ma)) | (self.data[t].isna())]
             else:
                 self._log(f"Tag '{t}' introuvable pour filtrage.")
         
@@ -130,16 +132,37 @@ class OI_DataProcessor:
         """Calcule une nouvelle colonne (Poids * Valeur / Ratio)."""
         if self.data is not None and {col_poids, col_valeur}.issubset(self.data.columns):
             self.data[nom] = (self.data[col_poids] * self.data[col_valeur]) / ratio
-            self._log(f"Colonne cumulée '{nom}' ajoutée.")
+            unit_ = next((p for p in self.unit_tags if p['nom'] == col_poids), None) if self.unit_tags else None
+            unit1 = unit_['unit'] if unit_ else 'NA'
+            unit_ = next((p for p in self.unit_tags if p['nom'] == col_valeur), None) if self.unit_tags else None
+            unit2 = unit_['unit'] if unit_ else 'NA'
+            unit = '('+unit1 + 'x' + unit2 +')/'+str(ratio)
+            self.unit_tags.append({'tag': nom, 'unit': unit, 'nom': nom})
+            self._log(f"Colonne cumulée '{nom}' ajoutée. [Unit: {unit}]")
         return self
 
     @register_step
-    def ajouter_moyennes_glissantes(self, col_poids, col_valeur, nom, window=10):
+    def ajouter_moyennes_glissantes_ponderee(self, col_poids, col_valeur, nom, window=10):
         """Calcule une moyenne glissante pondérée."""
         if self.data is not None and {col_poids, col_valeur}.issubset(self.data.columns):
             prod = (self.data[col_poids] * self.data[col_valeur]).rolling(window).sum()
             poids_sum = self.data[col_poids].rolling(window).sum()
             self.data[nom] = prod / poids_sum
+            unit_ = next((p for p in self.unit_tags if p['nom'] == col_valeur), None) if self.unit_tags else None
+            unit = unit_['unit'] if unit_ else 'NA'
+            self.unit_tags.append({'tag': nom, 'unit': unit, 'nom': nom})
+            self._log(f"Moyenne glissante pondérée '{nom}' ajoutée.")
+        return self
+
+    @register_step
+    def ajouter_moyennes_glissantes(self, col_valeur, nom, window=10):
+        """Calcule une moyenne glissante."""
+        if self.data is not None and { col_valeur}.issubset(self.data.columns):
+            prod = (self.data[col_valeur]).rolling(window).sum()
+            self.data[nom] = prod / window
+            unit_ = next((p for p in self.unit_tags if p['nom'] == col_valeur), None) if self.unit_tags else None
+            unit = unit_['unit'] if unit_ else 'NA'
+            self.unit_tags.append({'tag': nom, 'unit': unit, 'nom': nom})
             self._log(f"Moyenne glissante '{nom}' ajoutée.")
         return self
 
@@ -244,280 +267,224 @@ class OI_DataProcessor:
         else:
             print("DataFrame travail (data)    : Non chargé")
         print("="*60)
-        
-    def plot_tag(self, tag):
-        """
-        Affiche les graphiques temporel et de distribution pour un ou plusieurs tags.
-        IMPORTANT: Utiliser le(s) nom(s) final(aux) (renommé(s)) de(s) colonne(s).
-        
-        Parameters:
-        tag : str or list, nom du/des tag(s) à afficher (nom(s) final(aux))
-        """
-        if self.data is None:
-            print("Erreur : Aucune donnée disponible. Exécutez merge() d'abord.")
-            return
-        
-        # Convertir en liste si c'est une chaîne
-        tags = [tag] if isinstance(tag, str) else tag
-        
-        # Vérifier que tous les tags existent
-        tags_valides = []
-        for t in tags:
-            if t not in self.data.columns:
-                print(f"Attention : colonne '{t}' introuvable dans data")
-            else:
-                tags_valides.append(t)
-        
-        if not tags_valides:
-            print(f"Erreur : Aucun tag valide trouvé")
-            print(f"Colonnes disponibles : {list(self.data.columns)}")
-            return
-        
-        # Couleurs pour différencier les tags
-        colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan', 'magenta']
-        
-        for idx, tag_name in enumerate(tags_valides):
-            color = colors[idx % len(colors)]
+ 
+    def plot_tag(self, tag, index=None):
+            """
+            Affiche les graphiques temporel et de distribution pour un ou plusieurs tags.
             
-            # Calcul des statistiques
-            data_series = self.data[tag_name].dropna()
-            if len(data_series) == 0:
-                print(f"Attention : tag '{tag_name}' ne contient aucune donnée valide")
-                continue
+            Parameters:
+            tag : str or list, nom du/des tag(s) à afficher
+            index : str, optionnel, nom d'une courbe à afficher sur un second axe Y (ex: régime moteur)
+            """
+            if self.data is None:
+                print("Erreur : Aucune donnée disponible. Exécutez merge() d'abord.")
+                return
+            
+            tags = [tag] if isinstance(tag, str) else tag
+            IDX_ = 0
+            
+            # Vérification des tags valides
+            tags_valides = [t for t in tags if t in self.data.columns]
+            if not tags_valides:
+                print(f"Erreur : Aucun tag valide trouvé. Colonnes : {list(self.data.columns)}")
+                return
+
+            colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan', 'magenta']
+            
+            for idx, tag_name in enumerate(tags_valides):
+                color = colors[idx % len(colors)]
+                data_series = self.data[tag_name].dropna()
                 
-            moyenne = data_series.mean()
-            mediane = data_series.median()
-            ecart_type = data_series.std()
-            nb_valeurs = len(data_series)
-            percentile_25 = data_series.quantile(0.25)
-            percentile_75 = data_series.quantile(0.75)
-            val_min = data_series.min()
-            val_max = data_series.max()
-            
-            # Création de la figure avec 2 subplots
-            fig = make_subplots(
-                rows=1, cols=2,
-                subplot_titles=(f'{tag_name} - Évolution temporelle', f'{tag_name} - Distribution'),
-                horizontal_spacing=0.12,
-                column_widths=[0.65, 0.35]
-            )
-            
-            # === SUBPLOT 1 : Scatter plot ===
-            # Points de données
-            fig.add_trace(
-                go.Scatter(
-                    x=self.data.index,
-                    y=self.data[tag_name],
-                    mode='markers',
-                    name=tag_name,
-                    marker=dict(color=color, opacity=0.3, size=6),
-                    hovertemplate='Date: %{x}<br>Valeur: %{y:.2f}<extra></extra>'
-                ),
-                row=1, col=1
-            )
-            
-            # Ligne de moyenne
-            fig.add_trace(
-                go.Scatter(
-                    x=self.data.index,
-                    y=[moyenne] * len(self.data.index),
-                    mode='lines',
-                    name=f'Moyenne: {moyenne:.2f}',
-                    line=dict(color='red', dash='dash', width=2),
-                    hovertemplate=f'Moyenne: {moyenne:.2f}<extra></extra>'
-                ),
-                row=1, col=1
-            )
-            
-            # Ligne de médiane
-            fig.add_trace(
-                go.Scatter(
-                    x=self.data.index,
-                    y=[mediane] * len(self.data.index),
-                    mode='lines',
-                    name=f'Médiane: {mediane:.2f}',
-                    line=dict(color='violet', dash='dash', width=2),
-                    hovertemplate=f'Médiane: {mediane:.2f}<extra></extra>'
-                ),
-                row=1, col=1
-            )
-            
-            # Courbe de tendance
-            x = np.arange(len(self.data.index))
-            y = self.data[tag_name].values
-            
-            # Filtrer les valeurs NaN
-            mask = ~np.isnan(y)
-            x_clean = x[mask]
-            y_clean = y[mask]
-            
-            if len(x_clean) > 1:
-                # Régression linéaire
-                coeffs = np.polyfit(x_clean, y_clean, 1)
-                line = np.polyval(coeffs, x)
+                if len(data_series) == 0:
+                    continue
+                    
+                # Calcul des statistiques (conservé tel quel)
+                moyenne = data_series.mean()
+                mediane = data_series.median()
+                ecart_type = data_series.std()
+                nb_valeurs = len(data_series)
+                percentile_25 = data_series.quantile(0.25)
+                percentile_75 = data_series.quantile(0.75)
+                val_min = data_series.min()
+                val_max = data_series.max()
                 
-                # Calcul du R²
-                y_pred = np.polyval(coeffs, x_clean)
-                ss_res = np.sum((y_clean - y_pred) ** 2)
-                ss_tot = np.sum((y_clean - np.mean(y_clean)) ** 2)
-                r_squared = 1 - (ss_res / ss_tot)
-                
-                # Tracer la ligne de tendance
-                fig.add_trace(
-                    go.Scatter(
-                        x=self.data.index,
-                        y=line,
-                        mode='lines',
-                        name=f'Tendance (R²={r_squared:.3f})',
-                        line=dict(color='green', width=2),
-                        hovertemplate=f'Tendance (R²={r_squared:.3f})<br>Valeur: %{{y:.2f}}<extra></extra>'
-                    ),
-                    row=1, col=1
+                # --- MODIFICATION : Activation du second axe Y pour le col 1 ---
+                fig = make_subplots(
+                    rows=1, cols=2,
+                    subplot_titles=(f'{tag_name}', f'Distribution'),
+                    horizontal_spacing=0.05,
+                    column_widths=[0.6, 0.4],
+                    specs=[[{"secondary_y": True}, {"secondary_y": True}]]  # Axe secondaire pour le subplot 1 & 2
                 )
-            
-            # === SUBPLOT 2 : Histogramme avec KDE ===
-            # Histogramme
-            fig.add_trace(
-                go.Histogram(
-                    x=data_series,
-                    name='Distribution',
-                    marker=dict(color='lightblue', line=dict(color='darkblue', width=1)),
-                    opacity=0.7,
-                    histnorm='probability density',
-                    hovertemplate='Valeur: %{x:.2f}<br>Densité: %{y:.4f}<extra></extra>',
-                    showlegend=False
-                ),
-                row=1, col=2
-            )
-            
-            # Approximation KDE (Kernel Density Estimation)
-            if len(data_series) > 1:
-                kde = stats.gaussian_kde(data_series)
-                x_range = np.linspace(data_series.min(), data_series.max(), 200)
-                kde_values = kde(x_range)
                 
+                # === SUBPLOT 1 : Scatter plot (Axe Y Principal) ===
                 fig.add_trace(
                     go.Scatter(
-                        x=x_range,
-                        y=kde_values,
-                        mode='lines',
-                        name='KDE',
-                        line=dict(color='darkblue', width=2),
-                        hovertemplate='Valeur: %{x:.2f}<br>Densité: %{y:.4f}<extra></extra>',
+                        x=self.data.index, y=self.data[tag_name],
+                        mode='markers', name=tag_name,
+                        marker=dict(color=color, opacity=0.3, size=6),
+                        hovertemplate='Date: %{x}<br>Valeur: %{y:.2f}<extra></extra>'
+                    ),
+                    row=1, col=1, secondary_y=False
+                )
+                IDX_ += 1
+
+                # --- MODIFICATION : Ajout de la courbe d'index sur l'axe secondaire ---
+                val_max_index = None
+                if index and index in self.data.columns:
+                    val_max_index = self.data[index].max()
+                    fig.add_trace(
+                        go.Scatter(
+                            x=self.data.index,
+                            y=self.data[index],
+                            mode='lines',
+                            name=f"Index: {index}",
+                            line=dict(color='rgba(128, 128, 128, 0.5)', width=1.5, shape='hv'),
+                            hovertemplate=f'{index}: %{{y:.2f}}<extra></extra>'
+                        ),
+                        row=1, col=1, secondary_y=True
+                    )
+                    IDX_ += 1
+#                    fig.update_yaxes(title_text=f"Axe Index ({index})", secondary_y=True, row=1, col=1)
+                    # Masquage complet de l'axe Y secondaire (pas de grille, pas de chiffres)
+                    fig.update_yaxes(
+                        range=[0, val_max_index * 5], # Calage sur les 20% bas
+                        showgrid=False,               # Pas de quadrillage
+                        zeroline=False,               # Pas de ligne de zéro
+                        showticklabels=False,         # Pas de chiffres sur le côté
+                        secondary_y=True, row=1, col=1
+                    )
+                # Ligne de moyenne
+                fig.add_trace(
+                    go.Scatter(
+                        x=self.data.index, y=[moyenne] * len(self.data.index),
+                        mode='lines', name=f'Moyenne: {moyenne:.2f}',
+                        line=dict(color='red', dash='dash', width=2)
+                    ),
+                    row=1, col=1, secondary_y=False
+                )
+                IDX_ += 1
+                
+                # Ligne de médiane
+                fig.add_trace(
+                    go.Scatter(
+                        x=self.data.index, y=[mediane] * len(self.data.index),
+                        mode='lines', name=f'Médiane: {mediane:.2f}',
+                        line=dict(color='violet', dash='dash', width=2)
+                    ),
+                    row=1, col=1, secondary_y=False
+                )
+                IDX_ += 1
+                
+                # Courbe de tendance (Régression linéaire)
+                x = np.arange(len(self.data.index))
+                y = self.data[tag_name].values
+                mask = ~np.isnan(y)
+                if len(x[mask]) > 1:
+                    coeffs = np.polyfit(x[mask], y[mask], 1)
+                    line = np.polyval(coeffs, x)
+                    fig.add_trace(
+                        go.Scatter(
+                            x=self.data.index, y=line,
+                            mode='lines', name='Tendance',
+                            line=dict(color='green', width=2)
+                        ),
+                        row=1, col=1, secondary_y=False
+                    )
+
+                # === SUBPLOT 2 : Histogramme (Distribution) ===
+                fig.add_trace(
+                    go.Histogram(
+                        x=data_series, name='Distribution',
+                        marker=dict(color='lightblue', line=dict(color='darkblue', width=1)), opacity=0.7,
+                        histnorm='',
                         showlegend=False
                     ),
-                    row=1, col=2
+                    row=1, col=2, secondary_y=False
                 )
-                
-                # Obtenir la hauteur max du KDE pour ajuster les lignes verticales
-                y_max = max(kde_values) * 1.1
-            else:
-                y_max = 1
-            
-            # Lignes verticales pour moyenne et médiane
-            fig.add_trace(
-                go.Scatter(
-                    x=[moyenne, moyenne],
-                    y=[0, y_max],
-                    mode='lines',
-                    name=f'Moyenne',
-                    line=dict(color='red', dash='dash', width=2),
-                    showlegend=False,
-                    hovertemplate=f'Moyenne: {moyenne:.2f}<extra></extra>'
-                ),
-                row=1, col=2
-            )
-            
-            fig.add_trace(
-                go.Scatter(
-                    x=[mediane, mediane],
-                    y=[0, y_max],
-                    mode='lines',
-                    name=f'Médiane',
-                    line=dict(color='violet', dash='dash', width=2),
-                    showlegend=False,
-                    hovertemplate=f'Médiane: {mediane:.2f}<extra></extra>'
-                ),
-                row=1, col=2
-            )
-            
-            # Lignes verticales pour percentiles 25 et 75
-            fig.add_trace(
-                go.Scatter(
-                    x=[percentile_25, percentile_25],
-                    y=[0, y_max],
-                    mode='lines',
-                    name=f'P25',
-                    line=dict(color='orange', dash='dot', width=1.5),
-                    showlegend=False,
-                    hovertemplate=f'Percentile 25: {percentile_25:.2f}<extra></extra>'
-                ),
-                row=1, col=2
-            )
-            
-            fig.add_trace(
-                go.Scatter(
-                    x=[percentile_75, percentile_75],
-                    y=[0, y_max],
-                    mode='lines',
-                    name=f'P75',
-                    line=dict(color='brown', dash='dot', width=1.5),
-                    showlegend=False,
-                    hovertemplate=f'Percentile 75: {percentile_75:.2f}<extra></extra>'
-                ),
-                row=1, col=2
-            )
-            
-            # === Ajout des statistiques dans la légende ===
-            # Créer des traces invisibles pour afficher les stats dans la légende
-            stats_text = [
-                f"<b>Statistiques {tag_name}</b>",
-                f"Nombre de valeurs: {nb_valeurs}",
-                f"Moyenne: {moyenne:.2f}",
-                f"Médiane: {mediane:.2f}",
-                f"Écart-type: {ecart_type:.2f}",
-                f"Min: {val_min:.2f}",
-                f"Max: {val_max:.2f}",
-                f"Percentile 25: {percentile_25:.2f}",
-                f"Percentile 75: {percentile_75:.2f}"
-            ]
-            
-            # Ajouter les statistiques comme traces invisibles pour la légende
-            for i, stat in enumerate(stats_text):
-                fig.add_trace(
-                    go.Scatter(
-                        x=[None],
-                        y=[None],
-                        mode='markers',
-                        marker=dict(size=0),
-                        name=stat,
-                        showlegend=True,
-                        hoverinfo='none'
+                IDX_ += 1
+
+                # KDE et lignes stats (Moyenne, Médiane, Percentiles) sur Col 2
+                if len(data_series) > 1:
+                    kde = stats.gaussian_kde(data_series)
+                    x_range = np.linspace(val_min, val_max, 200)
+                    y_max = max(kde(x_range)) * 1.1
+                    
+                    fig.add_trace(
+                        go.Scatter(x=x_range, y=kde(x_range), mode='lines', line=dict(color='darkblue', width=2), showlegend=False),
+                        row=1, col=2, secondary_y=False
+                    )
+                    IDX_ += 1
+                    # Lignes verticales sur subplot 2
+                    for val, name, c, d in [(moyenne, 'Moyenne', 'red', 'dash'), (mediane, 'Médiane', 'violet', 'dash'), 
+                                        (percentile_25, 'P25', 'orange', 'dot'), (percentile_75, 'P75', 'brown', 'dot')]:
+                        fig.add_trace(
+                            go.Scatter(x=[val, val], y=[0, 1], mode='lines', name=name, 
+                                    line=dict(color=c, dash=d, width=1.5), showlegend=False),
+                            row=1, col=2, secondary_y=True
+                        )
+                        IDX_ += 1
+
+                # Fixer l'axe secondaire du subplot 2 pour que les lignes fassent toute la hauteur
+                fig.update_yaxes(range=[0, 1], visible=False, secondary_y=True, row=1, col=2)                
+
+                # Statistiques en légende (Traces invisibles)
+                stats_text = [f"<b>Stats {tag_name}</b>", f"N: {nb_valeurs}", f"Avg: {moyenne:.2f}", f"Std: {ecart_type:.2f}", f"Idx: {val_max_index}", f"[{val_min:.2f} - {val_max:.2f}]"]
+                for stat in stats_text:
+                    fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', name=stat, showlegend=True), row=1, col=1)
+
+                #=== BOUTON TOGGLE (Nombre vs Densité) ===
+                fig.update_layout(
+                    updatemenus=[
+                        dict(
+                            type="buttons",
+                            direction="right",
+                            x=1.08, y=1.12,
+                            showactive=True,
+                            bgcolor="white",
+                            bordercolor="lightblue",
+                            font=dict(color="darkblue"),
+                            active=0,
+                            buttons=[
+                                dict(label="Nombre",
+                                    method="update",
+                                    args=[{"histnorm": [""]}, # Update traces
+                                        {"yaxis3.title.text": "Nombre", # Update layout axis title
+                                        "updatemenus[0].bordercolor": "lightblue"}]), # Update button state]
+                                dict(label="Densité",
+                                    method="update",
+                                    args=[{"histnorm": ["probability density"]}, # Update traces
+                                        {"yaxis3.title.text": "Densité",
+                                        "updatemenus[0].bordercolor": "lightblue"} ])
+                            ]
+                        )
+                    ]
+                )
+
+                # Mise en page finale
+                fig.update_layout(
+                    #title_text=f"Analyse de {tag_name}",
+                    height=600, template="plotly_white",hovermode="x unified",
+                    legend=dict(
+                        yanchor="top",xanchor="left",
+                        y=0.99, x=0.95,
+                        bgcolor="rgba(248, 249, 250, 0.9)", # Fond gris très clair
+                        bordercolor="rgba(100, 100, 100, 0.5)",
+                        borderwidth=1,
+                        font=dict(size=11, color="black")
                     ),
-                    row=1, col=1
+                    # Options de zoom et barre d'outils
+                    dragmode="zoom" # Zoom par défaut
                 )
-            
-            # Mise en page
-            fig.update_layout(
-                title_text=f"Analyse de {tag_name}",
-                height=600,
-                width=None,
-                showlegend=True,
-                hovermode='closest',
-                legend=dict(
-                    yanchor="top",
-                    y=0.99,
-                    xanchor="left",
-                    x=1.01,
-                    bgcolor="rgba(255, 255, 255, 0.8)",
-                    bordercolor="gray",
-                    borderwidth=1
-                )
-            )
-            
-            fig.update_xaxes(title_text="Date/Temps", row=1, col=1)
-            fig.update_yaxes(title_text="Valeur", row=1, col=1)
-            fig.update_xaxes(title_text="Valeur", row=1, col=2)
-            fig.update_yaxes(title_text="Densité", row=1, col=2)
-            
-            fig.show()
+                unit_ = next((p for p in self.unit_tags if p['nom'] == tag_name), None) if self.unit_tags else None
+                unit = unit_['unit'] if unit_ else 'non spécifiée'
+                fig.update_xaxes(title_text="Date/Temps", row=1, col=1)
+                fig.update_yaxes(title_text=unit, row=1, col=1, secondary_y=False)
+                # Forcer l'affichage du bouton de reset et les interactions
+                fig.show(config={
+                    'displaylogo': False,
+                    'modeBarButtonsToAdd': ['drawline', 'drawopenpath', 'eraselayer'],
+                    'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
+                    'scrollZoom': False,  # Zoom à la molette activé
+                })
+                #fig.show()
