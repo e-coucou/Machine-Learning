@@ -10,19 +10,24 @@ print(f"PyTorch version: {torch.__version__}")
 print(f"MPS built: {torch.backends.mps.is_built()}")
 print(f"MPS available: {torch.backends.mps.is_available()}")
 # Vérifier d'où vient PyTorch
-print(f"PyTorch location: {torch.__file__}")
+#print(f"PyTorch location: {torch.__file__}")
 #---------------------------------------------------------------
+# variables globales
+fileName = 'data/corpus_Moliere.txt'
+fileOut = 'bigram_moliere_model.pth'
+addedToken = 4000  # Nombre de tokens à ajouter au vocabulaire de base (bytes 0-255)
+#-- 
 # Hyperparameters
 torch.manual_seed(1965)
-batch_size = 64 #32 # how many independent sequences will we process in parallel
-block_size = 256 #8  # what is the maximum context length for predictions
-max_iters = 7000 # number of training iterations
+batch_size = 64 #64 # how many independent sequences will we process in parallel
+block_size = 256 #256  # what is the maximum context length for predictions
+max_iters = 5000 # number of training iterations
 eval_interval = 500 # interval for evaluating the loss
 eval_iters = 200 # number of iterations for loss estimation
 learning_rate = 3e-4 # learning rate for the optimizer
-n_embd = 384 #32 # embedding dimension
-num_heads = 6 #4 # number of attention heads
-n_layers = 6 #3 # number of transformer blocks
+n_embd = 128 #384 # embedding dimension
+num_heads = 4 #6 # number of attention heads
+n_layers = 3 #6 # number of transformer blocks
 dropout = 0.2 # dropout rate
 #---------------------------------------------------------------
 #device = 'cuda' if torch.cuda.is_available() else 'cpu' /for NVIDIA GPU
@@ -84,28 +89,88 @@ def preprocess_text(_text):
     print(f"  Lignes: {original_lines:,} → {cleaned_lines:,}")
     
     return _text
+def getStats(ids):
+    count = {}
+    for pair in zip(ids, ids[1:]):
+        count[pair] = count.get(pair, 0) + 1
+    return count
+def merge(ids, pair, idx):
+    i = 0
+    merged = []
+    while i < len(ids):
+        if i < len(ids) - 1 and (ids[i], ids[i+1]) == pair:
+            merged.append(idx)
+            i += 2
+        else:
+            merged.append(ids[i])
+            i += 1
+    return merged
 #---------------------------------------------------------------
 # Read the text file
-#fileName = 'data/bible.txt'
-fileName = 'data/corpus_francais.txt'
-#fileOut = 'bigram_full_model.pth'
-fileOut = 'bigram_french_model.pth'
+print('-----Loading and preprocessing text-----')
 with open(fileName, 'r', encoding='utf-8') as f:
     _text = f.read()
 text = preprocess_text(_text)
 print(f"Longueur du texte après nettoyage: {len(text):,} caractères")
+tokens = text.encode("utf-8") #raw byte
+ids = list(tokens)
+merges = {}
+start_time = time.time()
+print('-----Building BPE tokenizer-----')
+for i in range(addedToken):
+    s = getStats(ids)
+    pair = max(s, key=s.get)
+    if not s:
+        break
+    idx = 256 + i
+    ids = merge(ids, pair, idx)
+    merges[pair] = idx
+elapsed = time.time() - start_time
+print(f"✅ BPE tokenizer built in {elapsed:.2f}s")
+print('  Nombre de tokens avant BPE :', len(tokens))
+print('  Nombre de tokens après BPE :', len(ids))
+print(f'  -> compression : {len(tokens)/len(ids):.2f}x')
+vocab = {idx: bytes([idx]) for idx in range(256)}
+for (p0,p1), idx in merges.items():
+    vocab[idx] = vocab[p0] + vocab[p1]
+def decode(ids,vocab):
+    tokens = b''.join(vocab[idx] for idx in ids)
+    return tokens.decode('utf-8', errors='replace')
+def encode(text,vocab):
+    tokens = list(text.encode("utf-8")) #raw byte
+    while len(tokens) > 1:
+        stats = getStats(tokens)
+        pair = min(stats, key=lambda p: merges.get(p, float('inf')))
+        if not pair in merges:
+            break # No more merges available
+        idx = merges[pair]
+        tokens = merge(tokens, pair, idx)
+    return tokens
+#---------------------------------------------------------------
 # Create character-level vocabulary
-chars = sorted(list(set(text)))
+#chars = sorted(list(set(text)))
+chars = sorted(list(set(ids)))
 vocab_size = len(chars)
 print('Nombre de caractères uniques :', vocab_size)
-print('Liste des caractères uniques :', ''.join(chars))
+#print('Liste des caractères uniques :', ''.join(chars))
 # Create mappings from characters to integers and vice versa
+stoi = {ch: i for i, ch in enumerate(chars)}
+itos = {i: ch for i, ch in enumerate(chars)}
+# Encoding and decoding functions
+"""
 stoi = {ch: i for i, ch in enumerate(chars)}
 itos = {i: ch for i, ch in enumerate(chars)}
 encode = lambda s: [stoi[c] for c in s]
 decode = lambda l: ''.join([itos[i] for i in l])
+"""
 # split the data into training and validation sets
-data = torch.tensor(encode(text), dtype=torch.long)
+print('-----Preparing data-----')
+start_time = time.time()
+#data = torch.tensor(encode(text, vocab), dtype=torch.long)
+data = torch.tensor(ids, dtype=torch.long)
+elapsed = time.time() - start_time
+print(f"✅ Data encoded in {elapsed:.2f}s")
+#print(data.shape, data.dtype, data)
 n = int(0.9 * len(data))
 train_data = data[:n]
 val_data = data[n:]
@@ -134,7 +199,6 @@ def estimate_loss():
 
 class Head(nn.Module):
     """ one head of self-attention """
-
     def __init__(self, head_size):
         super().__init__()
         self.key = nn.Linear(n_embd, head_size, bias=False)
@@ -159,7 +223,6 @@ class Head(nn.Module):
 
 class MultiHeadAttention(nn.Module):
     """ multiple heads of self-attention in parallel """
-
     def __init__(self, num_heads, head_size):
         super().__init__()
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
@@ -167,8 +230,8 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        out = torch.cat([h(x) for h in self.heads], dim=-1)
-        out = self.proj(out)
+        out = torch.cat([h(x) for h in self.heads], dim=-1) # concatenate outputs of all heads
+        out = self.proj(out) # linear projection
         out = self.dropout(out)
         return out
 
@@ -251,19 +314,20 @@ class BigramLanguageModeler(nn.Module):
             # append sampled index to the running sequence
             idx = torch.cat((idx, idx_next), dim=1)  # (B,T+1)
         return idx
-
+# Training Loop ------------------------------------------------
 # Instantiate the model and optimizer
+print('-----Initializing model-----')
 model = BigramLanguageModeler().to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-# Training loop
+total_params = sum(p.numel() for p in model.parameters())
+print(f"  Nombre total de paramètres dans le modèle - (En millions) : {total_params/1e6:.2f}M ")
 start_time = time.time()
 # Initialiser les listes pour stocker l'historique
 train_losses = []
 val_losses = []
 steps_recorded = []
-
+print('-----Starting training-----')
 for steps in range(max_iters):
-
     if (steps % eval_interval == 0) | (steps == max_iters - 1):
         losses = estimate_loss() # dictionnary with train and val losses
         elapsed = time.time() - start_time
@@ -273,19 +337,16 @@ for steps in range(max_iters):
             time_per_step = elapsed / steps
             remaining_steps = max_iters - steps
             eta = time_per_step * remaining_steps
-            print(f"step {steps}/{max_iters}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f} | {elapsed:.1f}s elapsed, ETA: {eta:.1f}s")
+            print(f"  step {steps}/{max_iters}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f} | {elapsed:.1f}s elapsed, ETA: {eta:.1f}s")
         else:
-            print(f"step {steps}/{max_iters}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+            print(f"  step {steps}/{max_iters}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
         # Sauvegarder les valeurs
         train_losses.append(losses['train'])
         val_losses.append(losses['val'])
         steps_recorded.append(steps)
-
-
     # sample a batch of data
     xb, yb = get_batch('train')
-
     # evaluate the loss
     logits, loss = model(xb, yb)
     optimizer.zero_grad(set_to_none=True)
@@ -297,6 +358,7 @@ print('-----Saving model-----')
 torch.save({
     'model_state_dict': model.state_dict(),
     'vocab_size': vocab_size,
+    'vocab': vocab,
     'stoi': stoi,
     'itos': itos,
     'n_embd': n_embd,           # ← IMPORTANT
@@ -312,10 +374,9 @@ torch.save({
     'steps_recorded': steps_recorded,
     'final_step': steps,
 }, fileOut)
-print('Model saved to bigram_full_model.pth')
+print('Model saved to ', fileOut)
 # Generate some text (facultatif car model sauvegardé après entrainement)
-"""
+
 print('-----Generating text-----')
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
-print(decode(model.generate(context, max_new_tokens=500)[0].tolist()))
-"""
+print(decode(model.generate(context, max_new_tokens=500)[0].tolist(), vocab))

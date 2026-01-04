@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import tools.ai_token as tk
 import time
 import math,re
 #---------------------------------------------------------------
@@ -14,15 +15,15 @@ print(f"PyTorch location: {torch.__file__}")
 #---------------------------------------------------------------
 # Hyperparameters
 torch.manual_seed(1965)
-batch_size = 64 #32 # how many independent sequences will we process in parallel
-block_size = 256 #8  # what is the maximum context length for predictions
-max_iters = 7000 # number of training iterations
+batch_size = 8 #64 # how many independent sequences will we process in parallel
+block_size = 8 #256  # what is the maximum context length for predictions
+max_iters = 2000 # number of training iterations
 eval_interval = 500 # interval for evaluating the loss
 eval_iters = 200 # number of iterations for loss estimation
 learning_rate = 3e-4 # learning rate for the optimizer
-n_embd = 384 #32 # embedding dimension
-num_heads = 6 #4 # number of attention heads
-n_layers = 6 #3 # number of transformer blocks
+n_embd = 32 #384 # embedding dimension
+num_heads = 4 #6 # number of attention heads
+n_layers = 3 #6 # number of transformer blocks
 dropout = 0.2 # dropout rate
 #---------------------------------------------------------------
 #device = 'cuda' if torch.cuda.is_available() else 'cpu' /for NVIDIA GPU
@@ -35,77 +36,22 @@ else:
 # device = torch.device("cpu") # force CPU for compatibility
 #---------------------------------------------------------------
 # Load and preprocess the text data
-#nettoyage du texte
-def preprocess_text(_text):
-    """Nettoie un fichier texte pour l'entraînement NLP"""
-        
-    # Stats avant nettoyage
-    original_length = len(_text)
-    original_lines = _text.count('\n')
-    
-    # Nettoyage
-    _text = re.sub(r'[ \t]+', ' ', _text)              # Espaces multiples
-    _text = re.sub(r'\n{3,}', '\n\n', _text)           # Lignes vides
-    _text = re.sub(r'(?m)^[ \t]+|[ \t]+$', '', _text)  # Espaces début/fin ligne
-    _text = re.sub(r'\s+([.,;:!?])', r'\1', _text)     # Espace avant ponctuation
-    _text = _text.strip()
-
-    # 1. Remplacements intelligents
-    _text = _text.replace('—', '-')
-    _text = _text.replace('«', '"').replace('»', '"')
-    _text = _text.replace('[', '(').replace(']', ')')
-    _text = _text.replace('{', '(').replace('}', ')')
-    _text = _text.replace(''', "'").replace(''', "'")
-    _text = _text.replace('…', '...')
-    _text = _text.replace('«', '"').replace('»', '"')
-    
-    # 2. Filtrer caractères
-    allowed = set(
-        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        '0123456789 .,;:!?\'\"-\n'
-        'àâçèéêëîïôùûÀÂÇÉÈÊËÎÏÔÙÛœŒ'
-        '()'
-    )
-    _text = ''.join(c for c in _text if c in allowed)
-    
-    # 3. Normaliser espaces
-    _text = re.sub(r' +', ' ', _text)
-    _text = re.sub(r'\n{3,}', '\n\n', _text)
-    _text = re.sub(r'(?m)^[ ]+|[ ]+$', '', _text)
-        
-    _text = _text.strip()    
-
-    # Stats après nettoyage
-    cleaned_length = len(_text)
-    cleaned_lines = _text.count('\n')
-    
-    print(f"Nettoyage terminé:")
-    print(f"  Caractères: {original_length:,} → {cleaned_length:,} ({cleaned_length/original_length*100:.1f}%)")
-    print(f"  Lignes: {original_lines:,} → {cleaned_lines:,}")
-    
-    return _text
-#---------------------------------------------------------------
 # Read the text file
-#fileName = 'data/bible.txt'
-fileName = 'data/corpus_francais.txt'
 #fileOut = 'bigram_full_model.pth'
 fileOut = 'bigram_french_model.pth'
-with open(fileName, 'r', encoding='utf-8') as f:
-    _text = f.read()
-text = preprocess_text(_text)
-print(f"Longueur du texte après nettoyage: {len(text):,} caractères")
+fileName = 'data/corpus_Moliere.txt'
+addedToken = 10  # Nombre de tokens désirés (bytes 0-255)
+token = tk.BPETokenizer(fileName, addToken=addedToken)
+print(f"Longueur du texte après nettoyage: {len(token.text_cleaned):,} caractères")
 # Create character-level vocabulary
-chars = sorted(list(set(text)))
-vocab_size = len(chars)
-print('Nombre de caractères uniques :', vocab_size)
-print('Liste des caractères uniques :', ''.join(chars))
 # Create mappings from characters to integers and vice versa
-stoi = {ch: i for i, ch in enumerate(chars)}
-itos = {i: ch for i, ch in enumerate(chars)}
-encode = lambda s: [stoi[c] for c in s]
-decode = lambda l: ''.join([itos[i] for i in l])
+token.addToken = 5000
+ids_np = token.train_optimiser_v2(False)
+vocab_size = len(token.vocab)
+ids=token.encode_np(token.text_cleaned)
 # split the data into training and validation sets
-data = torch.tensor(encode(text), dtype=torch.long)
+data = torch.tensor(ids, dtype=torch.long)
+print("Chargement data terminé")
 n = int(0.9 * len(data))
 train_data = data[:n]
 val_data = data[n:]
@@ -297,15 +243,11 @@ print('-----Saving model-----')
 torch.save({
     'model_state_dict': model.state_dict(),
     'vocab_size': vocab_size,
-    'stoi': stoi,
-    'itos': itos,
     'n_embd': n_embd,           # ← IMPORTANT
     'num_heads': num_heads,           # ← IMPORTANT
     'n_layers': n_layers,         # ← IMPORTANT
     'block_size': block_size,   # ← IMPORTANT
     'dropout': dropout,         # ← IMPORTANT
-    'stoi': stoi,
-    'itos': itos,
     # Ajouter l'historique
     'train_losses': train_losses,
     'val_losses': val_losses,
@@ -314,8 +256,6 @@ torch.save({
 }, fileOut)
 print('Model saved to bigram_full_model.pth')
 # Generate some text (facultatif car model sauvegardé après entrainement)
-"""
 print('-----Generating text-----')
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
-print(decode(model.generate(context, max_new_tokens=500)[0].tolist()))
-"""
+print(token.decode(model.generate(context, max_new_tokens=500)[0].tolist()))
