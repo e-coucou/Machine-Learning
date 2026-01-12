@@ -10,7 +10,7 @@ class BPETokenizer:
     Tokenizer BPE (Byte Pair Encoding)
     Encode/décode du texte en utilisant l'algorithme BPE
     """
-    def __init__(self, fileName, addToken=1000):
+    def __init__(self, fileName=None, texte=None, addToken=1000):
         self.addToken = addToken
         self.fileName = fileName
         self.merges = {}
@@ -28,14 +28,21 @@ class BPETokenizer:
             'Fast_encode':0,
             'temps_train_opt':0
         }
-        self.read_file()
-        self.preprocess_text()
-        # Convertir le texte en liste de tokens (bytes)
-        #self.ids = [list(text.encode('utf-8')) for text in self.text_cleaned]
-        self.tokenize(option=4)
-        self.token = [ list(map(int,i.encode('utf-8'))) for i in self.token_char ]
-        self.ids = [ list(map(int,i.encode('utf-8'))) for i in self.token_char ]
-
+        self.text_raw = None
+        if fileName is not None:
+            self.read_file()
+        if texte is not None:
+            self.text_raw = texte
+        if self.text_raw is not None:
+            self.tokenize(option=5)
+        else:
+            print("vous devrez soit lire un fichier soit envoyer un texte pour lancer le tokenizer")
+        # self.preprocess_text()
+        # # Convertir le texte en liste de tokens (bytes)
+        # #self.ids = [list(text.encode('utf-8')) for text in self.text_cleaned]
+        # self.tokenize(option=5) # en francais
+        # self.token = [ list(map(int,i.encode('utf-8'))) for i in self.token_char ]
+        # # self.ids = [ list(map(int,i.encode('utf-8'))) for i in self.token_char ]
 
     def read_file(self):
         with open(self.fileName,'r',encoding='utf-8') as f:
@@ -76,6 +83,7 @@ class BPETokenizer:
         # Stats après nettoyage
         self.stats['len_cleaned'] = len(self.text_cleaned)
         print(f"Nettoyage terminé:")
+        return self.text_cleaned
         
     def _get_stats(self): # Compte les paires de tokens les plus fréquentes
         pairs = Counter()
@@ -140,20 +148,27 @@ class BPETokenizer:
         
         return pair
     
-    def tokenize(self,option=4):
+    def tokenize(self,option=5):
+        self.preprocess_text()
+
         pattern  = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
         pattern2 = r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
         pattern3 = r"""'(?i:[sdmt]|ll|ve|re)|[^\r\n\p{L}\p{N}]?+\p{L}++|\p{N}{1,3}+| ?[^\s\p{L}\p{N}]++[\r\n]*+|\s++$|\s*[\r\n]|\s+(?!\S)|\s"""
         GPT4_SP  = r"""'(?i:[sdmt]|ll|ve|re)|[^\r\n\p{L}\p{N}]?+\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]++[\r\n]*|\s*[\r\n]|\s+(?!\S)|\s+"""
+        GPT_EP  = r"""(?i:[lcdtmnsj]|qu)'|[^\r\n\p{L}\p{N}]?+\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]++[\r\n]*|\s*[\r\n]|\s+(?!\S)|\s+"""
         if (option==1):
             patG = rex.compile(pattern)
         elif (option==2):
             patG = rex.compile(pattern2)
         elif (option==3):
             patG = rex.compile(pattern3)
-        else:
+        elif (option==4):
             patG = rex.compile(GPT4_SP)
+        else:
+            patG = rex.compile(GPT_EP)
         self.token_char = rex.findall(patG, self.text_cleaned)
+        self.token = [ list(map(int,i.encode('utf-8'))) for i in self.token_char ]
+        return self.token_char
 
     def _merge_pair(self, pair, idx): #Fusionne une paire de tokens dans l'array
         merged = []
@@ -172,7 +187,7 @@ class BPETokenizer:
             merged.append(merged_row)
         return merged
     
-    def train(self, verbose=True): #Entraîne le tokenizer BPE
+    def train_old(self, verbose=True): #Entraîne le tokenizer BPE
         start_time = time.time()
         self.stats['len_init'] = sum(len(row) for row in self.token)
         if verbose:
@@ -274,7 +289,7 @@ class BPETokenizer:
         self.stats['temps_train_opt'] = time.time() - start_time
         return data
 
-    def train_optimiser_v2(self, verbose=False):
+    def train(self, verbose=False): # train optimizer version 2
         """
         Version optimisée pour Mac M1 (Architecture Unified Memory).
         Utilise NumPy pour le comptage vectorisé et le remplacement par masque.
@@ -364,12 +379,16 @@ class BPETokenizer:
         # On sauvegarde le tableau fusionné et on génère le vocabulaire
         self.stats['temps_train_opt'] = time.time() - start_time
         self.ids = (data[data != -1]).tolist()
+        self.enc = (data[data != -1]).tolist()
+        self.stats['len_final'] = len(self.ids)
+        self.stats['unique_tokens'] = len(set(self.ids))
+        self.stats['compression_ratio'] = self.stats['len_init'] / self.stats['len_final']
         self._vocab()
         
         if verbose:
             print(f"Entraînement terminé. Dernier token ID : {next_token_id - 1}")
         
-        return data
+        return self.ids
 
     def _print_stats(self): # Affiche les statistiques
         print("\n" + "="*60)
@@ -400,7 +419,7 @@ class BPETokenizer:
             self.vocab[idx] = self.vocab[p0] + self.vocab[p1]
         self._compute_pattern()
     
-    def encode(self, input= None, vocab = None): # Encode un texte en tokens BPE
+    def encode_old(self, input= None, vocab = None): # Encode un texte en tokens BPE
         if (vocab==None):
             vocab_ = self.vocab
         else:
@@ -519,14 +538,14 @@ class BPETokenizer:
 
     def display_token(self, array_=None, vocab = None):
         # Sécurité pour transformer une liste en array si nécessaire
-        array = np.array(array_) if array_ is not None else self.ids[1500:2000]
+        array = np.array(array_) if array_ is not None else self.enc
 
         html = '<div style="font-family: monospace; font-size: 14px; line-height: 1.8;">'
         if (vocab==None):
             vocab_ = self.vocab
         else:
             vocab_ = vocab
-        t = [ self.decode([r], vocab=vocab_) for r in array if (r != -1)]
+        t = [ self.decode([r], vocab=vocab_) for r in array[:500] if (r != -1)] # au cas le dernier -1 ne serait pas masqué
         txt = ''.join(t)
 
         for text in t:
@@ -574,7 +593,7 @@ class BPETokenizer:
         self.stats['Fast_encode'] = elapse_time
         return encoded_array        
 
-    def encode_np(self, text):
+    def encode(self, text): # encodeur with numpy
         self.stats['len_init'] = sum(len(row) for row in self.token)
         start_time = time.time()
         # 1. Convertir le texte en tableau d'octets (0-255)
@@ -620,8 +639,10 @@ class BPETokenizer:
             # Supprimer le deuxième élément de chaque paire fusionnée
             data = np.delete(data, indices + 1)
 
-        self.stats['len_final'] = len(data.tolist())
-#        self.stats['unique_tokens'] = len(set(chain(*self.ids)))
+        # self.ids = data.tolist()
+        self.enc = data.tolist()
+        self.stats['len_final'] = len(self.ids)
+        self.stats['unique_tokens'] = len(set(self.ids))
         self.stats['compression_ratio'] = self.stats['len_init'] / self.stats['len_final']
         self.stats['temps_encodage'] = time.time() - start_time
             
