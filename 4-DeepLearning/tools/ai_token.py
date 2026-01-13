@@ -594,7 +594,7 @@ class BPETokenizer:
         return encoded_array        
 
     def encode(self, text): # encodeur with numpy
-        self.stats['len_init'] = sum(len(row) for row in self.token)
+#        self.stats['len_init'] = sum(len(row) for row in self.token)
         start_time = time.time()
         # 1. Convertir le texte en tableau d'octets (0-255)
         if isinstance(text, str):
@@ -641,9 +641,9 @@ class BPETokenizer:
 
         # self.ids = data.tolist()
         self.enc = data.tolist()
-        self.stats['len_final'] = len(self.ids)
-        self.stats['unique_tokens'] = len(set(self.ids))
-        self.stats['compression_ratio'] = self.stats['len_init'] / self.stats['len_final']
+#        self.stats['len_final'] = len(self.ids)
+#        self.stats['unique_tokens'] = len(set(self.ids))
+#        self.stats['compression_ratio'] = self.stats['len_init'] / self.stats['len_final']
         self.stats['temps_encodage'] = time.time() - start_time
             
         return data.tolist()

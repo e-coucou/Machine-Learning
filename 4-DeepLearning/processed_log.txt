@@ -107,3 +107,7 @@ data/train/wiki_fr_test/BT/wiki_03
 data/train/wiki_fr_test/AP/wiki_45
 data/train/wiki_fr_test/BR/wiki_31
 data/train/wiki_fr_test/AN/wiki_56
+data/train/wiki_fr_test/CL/wiki_70
+data/train/wiki_fr_test/AK/wiki_94
+data/train/wiki_fr_test/AT/wiki_64
+data/train/wiki_fr_test/BG/wiki_75

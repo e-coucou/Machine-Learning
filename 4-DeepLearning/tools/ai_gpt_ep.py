@@ -6,7 +6,7 @@ import numpy as np
 import time
 import os
 import glob
-import random
+import random, math
 import json
 
 
@@ -338,8 +338,28 @@ class ContinuousTrainer:
         self.processed_files = self._load_processed_log()
         self.history = self._load_history()    
         # Chargement d'un checkpoint existant (si demandé)
+        self.total_steps_done = len(self.processed_files) * 100 # Estimation grossière ou 0
+
+        # On applique l'initialisation personnalisée sur le modèle neuf
+        self.model.apply(self._init_weights)
         self.load_checkpoint()
 
+    def _init_weights(self, module):
+        """
+        Règle d'initialisation standard pour les architectures GPT.
+        """
+        if isinstance(module, torch.nn.Linear):
+            # Initialisation normale avec std=0.02
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, torch.nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+        elif isinstance(module, torch.nn.LayerNorm):
+            # Les LayerNorm commencent avec un gain de 1 et un biais de 0
+            torch.nn.init.zeros_(module.bias)
+            torch.nn.init.ones_(module.weight)
+ 
     def _load_processed_log(self):
         """Lit la liste des fichiers déjà entraînés pour ne pas les refaire"""
         if os.path.exists(self.log_file):
@@ -375,7 +395,7 @@ class ContinuousTrainer:
             
             # 2. On NE charge PAS l'optimizer si on veut changer le learning rate manuellement
             # pour une continuité parfaite de l'optimizer, décommentez la ligne suivante :
-            # self.optimizer.load_state_dict(ckpt['optimizer'])
+            self.optimizer.load_state_dict(ckpt['optimizer'])
             
             print(f"✅ Modèle restauré. (Fichiers déjà traités : {len(self.processed_files)})")
         else:
@@ -399,6 +419,24 @@ class ContinuousTrainer:
         y = torch.stack([data_tensor[i+1:i+block_size+1] for i in ix])
         return x.to(self.device), y.to(self.device)
 
+    def get_lr(self,it):
+        # Utilisation des paramètres passés à l'init
+        warmup = self.params.get('warmup_iters', 500)
+        max_iters = self.params.get('lr_decay_iters', 50000)
+        lr_max = self.params['learning_rate']
+        lr_min = self.params.get('min_lr', lr_max * 0.1)
+
+        # 1) Phase de warmup
+        if it < warmup:
+            return lr_max * it / warmup
+        # 2) Phase de plateau bas
+        if it > max_iters:
+            return lr_min
+        # 3) Phase de Cosine Decay
+        decay_ratio = (it - warmup) / (max_iters - warmup)
+        coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
+        return lr_min + coeff * (lr_max - lr_min)
+    
     def train_file(self, file_path):
         """Entraîne sur UN seul fichier"""
         try:
@@ -434,8 +472,12 @@ class ContinuousTrainer:
         # Boucle d'entraînement sur ce fichier
         for i in range(n_batches):
             
+            # On utilise le step global pour le calcul du cosinus
+            current_lr = self.get_lr(self.total_steps_done)
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = current_lr
             # Gradient Accumulation
-            self.optimizer.zero_grad()
+            self.optimizer.zero_grad(set_to_none=True)
             accum_loss = 0
             
             for _ in range(grad_accum):
@@ -446,6 +488,7 @@ class ContinuousTrainer:
                 loss.backward()
             
             self.optimizer.step()
+            self.total_steps_done += 1
             total_loss += accum_loss
 
         avg_loss = total_loss / n_batches
