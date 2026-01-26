@@ -10,3 +10,5 @@ pongCritic.h5
 /1-Projet/Achats/ep/Gas - Fixing/informer/test-gas/checkpoints
 /4-DeepLearning/data/train
 *.pth
+/4-DeepLearning/model/screenshot
+/4-DeepLearning/data/encoded

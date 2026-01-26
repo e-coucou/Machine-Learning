@@ -1,0 +1,38 @@
+🚀 Initialisation de l'entraînement sur MPS...
+vous devrez soit lire un fichier soit envoyer un texte pour lancer le tokenizer
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+✅ Modèle restauré. (Fichiers déjà traités : 0)
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : Maintenir sous 75°C idéalement.
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 7800
+   📉 Evaluation tous les : 10 steps
+   💾 Sauvegarde tous les : 100 steps
+step 7810: train loss 2.9958, val loss 2.9833, lr 4.94e-04 (68.81s)
+step 7820: train loss 3.0332, val loss 3.0218, lr 4.94e-04 (88.33s)
+step 7830: train loss 2.9903, val loss 3.0361, lr 4.94e-04 (106.22s)
+step 7840: train loss 3.0381, val loss 2.9718, lr 4.94e-04 (92.11s)
+step 7850: train loss 3.0199, val loss 2.9472, lr 4.94e-04 (90.59s)
+step 7860: train loss 3.0112, val loss 3.0131, lr 4.93e-04 (89.72s)
+step 7870: train loss 2.9939, val loss 2.9664, lr 4.93e-04 (92.28s)
+step 7880: train loss 2.9870, val loss 3.0311, lr 4.93e-04 (88.79s)
+step 7890: train loss 3.0179, val loss 2.9960, lr 4.93e-04 (109.27s)
+step 7900: train loss 2.9972, val loss 2.9505, lr 4.93e-04 (115.18s)
+💾 Sauvegarde du checkpoint...
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 7910: train loss 2.9727, val loss 3.0096, lr 4.93e-04 (104.70s)
+step 7920: train loss 3.0481, val loss 2.9372, lr 4.93e-04 (113.80s)
+step 7930: train loss 3.0240, val loss 3.0264, lr 4.93e-04 (100.11s)
+step 7940: train loss 3.0719, val loss 3.0218, lr 4.93e-04 (104.44s)
+step 7950: train loss 3.0502, val loss 2.9755, lr 4.93e-04 (102.71s)
+step 7960: train loss 2.9577, val loss 3.0228, lr 4.93e-04 (96.09s)
+step 7970: train loss 3.0385, val loss 2.9563, lr 4.93e-04 (95.54s)
+step 7980: train loss 2.9759, val loss 3.0158, lr 4.93e-04 (90.80s)
+step 7990: train loss 2.9800, val loss 3.0066, lr 4.93e-04 (88.98s)
+step 8000: train loss 2.9455, val loss 3.0246, lr 4.93e-04 (88.91s)
+💾 Sauvegarde du checkpoint...
+✨ Modèle d'inférence prêt : my_wiki_inference.pth

@@ -1,0 +1,49 @@
+🚀 Initialisation de l'entraînement sur MPS...
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+✅ Modèle restauré. Steps faits: 41400
+✅ État de l'optimiseur restauré.
+🚀 Dataset Train: 1526.63M tokens.
+✅ Provider HP initialisé : 5963390 blocs uniques.
+🔄 Reprise au step 41400
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : Maintenir sous 75°C idéalement.
+[96m[Model config][0m
+  n_embd             : 384[0m
+  num_heads          : 6[0m
+  n_layers           : 6[0m
+  block_size         : 256[0m
+  dropout            : [93m0.15[0m
+[96m[Train params][0m
+  batch_size         : 32[0m
+  grad_accum_steps   : 4[0m
+  learning_rate      : [92m0.0003[0m
+  min_lr             : 3e-05[0m
+  warmup_iters       : 2000[0m
+  lr_decay_iters     : 75000[0m
+  eval_interval      : [92m300[0m
+  eval_iters         : 20[0m
+  save_interval      : 300[0m
+  n_version          : 10[0m
+  use_compile        : False[0m
+  [1mEffective Batch Size: 128[0m
+..................................................
+
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 41400
+   📉 Evaluation tous les : 300 steps
+   💾 Sauvegarde tous les : 300 steps
+🟢 RAM Système: 47.4% | Process: 499Mo | Swap: 1784Mo
+step 41700: train loss 2.7063, val loss 2.6805, lr 1.46e-04 (1520.86s) | 🟡 Po: 78.9% SW: 1776Mo MPS: 1007Mo | 💾 | 🗑️ | ✨
+step 42000: train loss 2.6805, val loss 2.6522, lr 1.45e-04 (1487.53s) | 🟡 Po: 76.0% SW: 1901Mo MPS: 1010Mo | 💾 | 🗑️ | ✨
+step 42300: train loss 2.7506, val loss 2.6726, lr 1.43e-04 (1513.62s) | 🟡 Po: 84.4% SW: 1961Mo MPS: 1015Mo | 💾 | 🗑️ | ✨
+step 42600: train loss 2.7520, val loss 2.7553, lr 1.41e-04 (1504.70s) | 🟡 Po: 77.8% SW: 2022Mo MPS: 1015Mo | 💾 | 🗑️ | ✨
+step 42900: train loss 2.7022, val loss 2.6762, lr 1.40e-04 (1521.61s) | 🟡 Po: 75.4% SW: 2286Mo MPS: 1015Mo | 💾 | 🗑️ | ✨
+step 43200: train loss 2.6811, val loss 2.7390, lr 1.38e-04 (1542.89s) | 🟡 Po: 83.1% SW: 2174Mo MPS: 1015Mo | 💾 | 🗑️ | ✨
+step 43500: train loss 2.7548, val loss 2.7109, lr 1.36e-04 (1490.61s) | 🟡 Po: 79.1% SW: 2232Mo MPS: 1015Mo | 💾 | 🗑️ | ✨
+step 43800: train loss 2.7153, val loss 2.7003, lr 1.34e-04 (1503.94s) | 🟡 Po: 79.6% SW: 2232Mo MPS: 1015Mo | 💾 | 🗑️ | ✨
+step 44100: train loss 2.6974, val loss 2.7336, lr 1.33e-04 (1571.07s) | 🟡 Po: 77.4% SW: 2386Mo MPS: 1015Mo | 💾 | 🗑️ | ✨
+step 44400: train loss 2.7207, val loss 2.7173, lr 1.31e-04 (1574.13s) | 🟡 Po: 81.9% SW: 2428Mo MPS: 1015Mo | 💾 | 🗑️ | ✨

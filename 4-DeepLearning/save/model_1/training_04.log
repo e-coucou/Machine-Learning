@@ -1,0 +1,125 @@
+🚀 Initialisation de l'entraînement sur MPS...
+vous devrez soit lire un fichier soit envoyer un texte pour lancer le tokenizer
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+✅ Modèle restauré. (Fichiers déjà traités : 0)
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : Maintenir sous 75°C idéalement.
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 8000
+   📉 Evaluation tous les : 25 steps
+   💾 Sauvegarde tous les : 100 steps
+step 8025: train loss 2.9931, val loss 2.9860, lr 4.93e-04 (167.73s)
+step 8050: train loss 3.0240, val loss 2.9917, lr 4.93e-04 (192.42s)
+step 8075: train loss 2.9734, val loss 3.0181, lr 4.93e-04 (192.19s)
+step 8100: train loss 2.9605, val loss 2.9837, lr 4.93e-04 (204.55s)
+💾 Sauvegarde du checkpoint...
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 8125: train loss 3.0104, val loss 2.9591, lr 4.93e-04 (199.32s)
+step 8150: train loss 3.0041, val loss 2.9800, lr 4.93e-04 (192.33s)
+step 8175: train loss 3.0427, val loss 2.9568, lr 4.93e-04 (207.08s)
+step 8200: train loss 2.9964, val loss 3.0093, lr 4.93e-04 (192.95s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_7500.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 8225: train loss 3.0334, val loss 2.9911, lr 4.93e-04 (192.98s)
+step 8250: train loss 3.0083, val loss 3.0430, lr 4.93e-04 (194.52s)
+step 8275: train loss 2.9612, val loss 2.9589, lr 4.93e-04 (197.18s)
+step 8300: train loss 3.0322, val loss 3.0025, lr 4.92e-04 (204.19s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_7600.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 8325: train loss 3.0056, val loss 2.9995, lr 4.92e-04 (193.68s)
+step 8350: train loss 2.9724, val loss 2.9634, lr 4.92e-04 (195.53s)
+step 8375: train loss 2.9880, val loss 2.9844, lr 4.92e-04 (191.05s)
+step 8400: train loss 2.9799, val loss 3.0328, lr 4.92e-04 (222.25s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_7900.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 8425: train loss 2.9823, val loss 2.9721, lr 4.92e-04 (199.65s)
+step 8450: train loss 3.0103, val loss 2.9259, lr 4.92e-04 (191.89s)
+step 8475: train loss 2.9655, val loss 2.9721, lr 4.92e-04 (191.32s)
+step 8500: train loss 2.9960, val loss 2.9868, lr 4.92e-04 (226.90s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_8000.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 8525: train loss 3.0287, val loss 2.9795, lr 4.92e-04 (198.39s)
+step 8550: train loss 2.9988, val loss 2.9623, lr 4.92e-04 (197.39s)
+step 8575: train loss 2.9624, val loss 3.0184, lr 4.92e-04 (192.52s)
+step 8600: train loss 2.9759, val loss 2.9824, lr 4.92e-04 (201.60s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_8100.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 8625: train loss 2.9905, val loss 2.9519, lr 4.92e-04 (199.90s)
+step 8650: train loss 2.9924, val loss 2.9548, lr 4.92e-04 (205.90s)
+step 8675: train loss 3.0047, val loss 3.0230, lr 4.92e-04 (209.34s)
+step 8700: train loss 2.9969, val loss 2.9760, lr 4.91e-04 (209.96s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_8200.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 8725: train loss 3.0024, val loss 2.9595, lr 4.91e-04 (199.18s)
+step 8750: train loss 2.9772, val loss 2.9924, lr 4.91e-04 (194.73s)
+step 8775: train loss 2.9844, val loss 2.9857, lr 4.91e-04 (189.12s)
+step 8800: train loss 3.0070, val loss 3.0072, lr 4.91e-04 (190.61s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_8300.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 8825: train loss 2.9557, val loss 2.9927, lr 4.91e-04 (195.49s)
+step 8850: train loss 2.9466, val loss 2.9558, lr 4.91e-04 (200.15s)
+step 8875: train loss 2.9974, val loss 2.9560, lr 4.91e-04 (210.81s)
+step 8900: train loss 2.9782, val loss 2.9644, lr 4.91e-04 (205.01s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_8400.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 8925: train loss 2.9851, val loss 2.9322, lr 4.91e-04 (195.39s)
+step 8950: train loss 2.9671, val loss 2.9326, lr 4.91e-04 (185.53s)
+step 8975: train loss 3.0042, val loss 2.9193, lr 4.91e-04 (185.24s)
+step 9000: train loss 2.9780, val loss 2.9957, lr 4.91e-04 (171.35s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_8500.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 9025: train loss 2.9987, val loss 2.9781, lr 4.91e-04 (178.26s)
+step 9050: train loss 2.9745, val loss 2.9884, lr 4.91e-04 (194.53s)
+step 9075: train loss 2.9399, val loss 2.9684, lr 4.91e-04 (196.08s)
+step 9100: train loss 2.9684, val loss 2.9054, lr 4.90e-04 (190.35s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_8600.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 9125: train loss 2.9970, val loss 2.9774, lr 4.90e-04 (199.05s)
+step 9150: train loss 3.0148, val loss 2.9614, lr 4.90e-04 (195.82s)
+step 9175: train loss 2.9554, val loss 2.9511, lr 4.90e-04 (173.32s)
+step 9200: train loss 2.9773, val loss 2.9612, lr 4.90e-04 (175.75s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_8700.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 9225: train loss 2.9429, val loss 2.9455, lr 4.90e-04 (180.86s)
+step 9250: train loss 2.9793, val loss 2.9666, lr 4.90e-04 (173.25s)
+step 9275: train loss 3.0094, val loss 2.9536, lr 4.90e-04 (173.31s)
+step 9300: train loss 3.0273, val loss 2.9428, lr 4.90e-04 (175.12s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_8800.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 9325: train loss 2.9397, val loss 2.9389, lr 4.90e-04 (181.53s)
+step 9350: train loss 2.9055, val loss 2.9726, lr 4.90e-04 (173.90s)
+step 9375: train loss 2.8835, val loss 2.9447, lr 4.90e-04 (182.60s)
+step 9400: train loss 2.9414, val loss 2.9555, lr 4.90e-04 (174.98s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_8900.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 9425: train loss 2.9544, val loss 2.9428, lr 4.90e-04 (175.64s)
+step 9450: train loss 2.9844, val loss 2.9831, lr 4.90e-04 (175.95s)
+step 9475: train loss 3.0218, val loss 2.9770, lr 4.89e-04 (179.71s)
+step 9500: train loss 2.9838, val loss 2.9872, lr 4.89e-04 (181.18s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_9000.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 9525: train loss 3.0061, val loss 2.9901, lr 4.89e-04 (179.52s)
+step 9550: train loss 2.9821, val loss 2.9267, lr 4.89e-04 (191.91s)
+step 9575: train loss 2.9712, val loss 2.9435, lr 4.89e-04 (181.74s)
+step 9600: train loss 2.9921, val loss 2.9809, lr 4.89e-04 (172.67s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_9100.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth

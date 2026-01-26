@@ -1,0 +1,751 @@
+🚀 Initialisation de l'entraînement sur MPS...
+vous devrez soit lire un fichier soit envoyer un texte pour lancer le tokenizer
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+✅ Modèle restauré. (Fichiers déjà traités : 0)
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : Maintenir sous 75°C idéalement.
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 2100
+   📉 Evaluation tous les : 10 steps
+   💾 Sauvegarde tous les : 100 steps
+step 2110: train loss 3.6537, val loss 3.6737, lr 5.00e-04 (58.28s)
+step 2120: train loss 3.6017, val loss 3.6458, lr 5.00e-04 (82.02s)
+step 2130: train loss 3.6189, val loss 3.6353, lr 5.00e-04 (82.38s)
+step 2140: train loss 3.6303, val loss 3.6509, lr 5.00e-04 (81.24s)
+step 2150: train loss 3.6185, val loss 3.6134, lr 5.00e-04 (80.73s)
+step 2160: train loss 3.6339, val loss 3.6296, lr 5.00e-04 (80.93s)
+step 2170: train loss 3.5836, val loss 3.6478, lr 5.00e-04 (83.39s)
+step 2180: train loss 3.6189, val loss 3.5789, lr 5.00e-04 (80.72s)
+step 2190: train loss 3.5610, val loss 3.5928, lr 5.00e-04 (80.92s)
+step 2200: train loss 3.5998, val loss 3.6171, lr 5.00e-04 (81.42s)
+💾 Sauvegarde du checkpoint...
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 2210: train loss 3.5563, val loss 3.6244, lr 5.00e-04 (105.50s)
+step 2220: train loss 3.6328, val loss 3.5781, lr 5.00e-04 (167.26s)
+step 2230: train loss 3.5607, val loss 3.5948, lr 5.00e-04 (80.98s)
+step 2240: train loss 3.5482, val loss 3.5821, lr 5.00e-04 (81.01s)
+step 2250: train loss 3.6329, val loss 3.5820, lr 5.00e-04 (81.02s)
+step 2260: train loss 3.5402, val loss 3.5732, lr 5.00e-04 (86.22s)
+step 2270: train loss 3.5671, val loss 3.5841, lr 5.00e-04 (81.62s)
+step 2280: train loss 3.5480, val loss 3.5627, lr 5.00e-04 (80.88s)
+step 2290: train loss 3.5444, val loss 3.5727, lr 5.00e-04 (80.86s)
+step 2300: train loss 3.4945, val loss 3.5393, lr 5.00e-04 (81.09s)
+💾 Sauvegarde du checkpoint...
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 2310: train loss 3.5343, val loss 3.5945, lr 5.00e-04 (85.81s)
+step 2320: train loss 3.4751, val loss 3.4745, lr 5.00e-04 (443.14s)
+step 2330: train loss 3.5285, val loss 3.5614, lr 5.00e-04 (80.82s)
+step 2340: train loss 3.5382, val loss 3.5366, lr 5.00e-04 (82.44s)
+step 2350: train loss 3.5316, val loss 3.5301, lr 5.00e-04 (82.86s)
+step 2360: train loss 3.5349, val loss 3.5242, lr 5.00e-04 (82.27s)
+step 2370: train loss 3.5457, val loss 3.5760, lr 5.00e-04 (84.27s)
+step 2380: train loss 3.5528, val loss 3.4698, lr 5.00e-04 (81.23s)
+step 2390: train loss 3.5695, val loss 3.5527, lr 5.00e-04 (80.91s)
+step 2400: train loss 3.4296, val loss 3.4696, lr 5.00e-04 (80.95s)
+💾 Sauvegarde du checkpoint...
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 2410: train loss 3.5351, val loss 3.4575, lr 5.00e-04 (83.17s)
+step 2420: train loss 3.5762, val loss 3.5117, lr 5.00e-04 (83.53s)
+step 2430: train loss 3.5085, val loss 3.4839, lr 5.00e-04 (81.95s)
+step 2440: train loss 3.5063, val loss 3.5111, lr 5.00e-04 (81.58s)
+step 2450: train loss 3.4911, val loss 3.5367, lr 5.00e-04 (81.49s)
+step 2460: train loss 3.5174, val loss 3.5111, lr 5.00e-04 (81.14s)
+step 2470: train loss 3.4795, val loss 3.4611, lr 5.00e-04 (81.42s)
+step 2480: train loss 3.5454, val loss 3.4662, lr 5.00e-04 (81.10s)
+step 2490: train loss 3.5222, val loss 3.4360, lr 5.00e-04 (81.19s)
+step 2500: train loss 3.5143, val loss 3.4413, lr 5.00e-04 (81.11s)
+💾 Sauvegarde du checkpoint...
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 2510: train loss 3.4772, val loss 3.4794, lr 5.00e-04 (83.36s)
+step 2520: train loss 3.4472, val loss 3.4870, lr 5.00e-04 (81.19s)
+step 2530: train loss 3.4416, val loss 3.4118, lr 5.00e-04 (81.08s)
+step 2540: train loss 3.4797, val loss 3.4564, lr 5.00e-04 (80.96s)
+step 2550: train loss 3.4528, val loss 3.4224, lr 5.00e-04 (81.12s)
+step 2560: train loss 3.4729, val loss 3.4222, lr 5.00e-04 (81.07s)
+step 2570: train loss 3.4707, val loss 3.4687, lr 5.00e-04 (90.08s)
+step 2580: train loss 3.4192, val loss 3.4717, lr 5.00e-04 (89.24s)
+step 2590: train loss 3.5118, val loss 3.4546, lr 5.00e-04 (83.16s)
+step 2600: train loss 3.4882, val loss 3.4126, lr 5.00e-04 (85.21s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_2100.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 2610: train loss 3.4330, val loss 3.4467, lr 5.00e-04 (85.33s)
+step 2620: train loss 3.4206, val loss 3.4747, lr 5.00e-04 (85.70s)
+step 2630: train loss 3.4175, val loss 3.4244, lr 5.00e-04 (85.18s)
+step 2640: train loss 3.4693, val loss 3.4703, lr 5.00e-04 (81.55s)
+step 2650: train loss 3.4973, val loss 3.4480, lr 5.00e-04 (85.37s)
+step 2660: train loss 3.3611, val loss 3.4400, lr 5.00e-04 (85.25s)
+step 2670: train loss 3.4458, val loss 3.4188, lr 5.00e-04 (83.09s)
+step 2680: train loss 3.4282, val loss 3.4195, lr 5.00e-04 (81.33s)
+step 2690: train loss 3.4325, val loss 3.4601, lr 5.00e-04 (82.23s)
+step 2700: train loss 3.4187, val loss 3.3929, lr 5.00e-04 (83.01s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_2200.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 2710: train loss 3.4804, val loss 3.4023, lr 5.00e-04 (82.72s)
+step 2720: train loss 3.4510, val loss 3.4558, lr 5.00e-04 (81.61s)
+step 2730: train loss 3.4021, val loss 3.4225, lr 5.00e-04 (80.77s)
+step 2740: train loss 3.4286, val loss 3.3909, lr 5.00e-04 (115.37s)
+step 2750: train loss 3.4263, val loss 3.4227, lr 5.00e-04 (110.64s)
+step 2760: train loss 3.4168, val loss 3.4430, lr 5.00e-04 (81.56s)
+step 2770: train loss 3.4502, val loss 3.3778, lr 5.00e-04 (81.74s)
+step 2780: train loss 3.4661, val loss 3.3966, lr 5.00e-04 (83.84s)
+step 2790: train loss 3.4753, val loss 3.4518, lr 5.00e-04 (82.37s)
+step 2800: train loss 3.3750, val loss 3.3403, lr 5.00e-04 (83.44s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_2300.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 2810: train loss 3.4133, val loss 3.4154, lr 5.00e-04 (95.33s)
+step 2820: train loss 3.4138, val loss 3.3671, lr 5.00e-04 (83.37s)
+step 2830: train loss 3.3992, val loss 3.4034, lr 5.00e-04 (81.85s)
+step 2840: train loss 3.3790, val loss 3.4121, lr 5.00e-04 (81.25s)
+step 2850: train loss 3.3998, val loss 3.3829, lr 5.00e-04 (81.90s)
+step 2860: train loss 3.3932, val loss 3.4016, lr 5.00e-04 (86.05s)
+step 2870: train loss 3.4080, val loss 3.3800, lr 5.00e-04 (81.59s)
+step 2880: train loss 3.3746, val loss 3.3594, lr 5.00e-04 (81.99s)
+step 2890: train loss 3.4000, val loss 3.3692, lr 5.00e-04 (82.20s)
+step 2900: train loss 3.3592, val loss 3.3709, lr 5.00e-04 (83.03s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_2400.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 2910: train loss 3.3354, val loss 3.3905, lr 5.00e-04 (84.39s)
+step 2920: train loss 3.4139, val loss 3.4029, lr 5.00e-04 (82.02s)
+step 2930: train loss 3.3930, val loss 3.3836, lr 5.00e-04 (83.48s)
+step 2940: train loss 3.3632, val loss 3.4147, lr 5.00e-04 (83.36s)
+step 2950: train loss 3.4175, val loss 3.3368, lr 5.00e-04 (86.29s)
+step 2960: train loss 3.3786, val loss 3.3285, lr 5.00e-04 (83.67s)
+step 2970: train loss 3.4030, val loss 3.3706, lr 5.00e-04 (83.33s)
+step 2980: train loss 3.3283, val loss 3.3527, lr 5.00e-04 (84.26s)
+step 2990: train loss 3.3823, val loss 3.3691, lr 5.00e-04 (82.84s)
+step 3000: train loss 3.3728, val loss 3.3279, lr 5.00e-04 (83.41s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_2500.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 3010: train loss 3.3434, val loss 3.3726, lr 5.00e-04 (84.35s)
+step 3020: train loss 3.3968, val loss 3.3483, lr 5.00e-04 (81.90s)
+step 3030: train loss 3.3989, val loss 3.3162, lr 5.00e-04 (83.55s)
+step 3040: train loss 3.3263, val loss 3.3112, lr 5.00e-04 (82.27s)
+step 3050: train loss 3.3762, val loss 3.3475, lr 5.00e-04 (82.78s)
+step 3060: train loss 3.3752, val loss 3.3390, lr 5.00e-04 (82.69s)
+step 3070: train loss 3.4006, val loss 3.3023, lr 5.00e-04 (84.03s)
+step 3080: train loss 3.3621, val loss 3.4000, lr 5.00e-04 (82.60s)
+step 3090: train loss 3.3975, val loss 3.3647, lr 5.00e-04 (86.20s)
+step 3100: train loss 3.3133, val loss 3.3247, lr 5.00e-04 (87.43s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_2600.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 3110: train loss 3.3174, val loss 3.3653, lr 5.00e-04 (87.24s)
+step 3120: train loss 3.2964, val loss 3.3579, lr 5.00e-04 (82.63s)
+step 3130: train loss 3.3244, val loss 3.3411, lr 5.00e-04 (83.38s)
+step 3140: train loss 3.3258, val loss 3.3323, lr 5.00e-04 (87.76s)
+step 3150: train loss 3.3598, val loss 3.3616, lr 5.00e-04 (93.13s)
+step 3160: train loss 3.3585, val loss 3.3554, lr 5.00e-04 (84.74s)
+step 3170: train loss 3.3427, val loss 3.3076, lr 5.00e-04 (84.48s)
+step 3180: train loss 3.3127, val loss 3.3635, lr 5.00e-04 (83.45s)
+step 3190: train loss 3.3963, val loss 3.2748, lr 5.00e-04 (81.43s)
+step 3200: train loss 3.3421, val loss 3.3161, lr 5.00e-04 (82.10s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_2700.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 3210: train loss 3.3073, val loss 3.3185, lr 5.00e-04 (83.33s)
+step 3220: train loss 3.3087, val loss 3.3211, lr 5.00e-04 (85.19s)
+step 3230: train loss 3.3276, val loss 3.3769, lr 5.00e-04 (82.21s)
+step 3240: train loss 3.2765, val loss 3.2885, lr 5.00e-04 (81.73s)
+step 3250: train loss 3.2867, val loss 3.3228, lr 5.00e-04 (82.12s)
+step 3260: train loss 3.2775, val loss 3.3080, lr 5.00e-04 (81.74s)
+step 3270: train loss 3.2810, val loss 3.3348, lr 5.00e-04 (83.56s)
+step 3280: train loss 3.3444, val loss 3.2827, lr 5.00e-04 (83.51s)
+step 3290: train loss 3.3326, val loss 3.2895, lr 5.00e-04 (82.18s)
+step 3300: train loss 3.3196, val loss 3.3416, lr 5.00e-04 (82.72s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_2800.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 3310: train loss 3.2818, val loss 3.3672, lr 5.00e-04 (83.55s)
+step 3320: train loss 3.3175, val loss 3.2882, lr 5.00e-04 (82.20s)
+step 3330: train loss 3.3355, val loss 3.3205, lr 5.00e-04 (82.24s)
+step 3340: train loss 3.2939, val loss 3.2629, lr 5.00e-04 (81.82s)
+step 3350: train loss 3.2759, val loss 3.2899, lr 5.00e-04 (87.19s)
+step 3360: train loss 3.3662, val loss 3.2652, lr 5.00e-04 (82.92s)
+step 3370: train loss 3.2891, val loss 3.3274, lr 5.00e-04 (82.85s)
+step 3380: train loss 3.3077, val loss 3.3058, lr 5.00e-04 (82.08s)
+step 3390: train loss 3.3055, val loss 3.3102, lr 5.00e-04 (84.41s)
+step 3400: train loss 3.3043, val loss 3.2785, lr 5.00e-04 (83.96s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_2900.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 3410: train loss 3.2884, val loss 3.2687, lr 5.00e-04 (85.73s)
+step 3420: train loss 3.2904, val loss 3.2950, lr 5.00e-04 (81.56s)
+step 3430: train loss 3.3013, val loss 3.2276, lr 5.00e-04 (82.46s)
+step 3440: train loss 3.2660, val loss 3.2762, lr 5.00e-04 (81.94s)
+step 3450: train loss 3.3388, val loss 3.2987, lr 5.00e-04 (81.90s)
+step 3460: train loss 3.2440, val loss 3.2957, lr 5.00e-04 (82.97s)
+step 3470: train loss 3.3179, val loss 3.2728, lr 5.00e-04 (82.78s)
+step 3480: train loss 3.3018, val loss 3.2544, lr 5.00e-04 (81.78s)
+step 3490: train loss 3.2628, val loss 3.2999, lr 5.00e-04 (82.51s)
+step 3500: train loss 3.3181, val loss 3.2836, lr 5.00e-04 (82.00s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_3000.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 3510: train loss 3.2467, val loss 3.2951, lr 5.00e-04 (83.55s)
+step 3520: train loss 3.2236, val loss 3.2779, lr 5.00e-04 (83.57s)
+step 3530: train loss 3.2813, val loss 3.2738, lr 5.00e-04 (82.31s)
+step 3540: train loss 3.2717, val loss 3.2619, lr 5.00e-04 (82.12s)
+step 3550: train loss 3.2901, val loss 3.2528, lr 5.00e-04 (83.98s)
+step 3560: train loss 3.2876, val loss 3.2516, lr 5.00e-04 (85.65s)
+step 3570: train loss 3.2748, val loss 3.3047, lr 5.00e-04 (85.40s)
+step 3580: train loss 3.2473, val loss 3.2596, lr 5.00e-04 (85.95s)
+step 3590: train loss 3.2746, val loss 3.2556, lr 5.00e-04 (87.14s)
+step 3600: train loss 3.2327, val loss 3.2871, lr 5.00e-04 (86.50s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_3100.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 3610: train loss 3.2390, val loss 3.2883, lr 5.00e-04 (86.95s)
+step 3620: train loss 3.2882, val loss 3.2351, lr 5.00e-04 (86.61s)
+step 3630: train loss 3.2674, val loss 3.1748, lr 5.00e-04 (86.30s)
+step 3640: train loss 3.2747, val loss 3.2965, lr 5.00e-04 (86.13s)
+step 3650: train loss 3.2637, val loss 3.2734, lr 5.00e-04 (85.51s)
+step 3660: train loss 3.2992, val loss 3.2298, lr 5.00e-04 (86.33s)
+step 3670: train loss 3.2534, val loss 3.2658, lr 5.00e-04 (86.04s)
+step 3680: train loss 3.2697, val loss 3.2357, lr 5.00e-04 (85.37s)
+step 3690: train loss 3.2658, val loss 3.2362, lr 5.00e-04 (85.58s)
+step 3700: train loss 3.2924, val loss 3.2343, lr 5.00e-04 (85.75s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_3200.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 3710: train loss 3.3083, val loss 3.2465, lr 5.00e-04 (87.02s)
+step 3720: train loss 3.2748, val loss 3.1671, lr 5.00e-04 (85.89s)
+step 3730: train loss 3.2441, val loss 3.2313, lr 5.00e-04 (85.49s)
+step 3740: train loss 3.2555, val loss 3.2551, lr 5.00e-04 (85.57s)
+step 3750: train loss 3.2926, val loss 3.2650, lr 5.00e-04 (85.46s)
+step 3760: train loss 3.2836, val loss 3.2461, lr 5.00e-04 (85.43s)
+step 3770: train loss 3.1923, val loss 3.2551, lr 5.00e-04 (86.12s)
+step 3780: train loss 3.2895, val loss 3.2182, lr 5.00e-04 (85.42s)
+step 3790: train loss 3.2080, val loss 3.2416, lr 5.00e-04 (86.01s)
+step 3800: train loss 3.2170, val loss 3.2078, lr 5.00e-04 (85.68s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_3300.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 3810: train loss 3.2489, val loss 3.2662, lr 5.00e-04 (87.40s)
+step 3820: train loss 3.2778, val loss 3.2478, lr 5.00e-04 (85.44s)
+step 3830: train loss 3.2815, val loss 3.2200, lr 5.00e-04 (85.76s)
+step 3840: train loss 3.2316, val loss 3.2339, lr 5.00e-04 (87.78s)
+step 3850: train loss 3.2632, val loss 3.2499, lr 5.00e-04 (88.84s)
+step 3860: train loss 3.2225, val loss 3.1797, lr 5.00e-04 (87.33s)
+step 3870: train loss 3.2770, val loss 3.2198, lr 5.00e-04 (86.98s)
+step 3880: train loss 3.2311, val loss 3.1926, lr 5.00e-04 (89.03s)
+step 3890: train loss 3.2216, val loss 3.2535, lr 5.00e-04 (88.36s)
+step 3900: train loss 3.2686, val loss 3.2325, lr 5.00e-04 (85.93s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_3400.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 3910: train loss 3.2175, val loss 3.2078, lr 5.00e-04 (87.38s)
+step 3920: train loss 3.2325, val loss 3.1986, lr 5.00e-04 (85.72s)
+step 3930: train loss 3.2302, val loss 3.2160, lr 5.00e-04 (86.30s)
+step 3940: train loss 3.2430, val loss 3.1747, lr 5.00e-04 (85.51s)
+step 3950: train loss 3.2573, val loss 3.2160, lr 5.00e-04 (85.64s)
+step 3960: train loss 3.2306, val loss 3.1698, lr 5.00e-04 (86.63s)
+step 3970: train loss 3.2736, val loss 3.2022, lr 5.00e-04 (86.78s)
+step 3980: train loss 3.2177, val loss 3.2343, lr 5.00e-04 (86.42s)
+step 3990: train loss 3.2252, val loss 3.2206, lr 5.00e-04 (85.55s)
+step 4000: train loss 3.2025, val loss 3.2023, lr 5.00e-04 (85.68s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_3500.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 4010: train loss 3.2296, val loss 3.2066, lr 5.00e-04 (87.07s)
+step 4020: train loss 3.2302, val loss 3.2034, lr 5.00e-04 (85.66s)
+step 4030: train loss 3.2185, val loss 3.2264, lr 5.00e-04 (85.50s)
+step 4040: train loss 3.2074, val loss 3.2132, lr 4.99e-04 (85.35s)
+step 4050: train loss 3.2347, val loss 3.2199, lr 4.99e-04 (85.81s)
+step 4060: train loss 3.2091, val loss 3.2187, lr 4.99e-04 (85.26s)
+step 4070: train loss 3.2135, val loss 3.2028, lr 4.99e-04 (85.74s)
+step 4080: train loss 3.2237, val loss 3.2275, lr 4.99e-04 (85.68s)
+step 4090: train loss 3.2171, val loss 3.1620, lr 4.99e-04 (85.76s)
+step 4100: train loss 3.2163, val loss 3.1902, lr 4.99e-04 (85.25s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_3600.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 4110: train loss 3.2505, val loss 3.1777, lr 4.99e-04 (87.11s)
+step 4120: train loss 3.2071, val loss 3.1809, lr 4.99e-04 (85.55s)
+step 4130: train loss 3.2184, val loss 3.2189, lr 4.99e-04 (85.96s)
+step 4140: train loss 3.2364, val loss 3.1601, lr 4.99e-04 (85.86s)
+step 4150: train loss 3.2032, val loss 3.1550, lr 4.99e-04 (85.50s)
+step 4160: train loss 3.2221, val loss 3.1807, lr 4.99e-04 (85.65s)
+step 4170: train loss 3.1458, val loss 3.1981, lr 4.99e-04 (85.99s)
+step 4180: train loss 3.1902, val loss 3.1629, lr 4.99e-04 (86.32s)
+step 4190: train loss 3.2076, val loss 3.2476, lr 4.99e-04 (85.63s)
+step 4200: train loss 3.2165, val loss 3.1975, lr 4.99e-04 (85.95s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_3700.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 4210: train loss 3.2303, val loss 3.2082, lr 4.99e-04 (87.13s)
+step 4220: train loss 3.2166, val loss 3.1773, lr 4.99e-04 (86.18s)
+step 4230: train loss 3.1804, val loss 3.1900, lr 4.99e-04 (85.68s)
+step 4240: train loss 3.1988, val loss 3.2134, lr 4.99e-04 (85.48s)
+step 4250: train loss 3.2116, val loss 3.1751, lr 4.99e-04 (85.78s)
+step 4260: train loss 3.1519, val loss 3.1615, lr 4.99e-04 (85.39s)
+step 4270: train loss 3.1388, val loss 3.1833, lr 4.99e-04 (85.28s)
+step 4280: train loss 3.1956, val loss 3.1739, lr 4.99e-04 (85.48s)
+step 4290: train loss 3.1991, val loss 3.1904, lr 4.99e-04 (85.70s)
+step 4300: train loss 3.1544, val loss 3.1526, lr 4.99e-04 (86.34s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_3800.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 4310: train loss 3.2179, val loss 3.1143, lr 4.99e-04 (88.14s)
+step 4320: train loss 3.1896, val loss 3.1744, lr 4.99e-04 (85.53s)
+step 4330: train loss 3.2436, val loss 3.2110, lr 4.99e-04 (85.47s)
+step 4340: train loss 3.1851, val loss 3.2326, lr 4.99e-04 (86.12s)
+step 4350: train loss 3.1705, val loss 3.1748, lr 4.99e-04 (85.72s)
+step 4360: train loss 3.1495, val loss 3.1664, lr 4.99e-04 (85.56s)
+step 4370: train loss 3.2115, val loss 3.1247, lr 4.99e-04 (86.00s)
+step 4380: train loss 3.2027, val loss 3.1481, lr 4.99e-04 (85.41s)
+step 4390: train loss 3.1683, val loss 3.1885, lr 4.99e-04 (85.86s)
+step 4400: train loss 3.1943, val loss 3.2037, lr 4.99e-04 (85.60s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_3900.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 4410: train loss 3.1359, val loss 3.1405, lr 4.99e-04 (87.75s)
+step 4420: train loss 3.2153, val loss 3.1405, lr 4.99e-04 (85.59s)
+step 4430: train loss 3.1323, val loss 3.1773, lr 4.99e-04 (85.79s)
+step 4440: train loss 3.2646, val loss 3.1893, lr 4.99e-04 (87.75s)
+step 4450: train loss 3.1844, val loss 3.1881, lr 4.99e-04 (85.94s)
+step 4460: train loss 3.1809, val loss 3.1455, lr 4.99e-04 (85.40s)
+step 4470: train loss 3.2246, val loss 3.1891, lr 4.99e-04 (85.85s)
+step 4480: train loss 3.1453, val loss 3.1589, lr 4.99e-04 (85.81s)
+step 4490: train loss 3.1726, val loss 3.1727, lr 4.99e-04 (85.91s)
+step 4500: train loss 3.1794, val loss 3.1486, lr 4.99e-04 (85.57s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_4000.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 4510: train loss 3.2041, val loss 3.1135, lr 4.99e-04 (87.68s)
+step 4520: train loss 3.1600, val loss 3.1780, lr 4.99e-04 (86.43s)
+step 4530: train loss 3.1910, val loss 3.1706, lr 4.99e-04 (87.01s)
+step 4540: train loss 3.1870, val loss 3.1628, lr 4.99e-04 (85.63s)
+step 4550: train loss 3.1814, val loss 3.1770, lr 4.99e-04 (86.29s)
+step 4560: train loss 3.1753, val loss 3.1571, lr 4.99e-04 (86.15s)
+step 4570: train loss 3.2322, val loss 3.1629, lr 4.99e-04 (86.90s)
+step 4580: train loss 3.1378, val loss 3.1281, lr 4.99e-04 (87.77s)
+step 4590: train loss 3.2222, val loss 3.1748, lr 4.99e-04 (86.61s)
+step 4600: train loss 3.1677, val loss 3.1805, lr 4.99e-04 (87.23s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_4100.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 4610: train loss 3.1908, val loss 3.1623, lr 4.99e-04 (88.82s)
+step 4620: train loss 3.1397, val loss 3.1461, lr 4.99e-04 (86.01s)
+step 4630: train loss 3.1600, val loss 3.1577, lr 4.99e-04 (86.03s)
+step 4640: train loss 3.1787, val loss 3.1770, lr 4.99e-04 (86.16s)
+step 4650: train loss 3.1857, val loss 3.1718, lr 4.99e-04 (85.79s)
+step 4660: train loss 3.1611, val loss 3.1446, lr 4.99e-04 (85.61s)
+step 4670: train loss 3.1467, val loss 3.1702, lr 4.99e-04 (85.07s)
+step 4680: train loss 3.2096, val loss 3.1044, lr 4.99e-04 (85.88s)
+step 4690: train loss 3.1678, val loss 3.1162, lr 4.99e-04 (86.00s)
+step 4700: train loss 3.1333, val loss 3.1774, lr 4.99e-04 (85.48s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_4200.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 4710: train loss 3.1506, val loss 3.1428, lr 4.99e-04 (87.52s)
+step 4720: train loss 3.2046, val loss 3.1280, lr 4.99e-04 (87.12s)
+step 4730: train loss 3.1374, val loss 3.1739, lr 4.99e-04 (86.58s)
+step 4740: train loss 3.1510, val loss 3.1003, lr 4.99e-04 (85.39s)
+step 4750: train loss 3.1497, val loss 3.1588, lr 4.99e-04 (86.25s)
+step 4760: train loss 3.1727, val loss 3.1112, lr 4.99e-04 (85.46s)
+step 4770: train loss 3.1662, val loss 3.1879, lr 4.99e-04 (85.78s)
+step 4780: train loss 3.1537, val loss 3.1294, lr 4.99e-04 (85.79s)
+step 4790: train loss 3.1276, val loss 3.1344, lr 4.99e-04 (86.01s)
+step 4800: train loss 3.1627, val loss 3.1331, lr 4.99e-04 (86.13s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_4300.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 4810: train loss 3.1194, val loss 3.1829, lr 4.99e-04 (87.81s)
+step 4820: train loss 3.1397, val loss 3.1183, lr 4.99e-04 (86.73s)
+step 4830: train loss 3.1488, val loss 3.1300, lr 4.99e-04 (86.54s)
+step 4840: train loss 3.2176, val loss 3.1280, lr 4.99e-04 (86.37s)
+step 4850: train loss 3.1861, val loss 3.1614, lr 4.99e-04 (86.43s)
+step 4860: train loss 3.1577, val loss 3.1256, lr 4.99e-04 (86.21s)
+step 4870: train loss 3.1193, val loss 3.0971, lr 4.99e-04 (85.94s)
+step 4880: train loss 3.1609, val loss 3.1775, lr 4.99e-04 (86.48s)
+step 4890: train loss 3.1344, val loss 3.1571, lr 4.99e-04 (86.81s)
+step 4900: train loss 3.1624, val loss 3.1118, lr 4.99e-04 (86.46s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_4400.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 4910: train loss 3.1254, val loss 3.1356, lr 4.99e-04 (87.64s)
+step 4920: train loss 3.1476, val loss 3.1734, lr 4.99e-04 (87.17s)
+step 4930: train loss 3.1495, val loss 3.0992, lr 4.99e-04 (85.97s)
+step 4940: train loss 3.1305, val loss 3.0835, lr 4.99e-04 (86.82s)
+step 4950: train loss 3.1499, val loss 3.1368, lr 4.99e-04 (86.08s)
+step 4960: train loss 3.1068, val loss 3.1229, lr 4.99e-04 (86.23s)
+step 4970: train loss 3.1409, val loss 3.0990, lr 4.99e-04 (86.43s)
+step 4980: train loss 3.1710, val loss 3.1266, lr 4.99e-04 (85.92s)
+step 4990: train loss 3.1445, val loss 3.1221, lr 4.99e-04 (86.39s)
+step 5000: train loss 3.1511, val loss 3.1750, lr 4.99e-04 (86.42s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_4500.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 5010: train loss 3.1485, val loss 3.1923, lr 4.99e-04 (88.43s)
+step 5020: train loss 3.0856, val loss 3.1138, lr 4.99e-04 (86.70s)
+step 5030: train loss 3.1735, val loss 3.1023, lr 4.99e-04 (86.95s)
+step 5040: train loss 3.0953, val loss 3.1565, lr 4.99e-04 (86.64s)
+step 5050: train loss 3.1650, val loss 3.1329, lr 4.99e-04 (86.71s)
+step 5060: train loss 3.0931, val loss 3.0891, lr 4.99e-04 (86.66s)
+step 5070: train loss 3.1380, val loss 3.1548, lr 4.99e-04 (86.77s)
+step 5080: train loss 3.1961, val loss 3.1479, lr 4.99e-04 (87.04s)
+step 5090: train loss 3.1538, val loss 3.1420, lr 4.99e-04 (86.61s)
+step 5100: train loss 3.1107, val loss 3.1227, lr 4.99e-04 (87.07s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_4600.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 5110: train loss 3.1901, val loss 3.1099, lr 4.99e-04 (88.51s)
+step 5120: train loss 3.1446, val loss 3.0973, lr 4.99e-04 (86.91s)
+step 5130: train loss 3.1359, val loss 3.1174, lr 4.99e-04 (87.58s)
+step 5140: train loss 3.1711, val loss 3.1187, lr 4.99e-04 (87.57s)
+step 5150: train loss 3.1283, val loss 3.1170, lr 4.99e-04 (86.94s)
+step 5160: train loss 3.0795, val loss 3.1072, lr 4.99e-04 (86.74s)
+step 5170: train loss 3.2133, val loss 3.0925, lr 4.99e-04 (86.76s)
+step 5180: train loss 3.1642, val loss 3.1084, lr 4.99e-04 (86.32s)
+step 5190: train loss 3.1713, val loss 3.0944, lr 4.99e-04 (86.91s)
+step 5200: train loss 3.1502, val loss 3.1180, lr 4.99e-04 (87.02s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_4700.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 5210: train loss 3.0910, val loss 3.1264, lr 4.99e-04 (88.61s)
+step 5220: train loss 3.1211, val loss 3.0974, lr 4.99e-04 (87.01s)
+step 5230: train loss 3.1676, val loss 3.0714, lr 4.99e-04 (86.42s)
+step 5240: train loss 3.1395, val loss 3.1210, lr 4.99e-04 (86.43s)
+step 5250: train loss 3.0728, val loss 3.1171, lr 4.99e-04 (86.23s)
+step 5260: train loss 3.1016, val loss 3.1063, lr 4.99e-04 (86.81s)
+step 5270: train loss 3.0888, val loss 3.0778, lr 4.99e-04 (87.38s)
+step 5280: train loss 3.1048, val loss 3.1130, lr 4.99e-04 (86.35s)
+step 5290: train loss 3.1074, val loss 3.0985, lr 4.99e-04 (86.47s)
+step 5300: train loss 3.1154, val loss 3.0375, lr 4.99e-04 (86.58s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_4800.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 5310: train loss 3.1241, val loss 3.1190, lr 4.99e-04 (89.04s)
+step 5320: train loss 3.1687, val loss 3.1334, lr 4.99e-04 (87.74s)
+step 5330: train loss 3.0659, val loss 3.1062, lr 4.99e-04 (87.01s)
+step 5340: train loss 3.1049, val loss 3.1162, lr 4.99e-04 (88.01s)
+step 5350: train loss 3.0792, val loss 3.0650, lr 4.99e-04 (88.43s)
+step 5360: train loss 3.1108, val loss 3.0346, lr 4.99e-04 (86.39s)
+step 5370: train loss 3.1516, val loss 3.0898, lr 4.99e-04 (87.76s)
+step 5380: train loss 3.1705, val loss 3.1220, lr 4.99e-04 (87.42s)
+step 5390: train loss 3.1117, val loss 3.0758, lr 4.99e-04 (87.63s)
+step 5400: train loss 3.1345, val loss 3.0369, lr 4.99e-04 (86.63s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_4900.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 5410: train loss 3.1000, val loss 3.1335, lr 4.99e-04 (88.43s)
+step 5420: train loss 3.0454, val loss 3.0991, lr 4.99e-04 (86.91s)
+step 5430: train loss 3.1185, val loss 3.0844, lr 4.99e-04 (88.29s)
+step 5440: train loss 3.0844, val loss 3.0621, lr 4.99e-04 (87.71s)
+step 5450: train loss 3.1228, val loss 3.1199, lr 4.99e-04 (86.66s)
+step 5460: train loss 3.1100, val loss 3.1120, lr 4.99e-04 (86.98s)
+step 5470: train loss 3.1197, val loss 3.1396, lr 4.99e-04 (86.13s)
+step 5480: train loss 3.1445, val loss 3.0977, lr 4.99e-04 (87.76s)
+step 5490: train loss 3.1441, val loss 3.0378, lr 4.99e-04 (87.48s)
+step 5500: train loss 3.1057, val loss 3.0661, lr 4.99e-04 (86.35s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_5000.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 5510: train loss 3.1259, val loss 3.0741, lr 4.99e-04 (88.23s)
+step 5520: train loss 3.0910, val loss 3.1187, lr 4.99e-04 (86.46s)
+step 5530: train loss 3.1364, val loss 3.0884, lr 4.98e-04 (86.53s)
+step 5540: train loss 3.1061, val loss 3.1219, lr 4.98e-04 (87.41s)
+step 5550: train loss 3.0979, val loss 3.1086, lr 4.98e-04 (88.26s)
+step 5560: train loss 3.1230, val loss 3.0702, lr 4.98e-04 (86.65s)
+step 5570: train loss 3.0975, val loss 3.1104, lr 4.98e-04 (86.62s)
+step 5580: train loss 3.0970, val loss 3.0968, lr 4.98e-04 (86.74s)
+step 5590: train loss 3.1322, val loss 3.1357, lr 4.98e-04 (87.90s)
+step 5600: train loss 3.1112, val loss 3.0643, lr 4.98e-04 (87.08s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_5100.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 5610: train loss 3.0973, val loss 3.1210, lr 4.98e-04 (89.51s)
+step 5620: train loss 3.1060, val loss 3.1263, lr 4.98e-04 (86.69s)
+step 5630: train loss 3.1671, val loss 3.1260, lr 4.98e-04 (86.42s)
+step 5640: train loss 3.1066, val loss 3.0930, lr 4.98e-04 (86.46s)
+step 5650: train loss 3.1110, val loss 3.0410, lr 4.98e-04 (86.73s)
+step 5660: train loss 3.1052, val loss 3.1322, lr 4.98e-04 (86.57s)
+step 5670: train loss 3.1135, val loss 3.1318, lr 4.98e-04 (87.51s)
+step 5680: train loss 3.0387, val loss 3.1110, lr 4.98e-04 (88.28s)
+step 5690: train loss 3.0958, val loss 3.1244, lr 4.98e-04 (86.56s)
+step 5700: train loss 3.0485, val loss 3.0590, lr 4.98e-04 (86.53s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_5200.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 5710: train loss 3.1346, val loss 3.0993, lr 4.98e-04 (89.33s)
+step 5720: train loss 3.1203, val loss 3.1269, lr 4.98e-04 (86.92s)
+step 5730: train loss 3.0668, val loss 3.1201, lr 4.98e-04 (87.80s)
+step 5740: train loss 3.1711, val loss 3.0823, lr 4.98e-04 (86.98s)
+step 5750: train loss 3.1352, val loss 3.0449, lr 4.98e-04 (86.28s)
+step 5760: train loss 3.1193, val loss 3.0932, lr 4.98e-04 (86.35s)
+step 5770: train loss 3.0947, val loss 3.0780, lr 4.98e-04 (86.40s)
+step 5780: train loss 3.0476, val loss 3.0922, lr 4.98e-04 (86.30s)
+step 5790: train loss 3.1037, val loss 3.0708, lr 4.98e-04 (86.92s)
+step 5800: train loss 3.0815, val loss 3.0516, lr 4.98e-04 (87.75s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_5300.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 5810: train loss 3.1093, val loss 3.1039, lr 4.98e-04 (88.05s)
+step 5820: train loss 3.0621, val loss 3.0073, lr 4.98e-04 (86.72s)
+step 5830: train loss 3.0843, val loss 3.0164, lr 4.98e-04 (87.33s)
+step 5840: train loss 3.0977, val loss 3.1297, lr 4.98e-04 (86.40s)
+step 5850: train loss 3.1167, val loss 3.0597, lr 4.98e-04 (88.96s)
+step 5860: train loss 3.1115, val loss 3.0505, lr 4.98e-04 (87.45s)
+step 5870: train loss 3.0794, val loss 3.0815, lr 4.98e-04 (87.26s)
+step 5880: train loss 3.1100, val loss 3.0827, lr 4.98e-04 (87.10s)
+step 5890: train loss 3.0479, val loss 3.1129, lr 4.98e-04 (86.53s)
+step 5900: train loss 3.0670, val loss 3.0626, lr 4.98e-04 (86.68s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_5400.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 5910: train loss 3.0860, val loss 3.0601, lr 4.98e-04 (87.79s)
+step 5920: train loss 3.0351, val loss 3.1055, lr 4.98e-04 (86.66s)
+step 5930: train loss 3.0554, val loss 3.0732, lr 4.98e-04 (87.58s)
+step 5940: train loss 3.1237, val loss 3.0753, lr 4.98e-04 (87.11s)
+step 5950: train loss 3.0598, val loss 3.0785, lr 4.98e-04 (86.67s)
+step 5960: train loss 3.0991, val loss 3.0508, lr 4.98e-04 (88.30s)
+step 5970: train loss 3.0774, val loss 3.0927, lr 4.98e-04 (87.34s)
+step 5980: train loss 3.0399, val loss 3.0617, lr 4.98e-04 (86.43s)
+step 5990: train loss 3.0742, val loss 3.0784, lr 4.98e-04 (86.89s)
+step 6000: train loss 3.0980, val loss 3.1193, lr 4.98e-04 (86.79s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_5500.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 6010: train loss 3.0341, val loss 3.0971, lr 4.98e-04 (88.97s)
+step 6020: train loss 3.1143, val loss 3.0327, lr 4.98e-04 (87.89s)
+step 6030: train loss 3.1397, val loss 3.0310, lr 4.98e-04 (87.31s)
+step 6040: train loss 3.0626, val loss 3.0663, lr 4.98e-04 (86.39s)
+step 6050: train loss 3.0710, val loss 3.0491, lr 4.98e-04 (87.44s)
+step 6060: train loss 3.0627, val loss 3.0776, lr 4.98e-04 (86.65s)
+step 6070: train loss 3.0897, val loss 3.0695, lr 4.98e-04 (87.02s)
+step 6080: train loss 3.0448, val loss 3.0197, lr 4.98e-04 (86.68s)
+step 6090: train loss 3.0948, val loss 3.0574, lr 4.98e-04 (87.07s)
+step 6100: train loss 3.0766, val loss 3.0743, lr 4.98e-04 (87.41s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_5600.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 6110: train loss 3.0847, val loss 3.0733, lr 4.98e-04 (90.67s)
+step 6120: train loss 3.0506, val loss 3.0817, lr 4.98e-04 (91.26s)
+step 6130: train loss 3.0659, val loss 3.1072, lr 4.98e-04 (87.51s)
+step 6140: train loss 3.0939, val loss 3.0862, lr 4.98e-04 (87.71s)
+step 6150: train loss 3.0371, val loss 3.1363, lr 4.98e-04 (87.46s)
+step 6160: train loss 3.0506, val loss 3.1043, lr 4.98e-04 (88.01s)
+step 6170: train loss 3.0850, val loss 3.0512, lr 4.98e-04 (88.21s)
+step 6180: train loss 3.0672, val loss 3.0354, lr 4.98e-04 (87.94s)
+step 6190: train loss 3.1016, val loss 3.0741, lr 4.98e-04 (87.68s)
+step 6200: train loss 3.0727, val loss 3.0912, lr 4.98e-04 (90.42s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_5700.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 6210: train loss 3.1094, val loss 3.0476, lr 4.98e-04 (91.05s)
+step 6220: train loss 3.0839, val loss 3.0248, lr 4.98e-04 (87.12s)
+step 6230: train loss 3.0518, val loss 3.0484, lr 4.98e-04 (87.72s)
+step 6240: train loss 3.1403, val loss 3.0939, lr 4.98e-04 (91.20s)
+step 6250: train loss 3.1083, val loss 3.0427, lr 4.98e-04 (87.83s)
+step 6260: train loss 3.0408, val loss 3.0573, lr 4.98e-04 (88.27s)
+step 6270: train loss 3.1174, val loss 3.0142, lr 4.98e-04 (88.39s)
+step 6280: train loss 3.1001, val loss 3.0852, lr 4.98e-04 (86.98s)
+step 6290: train loss 3.0312, val loss 3.0423, lr 4.98e-04 (87.48s)
+step 6300: train loss 3.0381, val loss 3.0298, lr 4.98e-04 (86.83s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_5800.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 6310: train loss 3.0653, val loss 3.0049, lr 4.98e-04 (88.78s)
+step 6320: train loss 3.1044, val loss 3.0320, lr 4.98e-04 (87.23s)
+step 6330: train loss 3.0836, val loss 3.0648, lr 4.98e-04 (88.07s)
+step 6340: train loss 3.1533, val loss 3.0526, lr 4.98e-04 (88.94s)
+step 6350: train loss 3.0559, val loss 3.0721, lr 4.98e-04 (87.83s)
+step 6360: train loss 3.0431, val loss 3.0807, lr 4.98e-04 (86.71s)
+step 6370: train loss 3.0411, val loss 3.0946, lr 4.98e-04 (90.90s)
+step 6380: train loss 3.0589, val loss 3.0473, lr 4.98e-04 (88.34s)
+step 6390: train loss 3.0623, val loss 3.0071, lr 4.98e-04 (87.50s)
+step 6400: train loss 3.0172, val loss 3.0313, lr 4.98e-04 (87.76s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_5900.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 6410: train loss 3.0729, val loss 3.0744, lr 4.98e-04 (89.50s)
+step 6420: train loss 3.0908, val loss 3.0364, lr 4.98e-04 (86.78s)
+step 6430: train loss 3.0581, val loss 3.0979, lr 4.98e-04 (87.75s)
+step 6440: train loss 3.0574, val loss 3.1063, lr 4.98e-04 (89.10s)
+step 6450: train loss 3.0145, val loss 3.0947, lr 4.98e-04 (87.15s)
+step 6460: train loss 3.1129, val loss 3.0425, lr 4.98e-04 (86.79s)
+step 6470: train loss 3.0811, val loss 3.0514, lr 4.98e-04 (87.66s)
+step 6480: train loss 2.9857, val loss 3.0396, lr 4.98e-04 (86.66s)
+step 6490: train loss 3.0081, val loss 2.9769, lr 4.98e-04 (86.46s)
+step 6500: train loss 3.0573, val loss 3.0279, lr 4.98e-04 (87.14s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_6000.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 6510: train loss 3.0559, val loss 3.0081, lr 4.98e-04 (91.98s)
+step 6520: train loss 3.0766, val loss 3.0572, lr 4.98e-04 (90.44s)
+step 6530: train loss 3.1207, val loss 3.0364, lr 4.98e-04 (93.23s)
+step 6540: train loss 3.0455, val loss 3.0648, lr 4.98e-04 (92.67s)
+step 6550: train loss 3.0760, val loss 3.0999, lr 4.98e-04 (92.24s)
+step 6560: train loss 2.9832, val loss 3.0480, lr 4.97e-04 (89.13s)
+step 6570: train loss 3.0363, val loss 3.0416, lr 4.97e-04 (89.55s)
+step 6580: train loss 3.0310, val loss 3.0220, lr 4.97e-04 (88.13s)
+step 6590: train loss 3.0447, val loss 3.0619, lr 4.97e-04 (87.74s)
+step 6600: train loss 3.0358, val loss 3.0220, lr 4.97e-04 (88.15s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_6100.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 6610: train loss 3.0283, val loss 3.0658, lr 4.97e-04 (94.51s)
+step 6620: train loss 3.0199, val loss 3.0144, lr 4.97e-04 (92.68s)
+step 6630: train loss 3.0901, val loss 3.0308, lr 4.97e-04 (91.65s)
+step 6640: train loss 3.0317, val loss 3.0483, lr 4.97e-04 (91.05s)
+step 6650: train loss 3.0439, val loss 3.0334, lr 4.97e-04 (89.25s)
+step 6660: train loss 3.0629, val loss 3.0350, lr 4.97e-04 (89.32s)
+step 6670: train loss 3.0735, val loss 3.0387, lr 4.97e-04 (91.28s)
+step 6680: train loss 3.0734, val loss 3.0301, lr 4.97e-04 (91.00s)
+step 6690: train loss 3.0842, val loss 3.0373, lr 4.97e-04 (87.22s)
+step 6700: train loss 3.0427, val loss 3.0184, lr 4.97e-04 (88.67s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_6200.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 6710: train loss 3.0513, val loss 2.9893, lr 4.97e-04 (89.08s)
+step 6720: train loss 3.0050, val loss 3.0908, lr 4.97e-04 (89.20s)
+step 6730: train loss 3.0377, val loss 3.0226, lr 4.97e-04 (89.30s)
+step 6740: train loss 3.0733, val loss 3.0543, lr 4.97e-04 (88.27s)
+step 6750: train loss 3.0212, val loss 3.0246, lr 4.97e-04 (88.51s)
+step 6760: train loss 3.0287, val loss 3.0047, lr 4.97e-04 (88.55s)
+step 6770: train loss 3.1072, val loss 3.0598, lr 4.97e-04 (91.24s)
+step 6780: train loss 3.0580, val loss 3.0523, lr 4.97e-04 (87.61s)
+step 6790: train loss 3.0078, val loss 3.0219, lr 4.97e-04 (88.19s)
+step 6800: train loss 3.0355, val loss 3.0318, lr 4.97e-04 (87.85s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_6300.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 6810: train loss 3.0162, val loss 3.0475, lr 4.97e-04 (89.28s)
+step 6820: train loss 3.0034, val loss 3.0485, lr 4.97e-04 (87.86s)
+step 6830: train loss 3.0829, val loss 3.0442, lr 4.97e-04 (87.44s)
+step 6840: train loss 3.0133, val loss 3.0082, lr 4.97e-04 (87.67s)
+step 6850: train loss 3.0711, val loss 3.0488, lr 4.97e-04 (88.18s)
+step 6860: train loss 3.0379, val loss 3.0517, lr 4.97e-04 (94.31s)
+step 6870: train loss 3.0974, val loss 3.0157, lr 4.97e-04 (90.69s)
+step 6880: train loss 3.0877, val loss 3.0681, lr 4.97e-04 (90.00s)
+step 6890: train loss 3.0033, val loss 3.0576, lr 4.97e-04 (90.28s)
+step 6900: train loss 3.0353, val loss 2.9715, lr 4.97e-04 (90.61s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_6400.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 6910: train loss 3.0314, val loss 3.0854, lr 4.97e-04 (95.49s)
+step 6920: train loss 3.0163, val loss 3.0426, lr 4.97e-04 (88.32s)
+step 6930: train loss 3.0372, val loss 2.9892, lr 4.97e-04 (98.24s)
+step 6940: train loss 3.0669, val loss 3.0269, lr 4.97e-04 (109.52s)
+step 6950: train loss 3.0373, val loss 3.0432, lr 4.97e-04 (98.92s)
+step 6960: train loss 3.0071, val loss 3.0105, lr 4.97e-04 (96.08s)
+step 6970: train loss 3.0765, val loss 2.9913, lr 4.97e-04 (109.18s)
+step 6980: train loss 3.0190, val loss 3.0504, lr 4.97e-04 (97.23s)
+step 6990: train loss 2.9844, val loss 3.0519, lr 4.97e-04 (102.42s)
+step 7000: train loss 3.0660, val loss 3.0276, lr 4.97e-04 (95.57s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_6500.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 7010: train loss 2.9673, val loss 2.9963, lr 4.97e-04 (90.42s)
+step 7020: train loss 3.0231, val loss 3.0346, lr 4.97e-04 (88.20s)
+step 7030: train loss 3.0519, val loss 2.9955, lr 4.97e-04 (90.04s)
+step 7040: train loss 3.0582, val loss 3.0249, lr 4.97e-04 (220.74s)
+step 7050: train loss 2.9902, val loss 3.0004, lr 4.97e-04 (92.68s)
+step 7060: train loss 3.0632, val loss 3.0533, lr 4.97e-04 (87.06s)
+step 7070: train loss 3.0111, val loss 2.9909, lr 4.97e-04 (87.20s)
+step 7080: train loss 3.0829, val loss 3.0540, lr 4.97e-04 (89.96s)
+step 7090: train loss 3.0295, val loss 2.9932, lr 4.97e-04 (88.52s)
+step 7100: train loss 3.0924, val loss 3.0313, lr 4.97e-04 (105.05s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_6600.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 7110: train loss 3.0193, val loss 2.9865, lr 4.97e-04 (121.88s)
+step 7120: train loss 3.0546, val loss 3.0526, lr 4.97e-04 (126.12s)
+step 7130: train loss 2.9925, val loss 3.0039, lr 4.97e-04 (115.00s)
+step 7140: train loss 3.0133, val loss 3.0256, lr 4.97e-04 (115.01s)
+step 7150: train loss 3.0300, val loss 3.0238, lr 4.97e-04 (95.98s)
+step 7160: train loss 3.0184, val loss 3.0462, lr 4.97e-04 (113.78s)
+step 7170: train loss 3.1055, val loss 2.9884, lr 4.97e-04 (121.33s)
+step 7180: train loss 3.0715, val loss 2.9955, lr 4.97e-04 (103.83s)
+step 7190: train loss 3.0212, val loss 2.9811, lr 4.97e-04 (98.23s)
+step 7200: train loss 2.9667, val loss 3.0471, lr 4.97e-04 (113.72s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_6700.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 7210: train loss 3.0490, val loss 3.0342, lr 4.97e-04 (135.17s)
+step 7220: train loss 3.0400, val loss 3.1025, lr 4.97e-04 (127.55s)
+step 7230: train loss 3.0040, val loss 3.0578, lr 4.97e-04 (111.53s)
+step 7240: train loss 3.0330, val loss 2.9955, lr 4.97e-04 (102.03s)
+step 7250: train loss 3.0359, val loss 3.0399, lr 4.97e-04 (104.26s)
+step 7260: train loss 3.0354, val loss 3.0379, lr 4.97e-04 (103.34s)
+step 7270: train loss 2.9997, val loss 3.0256, lr 4.97e-04 (104.42s)
+step 7280: train loss 3.0623, val loss 2.9890, lr 4.97e-04 (104.14s)
+step 7290: train loss 3.0146, val loss 3.0504, lr 4.97e-04 (98.48s)
+step 7300: train loss 3.0484, val loss 3.0340, lr 4.97e-04 (100.51s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_6800.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 7310: train loss 3.0270, val loss 2.9673, lr 4.97e-04 (105.64s)
+step 7320: train loss 3.0542, val loss 3.0243, lr 4.97e-04 (99.31s)
+step 7330: train loss 3.0072, val loss 2.9939, lr 4.97e-04 (101.15s)
+step 7340: train loss 3.0556, val loss 3.0051, lr 4.97e-04 (98.30s)
+step 7350: train loss 3.0358, val loss 3.0515, lr 4.97e-04 (104.54s)
+step 7360: train loss 3.0370, val loss 3.0038, lr 4.97e-04 (98.83s)
+step 7370: train loss 2.9833, val loss 3.0186, lr 4.97e-04 (108.58s)
+step 7380: train loss 3.0134, val loss 3.0189, lr 4.97e-04 (107.93s)
+step 7390: train loss 3.0967, val loss 3.0002, lr 4.97e-04 (108.03s)
+step 7400: train loss 3.0523, val loss 3.0210, lr 4.96e-04 (111.76s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_6900.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 7410: train loss 3.0730, val loss 2.9784, lr 4.96e-04 (112.18s)
+step 7420: train loss 3.0033, val loss 3.0291, lr 4.96e-04 (113.18s)
+step 7430: train loss 3.0256, val loss 3.0555, lr 4.96e-04 (122.93s)
+step 7440: train loss 3.0554, val loss 2.9931, lr 4.96e-04 (117.04s)
+step 7450: train loss 3.0121, val loss 3.0098, lr 4.96e-04 (108.17s)
+step 7460: train loss 2.9950, val loss 2.9791, lr 4.96e-04 (103.34s)
+step 7470: train loss 3.0402, val loss 3.0231, lr 4.96e-04 (104.52s)
+step 7480: train loss 2.9737, val loss 3.0322, lr 4.96e-04 (99.76s)
+step 7490: train loss 2.9861, val loss 3.0564, lr 4.96e-04 (102.17s)
+step 7500: train loss 2.9930, val loss 2.9822, lr 4.96e-04 (96.19s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_7000.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 7510: train loss 3.0185, val loss 3.0009, lr 4.96e-04 (103.95s)
+step 7520: train loss 3.0525, val loss 3.0239, lr 4.96e-04 (92.35s)
+step 7530: train loss 3.0265, val loss 3.0033, lr 4.96e-04 (90.85s)
+step 7540: train loss 2.9884, val loss 3.0384, lr 4.96e-04 (111.84s)
+step 7550: train loss 3.0248, val loss 3.0184, lr 4.96e-04 (111.82s)
+step 7560: train loss 3.0386, val loss 3.0173, lr 4.96e-04 (112.89s)
+step 7570: train loss 3.0651, val loss 3.0042, lr 4.96e-04 (105.20s)
+step 7580: train loss 3.0037, val loss 3.0051, lr 4.96e-04 (103.88s)
+step 7590: train loss 3.0404, val loss 2.9832, lr 4.96e-04 (106.46s)
+step 7600: train loss 3.0269, val loss 3.0291, lr 4.96e-04 (98.43s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_7100.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 7610: train loss 3.0133, val loss 2.9646, lr 4.96e-04 (107.27s)
+step 7620: train loss 3.0834, val loss 3.0103, lr 4.96e-04 (105.71s)
+step 7630: train loss 3.0211, val loss 2.9956, lr 4.96e-04 (117.39s)
+step 7640: train loss 2.9758, val loss 3.0369, lr 4.96e-04 (100.02s)
+step 7650: train loss 3.0551, val loss 3.0500, lr 4.96e-04 (112.94s)
+step 7660: train loss 3.0072, val loss 3.0100, lr 4.96e-04 (115.82s)
+step 7670: train loss 2.9906, val loss 3.0466, lr 4.96e-04 (105.20s)
+step 7680: train loss 3.0110, val loss 2.9831, lr 4.96e-04 (121.57s)
+step 7690: train loss 3.0404, val loss 3.0246, lr 4.96e-04 (114.80s)
+step 7700: train loss 3.0005, val loss 3.0505, lr 4.96e-04 (112.56s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_7200.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth
+step 7710: train loss 2.9915, val loss 2.9977, lr 4.96e-04 (113.74s)
+step 7720: train loss 3.0238, val loss 2.9653, lr 4.96e-04 (113.16s)
+step 7730: train loss 3.0246, val loss 3.0273, lr 4.96e-04 (109.04s)
+step 7740: train loss 2.9906, val loss 2.9641, lr 4.96e-04 (115.76s)
+step 7750: train loss 3.0254, val loss 3.0162, lr 4.96e-04 (113.05s)
+step 7760: train loss 2.9904, val loss 2.9717, lr 4.96e-04 (103.95s)
+step 7770: train loss 3.0016, val loss 3.0352, lr 4.96e-04 (91.24s)
+step 7780: train loss 2.9884, val loss 3.0498, lr 4.96e-04 (99.19s)
+step 7790: train loss 3.0365, val loss 2.9802, lr 4.96e-04 (89.45s)
+step 7800: train loss 3.0084, val loss 3.0251, lr 4.96e-04 (86.68s)
+💾 Sauvegarde du checkpoint...
+🗑️ Ancien checkpoint supprimé : my_wiki_step_7300.pth
+✨ Modèle d'inférence prêt : my_wiki_inference.pth

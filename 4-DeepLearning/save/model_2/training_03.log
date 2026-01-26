@@ -1,0 +1,62 @@
+🚀 Initialisation de l'entraînement sur MPS...
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+✅ Modèle restauré. (Fichiers déjà traités : 0)
+🚀 Dataset Train: 1526.63M tokens.
+✅ Provider HP initialisé : 5963390 blocs uniques.
+🔄 Reprise au step 17700
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : Maintenir sous 75°C idéalement.
+[96m[Model config][0m
+  n_embd             : 384[0m
+  num_heads          : 6[0m
+  n_layers           : 6[0m
+  block_size         : 256[0m
+  dropout            : [93m0.15[0m
+[96m[Train params][0m
+  batch_size         : 32[0m
+  grad_accum_steps   : 4[0m
+  learning_rate      : [92m0.0003[0m
+  min_lr             : 3e-05[0m
+  warmup_iters       : 2000[0m
+  lr_decay_iters     : 75000[0m
+  eval_interval      : [92m300[0m
+  eval_iters         : 20[0m
+  save_interval      : 300[0m
+  n_version          : 10[0m
+  [1mEffective Batch Size: 128[0m
+..................................................
+
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 17700
+   📉 Evaluation tous les : 300 steps
+   💾 Sauvegarde tous les : 300 steps
+step 18000: train loss 2.8391, val loss 2.8931, lr 2.69e-04 (1678.64s) | 💾 | 🗑️ | ✨
+step 18300: train loss 2.8401, val loss 2.8101, lr 2.68e-04 (1693.73s) | 💾 | 🗑️ | ✨
+step 18600: train loss 2.8059, val loss 2.8027, lr 2.67e-04 (1737.07s) | 💾 | 🗑️ | ✨
+step 18900: train loss 2.8123, val loss 2.8484, lr 2.66e-04 (1737.53s) | 💾 | 🗑️ | ✨
+step 19200: train loss 2.7896, val loss 2.8391, lr 2.65e-04 (1737.02s) | 💾 | 🗑️ | ✨
+step 19500: train loss 2.8354, val loss 2.7844, lr 2.63e-04 (1750.51s) | 💾 | 🗑️ | ✨
+step 19800: train loss 2.7783, val loss 2.8969, lr 2.62e-04 (1736.07s) | 💾 | 🗑️ | ✨
+step 20100: train loss 2.8421, val loss 2.8339, lr 2.61e-04 (1746.11s) | 💾 | 🗑️ | ✨
+step 20400: train loss 2.7938, val loss 2.7976, lr 2.60e-04 (1735.99s) | 💾 | 🗑️ | ✨
+step 20700: train loss 2.7675, val loss 2.8121, lr 2.59e-04 (1743.80s) | 💾 | 🗑️ | ✨
+step 21000: train loss 2.8608, val loss 2.7710, lr 2.57e-04 (1741.14s) | 💾 | 🗑️ | ✨
+step 21300: train loss 2.7885, val loss 2.7944, lr 2.56e-04 (1740.90s) | 💾 | 🗑️ | ✨
+step 21600: train loss 2.7992, val loss 2.7369, lr 2.55e-04 (1736.96s) | 💾 | 🗑️ | ✨
+step 21900: train loss 2.7392, val loss 2.7936, lr 2.53e-04 (1743.85s) | 💾 | 🗑️ | ✨
+step 22200: train loss 2.8356, val loss 2.7909, lr 2.52e-04 (1739.23s) | 💾 | 🗑️ | ✨
+step 22500: train loss 2.7905, val loss 2.8214, lr 2.51e-04 (1735.17s) | 💾 | 🗑️ | ✨
+step 22800: train loss 2.8500, val loss 2.7839, lr 2.49e-04 (1735.64s) | 💾 | 🗑️ | ✨
+step 23100: train loss 2.8357, val loss 2.7490, lr 2.48e-04 (1741.47s) | 💾 | 🗑️ | ✨
+step 23400: train loss 2.8075, val loss 2.8173, lr 2.47e-04 (1738.77s) | 💾 | 🗑️ | ✨
+step 23700: train loss 2.7570, val loss 2.7701, lr 2.45e-04 (1738.08s) | 💾 | 🗑️ | ✨
+step 24000: train loss 2.7736, val loss 2.7775, lr 2.44e-04 (1735.68s) | 💾 | 🗑️ | ✨
+step 24300: train loss 2.8047, val loss 2.7968, lr 2.42e-04 (1738.55s) | 💾 | 🗑️ | ✨
+step 24600: train loss 2.7636, val loss 2.7750, lr 2.41e-04 (1719.66s) | 💾 | 🗑️ | ✨
+step 24900: train loss 2.7614, val loss 2.7477, lr 2.40e-04 (1684.92s) | 💾 | 🗑️ | ✨
+step 25200: train loss 2.7948, val loss 2.8101, lr 2.38e-04 (1732.65s) | 💾 | 🗑️ | ✨
+step 25500: train loss 2.7479, val loss 2.8349, lr 2.37e-04 (1725.00s) | 💾 | 🗑️ | ✨

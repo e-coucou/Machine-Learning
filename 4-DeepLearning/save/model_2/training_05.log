@@ -1,0 +1,46 @@
+🚀 Initialisation de l'entraînement sur MPS...
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+✅ Modèle restauré. (Fichiers déjà traités : 0)
+🚀 Dataset Train: 1526.63M tokens.
+✅ Provider HP initialisé : 5963390 blocs uniques.
+🔄 Reprise au step 25800
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : Maintenir sous 75°C idéalement.
+[96m[Model config][0m
+  n_embd             : 384[0m
+  num_heads          : 6[0m
+  n_layers           : 6[0m
+  block_size         : 256[0m
+  dropout            : [93m0.15[0m
+[96m[Train params][0m
+  batch_size         : 32[0m
+  grad_accum_steps   : 4[0m
+  learning_rate      : [92m0.0003[0m
+  min_lr             : 3e-05[0m
+  warmup_iters       : 2000[0m
+  lr_decay_iters     : 75000[0m
+  eval_interval      : [92m300[0m
+  eval_iters         : 20[0m
+  save_interval      : 300[0m
+  n_version          : 10[0m
+  [1mEffective Batch Size: 128[0m
+..................................................
+
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 25800
+   📉 Evaluation tous les : 300 steps
+   💾 Sauvegarde tous les : 300 steps
+step 26100: train loss 2.7892, val loss 2.7721, lr 2.34e-04 (1504.37s) | 💾 | 🗑️ | ✨
+step 26400: train loss 2.7830, val loss 2.7379, lr 2.32e-04 (1499.95s) | 💾 | 🗑️ | ✨
+step 26700: train loss 2.7994, val loss 2.7683, lr 2.31e-04 (1490.21s) | 💾 | 🗑️ | ✨
+step 27000: train loss 2.7990, val loss 2.7434, lr 2.29e-04 (1498.73s) | 💾 | 🗑️ | ✨
+step 27300: train loss 2.7208, val loss 2.7681, lr 2.28e-04 (1494.54s) | 💾 | 🗑️ | ✨
+step 27600: train loss 2.7790, val loss 2.7813, lr 2.26e-04 (1505.69s) | 💾 | 🗑️ | ✨
+step 27900: train loss 2.8051, val loss 2.7643, lr 2.24e-04 (1546.26s) | 💾 | 🗑️ | ✨
+step 28200: train loss 2.6996, val loss 2.7575, lr 2.23e-04 (1507.97s) | 💾 | 🗑️ | ✨
+step 28500: train loss 2.8010, val loss 2.8390, lr 2.21e-04 (1526.23s) | 💾 | 🗑️ | ✨
+step 28800: train loss 2.7671, val loss 2.7458, lr 2.20e-04 (1537.22s) | 💾 | 🗑️ | ✨

@@ -1,0 +1,42 @@
+🚀 Initialisation de l'entraînement sur MPS...
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+✅ Modèle restauré. (Fichiers déjà traités : 0)
+🚀 Dataset Train: 1526.63M tokens.
+✅ Provider HP initialisé : 5963390 blocs uniques.
+🔄 Reprise au step 46600
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : Maintenir sous 75°C idéalement.
+[96m[Model config][0m
+  n_embd             : 384[0m
+  num_heads          : 6[0m
+  n_layers           : 6[0m
+  block_size         : 256[0m
+  dropout            : [93m0.1[0m
+[96m[Train params][0m
+  batch_size         : 32[0m
+  grad_accum_steps   : 4[0m
+  learning_rate      : [92m0.0003[0m
+  min_lr             : 3e-05[0m
+  warmup_iters       : 2000[0m
+  lr_decay_iters     : 75000[0m
+  eval_interval      : [92m200[0m
+  eval_iters         : 30[0m
+  save_interval      : 200[0m
+  n_version          : 10[0m
+  [1mEffective Batch Size: 128[0m
+..................................................
+
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 46600
+   📉 Evaluation tous les : 200 steps
+   💾 Sauvegarde tous les : 200 steps
+step 46800: train loss 3.6818, val loss 3.7304, lr 1.18e-04 (1157.85s) | 💾 | 🗑️ | ✨
+step 47000: train loss 3.8431, val loss 3.8475, lr 1.17e-04 (1190.15s) | 💾 | 🗑️ | ✨
+step 47200: train loss 3.9186, val loss 3.8646, lr 1.16e-04 (1177.05s) | 💾 | 🗑️ | ✨
+step 47400: train loss 3.8964, val loss 3.8934, lr 1.15e-04 (1212.22s) | 💾 | 🗑️ | ✨
+step 47600: train loss 3.8915, val loss 4.0119, lr 1.13e-04 (1214.78s) | 💾 | 🗑️ | ✨
+step 47800: train loss 4.0246, val loss 3.9752, lr 1.12e-04 (1209.60s) | 💾 | 🗑️ | ✨

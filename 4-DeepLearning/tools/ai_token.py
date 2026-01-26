@@ -2,6 +2,8 @@ from collections import Counter
 from itertools import chain
 import json, base64, time, re, random, colorsys
 import regex as rex
+from functools import lru_cache
+
 import numpy as np
 from IPython.display import HTML, display
 
@@ -35,8 +37,8 @@ class BPETokenizer:
             self.text_raw = texte
         if self.text_raw is not None:
             self.tokenize(option=5)
-        else:
-            print("vous devrez soit lire un fichier soit envoyer un texte pour lancer le tokenizer")
+        # else: # inutile ou alors créer un mode verbose
+        #     print("vous devrez soit lire un fichier soit envoyer un texte pour lancer le tokenizer")
         # self.preprocess_text()
         # # Convertir le texte en liste de tokens (bytes)
         # #self.ids = [list(text.encode('utf-8')) for text in self.text_cleaned]
@@ -652,4 +654,100 @@ class BPETokenizer:
         """Retourne les statistiques"""
         return self.stats
 
+
+
+# Pattern standard GPT-4 pour découper proprement (mots, chiffres, ponctuation)
+GPT_SPLIT_PATTERN = r"""'(?i:[sdmt]|ll|ve|re)|[^\r\n\p{L}\p{N}]?+\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]++[\r\n]*|\s*[\r\n]|\s+(?!\S)|\s+"""
+
+class OptimizedTokenizer:
+    def __init__(self, merges):
+        """
+        merges: Votre dictionnaire actuel {(p0, p1): new_id}
+        """
+        self.merges = merges
+        # On crée un dictionnaire de "rang" pour savoir quelle fusion est prioritaire
+        # (On suppose que vos merges sont ordonnés par ordre d'apprentissage)
+        self.ranks = dict(zip(merges.keys(), range(len(merges))))
+        
+        # Compilation du regex pour la vitesse
+        GPT_EP  = r"""(?i:[lcdtmnsj]|qu)'|[^\r\n\p{L}\p{N}]?+\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]++[\r\n]*|\s*[\r\n]|\s+(?!\S)|\s+"""
+        self.pat = rex.compile(GPT_EP)
+        
+        # Cache interne pour mémoriser les mots déjà vus
+        self.cache = {} 
+
+    def bpe(self, token_ids):
+        """
+        Applique le BPE sur une liste d'entiers représentant UN SEUL mot.
+        C'est la version optimisée de votre boucle while.
+        """
+        # On travaille sur une copie liste (plus rapide que numpy pour de petits tableaux < 100 items)
+        ids = list(token_ids)
+        
+        while len(ids) >= 2:
+            # 1. Trouver toutes les paires adjacentes
+            stats = {}
+            for i in range(len(ids) - 1):
+                pair = (ids[i], ids[i+1])
+                stats[pair] = i # On garde l'index
+            
+            # 2. Quelle est la paire avec le plus petit rang (la plus prioritaire) ?
+            # On cherche si une des paires existe dans self.ranks
+            best_pair = None
+            min_rank = float('inf')
+            
+            for pair in stats:
+                rank = self.ranks.get(pair, float('inf'))
+                if rank < min_rank:
+                    min_rank = rank
+                    best_pair = pair
+            
+            # Si aucune paire n'est fusionnable, on arrête
+            if best_pair is None:
+                break
+                
+            # 3. Fusionner la meilleure paire
+            # On remplace toutes les occurrences de best_pair par new_id
+            new_id = self.merges[best_pair]
+            i = 0
+            new_ids = []
+            while i < len(ids):
+                # Si on n'est pas au dernier élément et qu'on trouve la paire
+                if i < len(ids) - 1 and ids[i] == best_pair[0] and ids[i+1] == best_pair[1]:
+                    new_ids.append(new_id)
+                    i += 2 # On saute les deux éléments fusionnés
+                else:
+                    new_ids.append(ids[i])
+                    i += 1
+            ids = new_ids
+            
+        return ids
+
+    def encode(self, text):
+        """
+        Encode un texte complet en utilisant le découpage + cache.
+        """
+        tokens = []
+        # 1. Découpage du texte en morceaux (mots) via Regex
+        chunks = self.pat.findall(text)
+        
+        for chunk in chunks:
+            # 2. Conversion en bytes pour avoir les IDs de base (UTF-8)
+            chunk_bytes = chunk.encode("utf-8")
+            
+            # 3. Vérification du cache
+            # On utilise le tuple d'octets comme clé (hashable)
+            if chunk_bytes in self.cache:
+                tokens.extend(self.cache[chunk_bytes])
+            else:
+                # 4. Calcul BPE si mot inconnu
+                # Conversion des bytes en liste d'entiers
+                ids = list(chunk_bytes)
+                merged_ids = self.bpe(ids)
+                
+                # Mise en cache
+                self.cache[chunk_bytes] = merged_ids
+                tokens.extend(merged_ids)
+                
+        return tokens
     

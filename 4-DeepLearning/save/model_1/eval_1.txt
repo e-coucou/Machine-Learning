@@ -1,0 +1,68 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+-e 
+📍 TEST 1 : GÉOGRAPHIE
+📡 Chargement de : model/my_wiki_inference.pth
+Loading model/my_wiki_inference.pth on mps...
+🧠 Génération en cours... (Penalty: 1.1)
+
+--------------------------------------------------
+Paris est la capitale de , 
+🤖 IA : 20 kilomètres de longueur et 50 kilomètres d���est en ouest.
+La gare est desservie par les trains du réseau métropolitain LGV Est européenne, qui circulent sur le réseau ferré Paris-Nord.
+Situation ferroviaire.
+Établie à d'altitude, la gare de Sochaux-Mauvesin est située au point kilométrique (PK) 49,7 de la ligne de Lyon-Saint-Extension à l'Avenue de la Gare, entre les gares ouvertes de Saint-Pardoux--------------------------------------------------
+
+-e 
+⚛️ TEST 2 : SCIENCE
+📡 Chargement de : model/my_wiki_inference.pth
+Loading model/my_wiki_inference.pth on mps...
+🧠 Génération en cours... (Penalty: 1.1)
+
+--------------------------------------------------
+Un atome est composé de
+🤖 IA :  deux atomes à neutrons, un paroxylation. Cette molécule contient 2 atomes de nickel d'un seul groupe, deux atomes à coefficients positifs et un électron d'une seconde.
+L'antigon de la même molécule possède des liaisons avec les éléments d'électromagnétisme. Les deux atomes s'anhydride dans le champ magnétique (primature paroxylique) forment un atome qui va former une liaison vers l'atome. Deux molécules possédant 3--------------------------------------------------
+
+-e 
+📜 TEST 3 : HISTOIRE
+📡 Chargement de : model/my_wiki_inference.pth
+Loading model/my_wiki_inference.pth on mps...
+🧠 Génération en cours... (Penalty: 1.1)
+
+--------------------------------------------------
+Au cours de la Seconde Guerre mondiale ,
+🤖 IA :  il dirige l���armée rouge pendant la guerre des Kippauts. Il prend part aux combats de la bataille d'Arkhangelsk en 1940, dans le cadre du raid sur Bergen-Soumsé et à la bataille de Chichita en 1941.
+
+</doc>
+<doc id="14862852" url="https://fr.wikipedia.org/wiki?curid=14862852" title="Élection--------------------------------------------------
+
+-e 
+📚 TEST 4 : STRUCTURE WIKI
+📡 Chargement de : model/my_wiki_inference.pth
+Loading model/my_wiki_inference.pth on mps...
+🧠 Génération en cours... (Penalty: 1.1)
+
+--------------------------------------------------
+La géographie de la France se caractérise par
+🤖 IA :  un large travail en matière hydrographique, l'agriculture et agroalimentaire et leur transformation économique, de même que sur des données statistiques concernant les territoires de différentes tailles. Pour assurer le calcul, il faut réaliser chaque année deux ans d���acquisition entreposées ou non, qui ont été mises à jour dans une vingtaine de villes.
+Au cours des siècles, il y avait peu de travaux dans l���eau potable et l���eau. L'une d'elles est une source--------------------------------------------------
+
+-e 
+🧠 TEST 5 : LOGIQUE
+📡 Chargement de : model/my_wiki_inference.pth
+Loading model/my_wiki_inference.pth on mps...
+🧠 Génération en cours... (Penalty: 1.1)
+
+--------------------------------------------------
+Le soleil est une étoile qui
+🤖 IA :  se trouve dans la constellation du Sphinx. Il est entouré de deux étoiles distinctes : le Soleil autour duquel se situe l'étoile au centre et le Soleil à proximité des étoiles situées au bord de la Lune.
+Le point le plus bas est celui de la constellation du Scorpion, située sur la planète Vénus par les satellites Wolfperg et Beta.
+Histoire.
+La constellation fait partie des planètes découvertes le par le satellite Kirov Vénus--------------------------------------------------
+
+-e 
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

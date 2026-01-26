@@ -1,0 +1,46 @@
+🚀 Initialisation de l'entraînement sur MPS...
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+✨ Aucun checkpoint trouvé, démarrage à zéro.
+🚀 Dataset Train: 1526.63M tokens.
+✅ Provider HP initialisé : 5963390 blocs uniques.
+🔄 Reprise au step 0
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : Maintenir sous 75°C idéalement.
+[96m[Model config][0m
+  n_embd             : 384[0m
+  num_heads          : 6[0m
+  n_layers           : 6[0m
+  block_size         : 256[0m
+  dropout            : [93m0.15[0m
+[96m[Train params][0m
+  batch_size         : 32[0m
+  grad_accum_steps   : 4[0m
+  learning_rate      : [92m0.0003[0m
+  min_lr             : 3e-05[0m
+  warmup_iters       : 2000[0m
+  lr_decay_iters     : 75000[0m
+  eval_interval      : [92m300[0m
+  eval_iters         : 20[0m
+  save_interval      : 300[0m
+  n_version          : 10[0m
+  [1mEffective Batch Size: 128[0m
+..................................................
+
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 0
+   📉 Evaluation tous les : 300 steps
+   💾 Sauvegarde tous les : 300 steps
+step 300: train loss 7.0984, val loss 7.0633, lr 4.48e-05 (1927.61s) | 💾 | ✨
+step 600: train loss 5.6585, val loss 5.5845, lr 8.98e-05 (1933.70s) | 💾 | ✨
+step 900: train loss 5.1601, val loss 5.1067, lr 1.35e-04 (1965.64s) | 💾 | ✨
+step 1200: train loss 4.7500, val loss 4.7922, lr 1.80e-04 (1963.87s) | 💾 | ✨
+step 1500: train loss 4.4730, val loss 4.5301, lr 2.25e-04 (2011.77s) | 💾 | ✨
+step 1800: train loss 4.2586, val loss 4.2980, lr 2.70e-04 (2041.81s) | 💾 | ✨
+step 2100: train loss 4.0272, val loss 4.0904, lr 3.00e-04 (2030.35s) | 💾 | ✨
+step 2400: train loss 3.8313, val loss 3.8853, lr 3.00e-04 (2060.92s) | 💾 | ✨
+step 2700: train loss 3.6696, val loss 3.7297, lr 3.00e-04 (2024.10s) | 💾 | ✨
+step 3000: train loss 3.5931, val loss 3.5803, lr 3.00e-04 (2082.63s) | 💾 | ✨
+step 3300: train loss 3.4308, val loss 3.4261, lr 3.00e-04 (2159.03s) | 💾 | 🗑️ | ✨
