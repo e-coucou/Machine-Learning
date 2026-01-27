@@ -188,10 +188,10 @@ def get_dashboard():
     epoch = f"[epoch {int(pct/100 + 1)}]"
     if pct > 100:
         pct = pct % 100
-    bar = "▬" * int(pct/4) +"\033[0m"+ "-" * (25 - int(pct/4))
+    bar = "▬" * (int(pct/4)-1)+ f"{UI['RED']}▬" +"\033[0m"+ "┅" * (25 - int(pct/4)) #. ─
     # bar = "█" * int(pct/2) + "░" * (50 - int(pct/2))
     pct_train = (steps[-1] / TARGET_TRAIN) * 100
-    bar_train = "\033[4m" + "▅" * int(pct_train/4) +"\033[90m"+ "-" * ( 25- int(pct_train/4))+"\033[0m" #. "▄"
+    bar_train = "▬" * (int(pct_train/4)-1)+ f"{UI['RED']}▬" +"\033[0m"+ "┅" * (25 - int(pct_train/4)) #. "▄"
 
     # Alerte Thermique (basée sur le temps de cycle)
     # Si le Mac met plus de 195s pour 25 steps, on affiche en Orange/Rouge
@@ -210,8 +210,8 @@ def get_dashboard():
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
     print(f"{temp_color}\033[1m{Titre}\033[0m" + (" " * padding) + header_right)
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
-    print(f"E: {pct:.0f}% ┣{bar}┫┣{bar_train}┫ T: {pct_train:.0f}%")
-    print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
+    print(f"E: {pct:.0f}% {UI['GREEN']}┣{bar}┫{UI['GREEN']}┣{bar_train}┫ T: {pct_train:.0f}%")
+    print(f"{UI['GRAY']}"+f"━" * (LIGNE_LEN) + f"{UI['RESET']}")
     
     remaining_steps = TARGET_STEP - steps[-1]
     eta_seconds = remaining_steps * sec_per_step
