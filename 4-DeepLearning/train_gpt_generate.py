@@ -42,6 +42,7 @@ def main():
         # On passe le tokenizer et le chemin du checkpoint
         model_gen = gpt.GenerateGPT(tokinizer=token, ckpt_path=args.model)
         model_gen.load_for_inference()
+        print(model_gen.config)
     except Exception as e:
         print(f"❌ Erreur : {e}")
         return

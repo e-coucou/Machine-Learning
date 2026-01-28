@@ -12,3 +12,6 @@ pongCritic.h5
 *.pth
 /4-DeepLearning/model/screenshot
 /4-DeepLearning/data/encoded
+/4-DeepLearning/model/save
+/4-DeepLearning/data/parquet
+4-DeepLearning/token_parquet.ipynb

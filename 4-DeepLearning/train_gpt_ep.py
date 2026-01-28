@@ -12,7 +12,7 @@ def main():
         'num_heads': 6, 
         'n_layers': 6, 
         'block_size': 256, 
-        'dropout': 0.15
+        'dropout': 0.1
     }
 
     # --- HYPERPARAMÈTRES D'ENTRAÎNEMENT ---
@@ -27,7 +27,9 @@ def main():
         'eval_iters': 20,
         'save_interval': 300,
         'n_version' : 10,
-        'use_compile': False
+        'use_compile': False,
+        'cult_data': True,
+        'mixed_ratio': 0.35,  # Ratio de données CulturaX dans chaque batch
     }
 
     # --- INITIALISATION DES COMPOSANTS ---

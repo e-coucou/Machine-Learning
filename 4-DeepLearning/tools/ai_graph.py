@@ -161,11 +161,11 @@ def plot_poussin_gap(
 
         ax.plot(steps, train_loss, color="#3498db", alpha=0.2, lw=1)
         ax.plot(steps, val_loss, color="#fa8118", alpha=0.2, lw=1)
-        ax.plot(steps, ema_smooth, label="EMA lissée", color="#9b59b6", linestyle="-.", lw=1.5)
+        ax.plot(steps, ema_smooth, label="EMA lissée", color="#ff0000", linestyle="-.", lw=1.5)
     else:
         ax.plot(steps, train_loss, label="Train Loss", color="#3498db", lw=1.5)
         ax.plot(steps, val_loss, label="Val Loss", color="#fa831b", lw=2)
-        ax.plot(steps, ema_smooth, label="EMA lissée", color="#9b59b6", linestyle="-.", lw=1.5)
+        ax.plot(steps, ema_smooth, label="EMA lissée", color="#ff0000", linestyle="-.", lw=1.5)
     # --- ANNOTATIONS (Lignes verticales et texte) ---
     if annot_event:
         for ev in annot_event:

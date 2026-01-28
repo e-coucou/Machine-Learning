@@ -307,7 +307,11 @@ class Trainer:
         idx = torch.tensor([tokens], dtype=torch.long, device=self.device)
         gen_idx = self.model.generate(idx, max_tokens)
         return self.tokenizer.decode(gen_idx[0].tolist(), self.tokenizer.vocab)
-    
+
+# -----------------------------------------------------------------------------
+# 3. FOURNISSEUR DE DONNÉES DÉTERMINISTE POUR CONTINUOUS TRAINING
+# -----------------------------------------------------------------------------
+
 class DeterministicProvider:
     def __init__(self, data, batch_size, block_size, device, start_step, grad_accum_steps=4, seed=1965):
         self.data = data # Le memmap NumPy
@@ -371,8 +375,6 @@ class DeterministicProvider:
             yield x, y
             self.step += 1
 
-# Supposons que vos classes GPTLanguageModel et tokenizer sont importées ou définies au dessus
-# from model import GPTLanguageModel 
 class ContinuousTrainer:
     def __init__(self, model_class, tokenizer, config, train_params, data_root, 
                  ckpt_path='ckpt.pth', log_file='processed_log.txt',history_path='history.json',data_dir="data/encoded"):
@@ -384,6 +386,9 @@ class ContinuousTrainer:
         self.ckpt_path = ckpt_path
         self.log_file = log_file
         self.history_path = history_path
+        self.cult_data = train_params.get('cult_data', False)
+        self.mixed_ratio = train_params.get('mixed_ratio', 0.0)
+
         # Gestion du Device / préférence sur MPS /
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
         print(f"🚀 Device: {self.device}")
@@ -394,8 +399,9 @@ class ContinuousTrainer:
         self.model.to(self.device)
         # Check >Dtype
         print(f"Dtype du modèle : {next(self.model.parameters()).dtype}")
-        # Chargement d'un checkpoint existant
+        # Initialisation des steps totaux : seront mis à jour par le load_checkpoint
         self.total_steps_done = 0
+        self.total_step_cult = 0
         self._load_checkpoint()
         # Compilation optionnelle avec torch.compile (PyTorch 2.0+)    
         self.is_compiled = False
@@ -439,12 +445,45 @@ class ContinuousTrainer:
             batch_size=self.params['batch_size'],
             block_size=self.config['block_size'],
             device = self.device,
-            start_step=self.total_steps_done,
+            start_step=self.total_step_wiki,
             grad_accum_steps=self.params.get('grad_accum_steps', 4),
             seed=1965 # Le Salt fixe
         )
+        # On ajoute ici un fichier train supplémentaire pour CulturaX
+        if (self.cult_data):
+            self.culturaX_provider = DeterministicProvider(
+                data=self.train_data_cult,
+                batch_size=self.params['batch_size'],
+                block_size=self.config['block_size'],
+                device = self.device,
+                start_step=self.total_step_cult,
+                grad_accum_steps=self.params.get('grad_accum_steps', 4),
+                seed=2013 # Le Salt fixe mais différent
+                )
+        else: 
+            self.train_data_cult = None
+
+        # Création du Mixer
+        def training_mixer():
+            it_wiki = iter(self.train_provider)
+            # Si CulturaX est activé, on prépare son itérateur
+            if self.cult_data:
+                it_cult = iter(self.culturaX_provider)
+                while True:
+                    if np.random.random() < self.mixed_ratio:
+                        self.total_step_cult += 1
+                        yield next(it_cult)
+                    else:
+                        self.total_step_wiki += 1
+                        yield next(it_wiki)
+            else:
+                # Sinon, on yield simplement le Wiki tout seul
+                while True:
+                    yield next(it_wiki)
+
         # 1. On crée l'itérateur persistant ici
-        self.train_iterator = iter(self.train_provider)
+        self.train_iterator = training_mixer()
+        # self.train_iterator = iter(self.train_provider)
         # 2. Le BackgroundGenerator utilise l'itérateur existant
         # Note : on utilise 'next(self.train_iterator)' SANS le 'iter()' sinon reset à chaque iter
         self.train_queue = BackgroundGenerator(
@@ -460,10 +499,23 @@ class ContinuousTrainer:
         # On utilise memmap pour lire le fichier sur le disque sans charger la RAM
         train_path = os.path.join(data_dir, 'train.bin')
         val_path = os.path.join(data_dir, 'val.bin')
+        train_cult_path = os.path.join(data_dir, 'train_culturax.bin')
         
         if os.path.exists(train_path):
             self.train_data = np.memmap(train_path, dtype=np.uint16, mode='r')
+            print(f"🚀 Dataset Train: {len(self.train_data)/1e6:.2f}M tokens.")
             self.val_data = np.memmap(val_path, dtype=np.uint16, mode='r')
+            print(f"🚀 Dataset Val: {len(self.val_data)/1e6:.2f}M tokens.")
+        else:
+            print(f"⚠️ Fichiers binaires introuvables dans {data_dir}")      
+
+        if self.cult_data and os.path.exists(train_cult_path):
+            self.train_data_cult = np.memmap(train_cult_path, dtype=np.uint16, mode='r')
+            print(f"🚀 Dataset CulturaX: {len(self.train_data_cult)/1e6:.2f}M tokens.")
+        else:
+            self.train_data_cult = None
+            print("ℹ️ Mode Source Unique : Wiki uniquement.")    
+ 
             # self.train_data = np.fromfile(train_path, dtype=np.uint16)
             # self.val_data = np.fromfile(val_path, dtype=np.uint16)
             """ test tensor 
@@ -475,8 +527,6 @@ class ContinuousTrainer:
             """
             print(f"🚀 Dataset Train: {len(self.train_data)/1e6:.2f}M tokens.")
             # print(f"🚀 Val Dataset chargé (RAM). Train: {len(self.val_data)/1e6:.2f}M tokens.")
-        else:
-            print(f"⚠️ Fichiers binaires introuvables dans {data_dir}")      
 
         # train_ds = TokenDataset(train_path, self.config['block_size'])
         # self.train_loader = DataLoader(
@@ -576,6 +626,9 @@ class ContinuousTrainer:
             # self.optimizer.load_state_dict(ckpt['optimizer'])
             # récupératoin du nombre de step effectués
             self.total_steps_done = ckpt.get('total_steps_done', 0)
+            self.total_step_wiki = ckpt.get('total_step_wiki', self.total_steps_done)
+            self.total_step_cult = ckpt.get('total_step_cult', 0)
+            print(f"📈 Reprise : Wiki à {self.total_step_wiki} | CulturaX à {self.total_step_cult}")
             # 4. SYNCHRONISATION DU SCHEDULER (Important !)
             # On avance le scheduler jusqu'au point actuel pour que le LR 
             # corresponde à la courbe de warmup/decay.
@@ -604,6 +657,8 @@ class ContinuousTrainer:
             'optimizer': self.optimizer.state_dict(),
             'config': self.config,
             'total_steps_done': self.total_steps_done, # Crucial pour le Scheduler
+            'total_step_wiki': self.total_step_wiki,
+            'total_step_cult': self.total_step_cult,
             'vocab_size': len(self.tokenizer.vocab)
         }
         torch.save(ckpt, self.ckpt_path)
