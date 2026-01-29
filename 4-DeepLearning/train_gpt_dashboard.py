@@ -213,7 +213,7 @@ def get_dashboard():
     print(f"E: {pct:.0f}% {UI['GREEN']}┣{bar}┫{UI['GREEN']}┣{bar_train}┫ T: {pct_train:.0f}%")
     print(f"{UI['GRAY']}"+f"━" * (LIGNE_LEN) + f"{UI['RESET']}")
     
-    remaining_steps = TARGET_STEP - steps[-1]
+    remaining_steps = TARGET_TRAIN - steps[-1]
     eta_seconds = remaining_steps * sec_per_step
     eta_str = str(timedelta(seconds=int(eta_seconds)))
 
@@ -251,7 +251,7 @@ def get_dashboard():
 
     print(f"  {level_icon} {level_color}{level_name}{UI['RESET']} | 📚 SAVOIR ABSORBÉ : {total_tokens / 1e6:.2f} Millions de tokens")        
     print(f"  {status} | LOSS: {color_loss}{losses[-1]:.3f}\033[0m | EMA: {color_l}{ema_loss:.3f}\033[0m | TREND: {color_trend}{trend_1k:+.3f}/k\033[0m | {efficiency:.2f}")
-    print(f"  SPD : {sec_per_step:.2f} s/st | DATA: {tok_s:,.0f} tok/s | ETA {TARGET_STEP}: {eta_str}")
+    print(f"  SPD : {sec_per_step:.2f} s/st | DATA: {tok_s:,.0f} tok/s | ETA {TARGET_TRAIN}: {eta_str}")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
     
     # Predictions

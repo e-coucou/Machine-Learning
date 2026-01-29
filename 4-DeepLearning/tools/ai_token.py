@@ -675,6 +675,7 @@ class OptimizedTokenizer:
         
         # Cache interne pour mémoriser les mots déjà vus
         self.cache = {} 
+        self._vocab()
 
     def bpe(self, token_ids):
         """
@@ -750,4 +751,24 @@ class OptimizedTokenizer:
                 tokens.extend(merged_ids)
                 
         return tokens
+    
+    def decode(self, array_=None, vocab=None): # Décode une liste de tokens en texte
+        if (vocab==None):
+            vocab_ = self.vocab
+        else:
+            vocab_ = vocab
+        if (array_==None):
+            array = self.get_array(self.ids)
+        else:
+            array = array_
+        decoded_bytes = bytearray()
+        for idx in array:
+            decoded_bytes.extend(vocab_[idx])
+        return decoded_bytes.decode('utf-8', errors='replace')
+    
+    def _vocab(self):
+        self.vocab = {idx: bytes([idx]) for idx in range(256)}
+        for (p0,p1), idx in self.merges.items():
+            self.vocab[idx] = self.vocab[p0] + self.vocab[p1]
+        # self._compute_pattern()
     

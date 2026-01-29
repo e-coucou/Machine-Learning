@@ -29,6 +29,7 @@ def calcul_ema(data_loss, data_steps, compare=None):
 def plot_poussin_gap(
     y_min=2.6,
     y_max=3.3,
+    x_max=70000,
     smooth=5,
     log_path="model/my_wiky_history.json",
     second="save/model_2/my_wiky_history.json",
@@ -198,7 +199,7 @@ def plot_poussin_gap(
 
     # --- RÉGLAGES FINAUX ---
     ax.set_ylim(y_min, y_max)
-    ax.set_xlim(0, 70000)
+    ax.set_xlim(0, x_max)
     ax.set_title(
         f"Analyse Mac-GPT | Step: {steps[-1]} | Gap: {gap[-1]:.4f}", fontsize=14
     )

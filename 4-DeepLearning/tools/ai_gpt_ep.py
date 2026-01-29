@@ -318,7 +318,7 @@ class DeterministicProvider:
         self.batch_size = batch_size
         self.block_size = block_size
         self.device = device
-        self.step = start_step * grad_accum_steps
+        self.step = start_step #* grad_accum_steps
         self.seed = seed
         
         # 1. Création de la route fixe (Couverture 100%)
@@ -388,6 +388,7 @@ class ContinuousTrainer:
         self.history_path = history_path
         self.cult_data = train_params.get('cult_data', False)
         self.mixed_ratio = train_params.get('mixed_ratio', 0.0)
+        self.ema_decay = train_params.get('ema_decay', 0) # 0 pour désactiver
 
         # Gestion du Device / préférence sur MPS /
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -402,7 +403,24 @@ class ContinuousTrainer:
         # Initialisation des steps totaux : seront mis à jour par le load_checkpoint
         self.total_steps_done = 0
         self.total_step_cult = 0
+        self.total_step_wiki = 0
+        # Chargement du checkpoint si disponible
         self._load_checkpoint()
+        # Initialisation de l'EMA si activée
+        self.ema_model = None
+        if self.ema_decay > 0:
+            import copy
+            # On copie le modèle APRES le load_checkpoint pour avoir les poids restaurés
+            self.ema_model = copy.deepcopy(self.model)
+            self.ema_model.eval()
+            # On gèle les paramètres
+            for p in self.ema_model.parameters():
+                p.requires_grad = False
+            print(f"🚀 EMA activé (decay: {self.ema_decay})")
+            if hasattr(self, '_saved_ema_state'):
+                self.ema_model.load_state_dict(self._saved_ema_state)
+                del self._saved_ema_state
+                print("✅ Poids EMA restaurés depuis le fichier.")
         # Compilation optionnelle avec torch.compile (PyTorch 2.0+)    
         self.is_compiled = False
         if self.params.get('use_compile', False):
@@ -616,9 +634,11 @@ class ContinuousTrainer:
             # Chargement sur CPU d'abord pour sécurité
             ckpt = torch.load(self.ckpt_path, map_location=self.device) # à verifier ...
             
-            # 1. Chargement des poids du modèle
+            # 1. Chargement des poids du modèle et de l'EMA si existant
             self.model.load_state_dict(ckpt['model'])
-            
+            if 'ema_model' in ckpt:
+                self._saved_ema_state = ckpt['ema_model']
+
             # 2. On NE charge PAS l'optimizer si on veut changer le learning rate manuellement
             # pour une continuité parfaite de l'optimizer, décommentez la ligne suivante :
             # On stocke l'état de l'optimiseur pour le charger PLUS TARD
@@ -629,12 +649,14 @@ class ContinuousTrainer:
             self.total_step_wiki = ckpt.get('total_step_wiki', self.total_steps_done)
             self.total_step_cult = ckpt.get('total_step_cult', 0)
             print(f"📈 Reprise : Wiki à {self.total_step_wiki} | CulturaX à {self.total_step_cult}")
-            # 4. SYNCHRONISATION DU SCHEDULER (Important !)
+
+            # 3. SYNCHRONISATION DU SCHEDULER (Important !)
             # On avance le scheduler jusqu'au point actuel pour que le LR 
             # corresponde à la courbe de warmup/decay.
             if hasattr(self, 'scheduler') and self.scheduler is not None:
                 for _ in range(self.total_steps_done):
                     self.scheduler.step()
+
             print(f"✅ Modèle restauré. Steps faits: {self.total_steps_done}")
         else:
             print("✨ Aucun checkpoint trouvé, démarrage à zéro.")
@@ -647,7 +669,7 @@ class ContinuousTrainer:
             except Exception as e:
                 print(f"⚠️ Note: Impossible de restaurer l'optimiseur (normal si changement d'architecture) : {e}")
     
-    def save_checkpoint(self, n_versions=5):
+    def _save_checkpoint(self, n_versions=5):
         # print(f"💾 Sauvegarde du checkpoint...")
         print(f" | 💾", end="")
         # Récupération des poids "propres" (sans le wrapper de compilation)
@@ -661,6 +683,9 @@ class ContinuousTrainer:
             'total_step_cult': self.total_step_cult,
             'vocab_size': len(self.tokenizer.vocab)
         }
+        # On n'ajoute l'EMA que s'il existe
+        if self.ema_model is not None:
+            ckpt['ema_model'] = self.ema_model.state_dict()
         torch.save(ckpt, self.ckpt_path)
         # on sauvegarde le dernier model avec un horodatage sur le step
         version_path = self.ckpt_path.replace('.pth', f'_step_{self.total_steps_done}.pth')
@@ -678,7 +703,8 @@ class ContinuousTrainer:
         light_ckpt = {
             'model': self.model.state_dict(),
             'config': self.config,
-            'vocab_size': len(self.tokenizer.vocab)
+            'vocab_size': len(self.tokenizer.vocab),
+            'model_ema': self.ema_model.state_dict() if self.ema_model is not None else None
         }
         torch.save(light_ckpt, light_model_path)
         # print(f"✨ Modèle d'inférence prêt : {os.path.basename(light_model_path)}")
@@ -924,7 +950,7 @@ class ContinuousTrainer:
                 self.history['steps'].append(self.total_steps_done)
                 
                 # Sauvegarde automatique pour ne rien perdre
-                self.save_checkpoint()
+                self._save_checkpoint()
                 self._save_history()
                 
                 print(f"\n📈 Step {self.total_steps_done} | Loss Val: {losses['val']:.4f} | LR: {lr:.2e} | {(time.time()-start_time):.1f}")
@@ -1022,6 +1048,9 @@ class ContinuousTrainer:
             t_optim += t4 - t4_start
             # On incrémente le compteur GLOBAL
             self.total_steps_done += 1
+            # Mise à jour EMA si activé
+            if self.ema_model is not None:
+                self.update_ema()            
             # --- EVALUATION & PLOT (Fréquent) ---
             t5 = time.time()
             if self.total_steps_done % eval_interval == 0:
@@ -1059,7 +1088,7 @@ class ContinuousTrainer:
                 # print(f"Mémoire allouée MPS : {torch.mps.current_allocated_memory() / 1024**2:.2f} MB")
             # --- SAUVEGARDE CHECKPOINT (Sécurité) ---
             if self.total_steps_done % save_interval == 0:
-                self.save_checkpoint(n_versions=self.params.get('n_version',5))
+                self._save_checkpoint(n_versions=self.params.get('n_version',5))
                 # print(f"💾 Checkpoint sauvegardé au step {self.total_steps_done}")
             t_eval += time.time() - t5
 
@@ -1114,7 +1143,7 @@ class ContinuousTrainer:
                 self.history['steps'].append(len(self.processed_files))
 
                 # Sauvegarde régulière (à chaque fichier pour sécurité maximale sur M1)
-                self.save_checkpoint()
+                self._save_checkpoint()
                 self._save_history()
 
         print(f"\n✅ Session terminée. Vous pouvez relancer le script pour la suite.")
@@ -1249,6 +1278,21 @@ class ContinuousTrainer:
             print(f"{status} RAM Système: {pression}% | Process: {mem_rss:.0f}Mo | Swap: {psutil.swap_memory().used / (1024**2):.0f}Mo")
         return status, pression, mem_rss
 
+    @torch.no_grad()
+    def update_ema(self):
+        """
+        Met à jour les poids de ema_model en direction de model.
+        Formule : ema = ema + (1 - beta) * (train - ema)
+        C'est mathématiquement équivalent à : ema = beta * ema + (1 - beta) * train
+        """
+        # On utilise lerp_ (Linear Interpolation in-place)
+        # lerp(start, end, weight) -> start + weight * (end - start)
+        # Pour nous : weight = (1 - ema_decay)
+        weight = 1.0 - self.ema_decay
+        for ema_param, train_param in zip(self.ema_model.parameters(), self.model.parameters()):
+            ema_param.data.lerp_(train_param.data, weight)
+
+
 class BackgroundGenerator:
     def __init__(self, generator_func, max_prefetch=1):
         self.queue = queue.Queue(maxsize=max_prefetch)
@@ -1285,10 +1329,11 @@ class TokenDataset(Dataset):
         return x, y
 
 class GenerateGPT:
-    def __init__(self, tokinizer, ckpt_path):
+    def __init__(self, tokinizer, ckpt_path, default_model='model'):
         self.tokenizer = tokinizer
         self.ckpt_path = ckpt_path
         self.device = 'mps' if torch.backends.mps.is_available() else 'cpu'
+        self.default_model = default_model
         
     def load_for_inference(self):
         if not os.path.exists(self.ckpt_path):
@@ -1302,7 +1347,7 @@ class GenerateGPT:
         
         # On recrée le modèle avec la config exacte de l'entraînement
         self.model = GPTLanguageModel(vocab_size=len(self.tokenizer.vocab), **self.config)
-        self.model.load_state_dict(checkpoint['model'])
+        self.model.load_state_dict(checkpoint[self.default_model])
         self.model.to(self.device)
         self.model.eval() # TRES IMPORTANT : désactive le Dropout
         
@@ -1314,10 +1359,6 @@ class GenerateGPT:
         input_tensor = torch.tensor([input_ids], dtype=torch.long, device=self.device)
         
         # 2. Génération
-        # Note: J'adapte légèrement la méthode generate pour inclure la température
-        # Si votre méthode generate dans la classe Model ne gère pas la température,
-        # elle fera une génération standard.
-        
         with torch.no_grad():
             for _ in range(max_new_tokens):
                 # Crop context si trop long

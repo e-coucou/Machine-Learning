@@ -22,7 +22,7 @@ def main():
         'learning_rate': 3e-4, 
         'min_lr': 3e-5, 
         'warmup_iters': 2000,
-        'lr_decay_iters': 75000, # initialement 100_000 mais le modèle rebondit vers 7000 steps 
+        'lr_decay_iters': 80000, # initialement 100_000 mais le modèle rebondit vers 7000 steps 
         'eval_interval': 300,
         'eval_iters': 20,
         'save_interval': 300,
@@ -30,6 +30,7 @@ def main():
         'use_compile': False,
         'cult_data': True,
         'mixed_ratio': 0.35,  # Ratio de données CulturaX dans chaque batch
+        'ema_decay': 0.999, # 0 pour désactiver
     }
 
     # --- INITIALISATION DES COMPOSANTS ---
