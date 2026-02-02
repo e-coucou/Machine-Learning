@@ -22,7 +22,7 @@ def calcul_ema(data_loss, data_steps, compare=None):
         end = len(data_steps) - 1
 
     # Calcul de la moyenne mobile exponentielle
-    for l in data_loss[:end]:
+    for l in data_loss[:end+1]:
         ema_loss = 0.1 * l + (1 - 0.1) * ema_loss
     return ema_loss, end
 
@@ -32,7 +32,7 @@ def plot_poussin_gap(
     y_max=3.3,
     smooth=5,
     log_path="model/my_wiky_history.json",
-    second="save/model_2/my_wiky_history.json",
+    second=None, #"save/model_2/my_wiky_history.json",
     third=None,
     compare=12900,
     annot_event=None,
@@ -50,8 +50,6 @@ def plot_poussin_gap(
     gap = val_loss - train_loss
 
     # --- CHARGEMENT DATA 2 (COMPARAISON) ---
-    val_loss_second, steps_second = None, None
-    ema_loss_second, end_second = 0, 0
 
     if second and os.path.exists(second):
         with open(second, "r") as f2:
@@ -62,6 +60,8 @@ def plot_poussin_gap(
             val_loss_second, steps_second, compare=compare
         )
     else:
+        val_loss_second, steps_second = None, None
+        ema_loss_second, end_second = 0, 0
         print(f"⚠️  Note : Second fichier de log non chargé ({second})")
 
     if third and os.path.exists(third):
@@ -70,7 +70,10 @@ def plot_poussin_gap(
         val_loss_third = np.array(data_third["val_loss"])
         steps_third = np.array(data_third["steps"])
     else:
+        val_loss_third, steps_third = None, None
+        ema_loss_third, end_third = 0, 0
         print(f"⚠️  Note : Troisieme fichier de log non chargé ({third})")
+
 
     # --- LISSAGE ET EMA ---
     def moving_average(x, w):
@@ -78,7 +81,8 @@ def plot_poussin_gap(
             return x
         return np.convolve(x, np.ones(w), "valid") / w
 
-    ema_loss, end = calcul_ema(val_loss, steps, compare=None)
+    ema_loss, end = calcul_ema(val_loss, steps, compare=compare)
+    ema_last, end_last = calcul_ema(val_loss, steps, compare=None)
 
     # --- STYLE ET FIGURE ---
     plt.style.use("seaborn-v0_8-whitegrid")
@@ -125,21 +129,21 @@ def plot_poussin_gap(
         )
 
         if val_loss_second is not None:
-            s_sm_sec = steps_second[smooth - 1 :]
+            s_sm_sec = steps_second[1:] #smooth - 1 :]
             ax.plot(
                 s_sm_sec,
-                moving_average(val_loss_second, smooth),
-                label="Model 2 (Comparison)",
+                moving_average(val_loss_second, 2), #smooth),
+                label="Model 3 (Comparison)",
                 color="#fb59b6",
                 lw=0.9,
                 linestyle="--",
             )
 
         if val_loss_third is not None:
-            s_sm_sec = steps_third[smooth - 1 :]
+            s_sm_sec = steps_third[1:] #smooth - 1 :]
             ax.plot(
                 s_sm_sec,
-                moving_average(val_loss_third, smooth),
+                moving_average(val_loss_third, 2), # smooth),
                 label="Model 1 (Comparison)",
                 color="#5bf9b6",
                 lw=0.9,
@@ -184,7 +188,7 @@ def plot_poussin_gap(
 
     # --- RÉGLAGES FINAUX ---
     ax.set_ylim(y_min, y_max)
-    ax.set_xlim(0, 70000)
+    ax.set_xlim(0, 20000)
     ax.set_title(
         f"Analyse Mac-GPT | Step: {steps[-1]} | Gap: {gap[-1]:.4f}", fontsize=14
     )
@@ -205,9 +209,9 @@ def plot_poussin_gap(
 
     # Affichage des stats dans le terminal (ton stdout)
     print("-" * 30)
-    print(f"Dernier Step: {steps[-1]} | Gap actuel: {gap[-1]:.4f}")
+    print(f"Dernier Step: {steps[-1]} | Gap actuel: {gap[-1]:.4f} | EMA loss : {ema_last:.3f}")
     if val_loss_second is not None:
-        print("COMPARE POINT ANALYSIS:")
+        print(f"COMPARE POINT ANALYSIS: {steps[end]} / {steps_second[end_second]}")
         print(f"  - Val Loss: {val_loss[-1]:.4f} vs {val_loss_second[end_second]:.4f}")
         print(f"  - EMA Loss: {ema_loss:.3f} vs {ema_loss_second:.3f}")
 
@@ -234,26 +238,20 @@ if __name__ == "__main__":
 
     # 2. Définition de tes événements (tu peux les laisser en dur ou les charger)
     mes_evenements = [
-        {"step": 825, "label": "°°°", "color": "gray", "lw": 0.7},
-        {"step": 3300, "label": "First run", "color": "purple"},
-        {"step": 4425, "label": "°°°", "color": "gray", "lw": 0.7},
-        {"step": 6525, "label": "Start Divergence", "color": "red"},
-        {"step": 7002, "label": "°°°", "color": "gray", "lw": 0.7},
-        {"step": 9300, "label": "°°°", "color": "gray", "lw": 0.7},
-        {"step": 10275, "label": "°°°", "color": "gray", "lw": 0.7},
-        {"step": 12325, "label": "End Divergence", "color": "red"},
-        {"step": 15225, "label": "°°°", "color": "gray", "lw": 0.7},
-        {"step": 15600, "label": "New data ...", "color": "blue"},
-        {"step": 46589, "label": "epoch 2", "color": "red", "lw": 1.1},
-        {"step": 39000, "label": "LR_Decay 90000", "color": "gray", "lw": 0.7},
-        {
-            "step": 32600,
-            "label": "Dropout 0.1 / 70000 lr 3e-4",
-            "color": "gray",
-            "lw": 0.7,
-        },
-        {"step": 19500, "label": "Dropout 0.15", "color": "gray", "lw": 0.7},
-        # {"step": 3300, label='LR_decay 50000')\n",
+        {"step": 2000, "label": "°°°", "color": "gray", "lw": 0.7},
+        {"step": 4000, "label": " Cible 20h00", "color": "red", "lw": 1.7},
+#        {"step": 3300, "label": "First run", "color": "purple"},
+#        {"step": 4425, "label": "°°°", "color": "gray", "lw": 0.7},
+#        {"step": 6525, "label": "Start Divergence", "color": "red"},
+#        {"step": 7002, "label": "°°°", "color": "gray", "lw": 0.7},
+#        {"step": 9300, "label": "°°°", "color": "gray", "lw": 0.7},
+ #       {"step": 10275, "label": "°°°", "color": "gray", "lw": 0.7},
+#        {"step": 12325, "label": "End Divergence", "color": "red"},
+#        {"step": 15225, "label": "°°°", "color": "gray", "lw": 0.7},
+#        {"step": 15600, "label": "New data ...", "color": "blue"},
+#        {"step": 46589, "label": "epoch 2", "color": "red", "lw": 1.1},
+#        {"step": 39000, "label": "LR_Decay 90000", "color": "gray", "lw": 0.7},
+#        {"step": 19500, "label": "Dropout 0.15", "color": "gray", "lw": 0.7},
     ]
 
     # 3. Lancement avec les arguments saisis
@@ -262,8 +260,8 @@ if __name__ == "__main__":
         y_max=args.ymax,
         smooth=args.smooth,
         log_path="model/my_wiky_history.json",
-        second="save/model_2/my_wiky_history.json",
-        third="save/model_1/my_wiky_history.json",
+        second= "save/model_3/my_wiky_history.json",
+        third= "save/model_1/my_wiky_history.json",
         compare=args.compare,
         annot_event=mes_evenements,
     )

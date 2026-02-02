@@ -8,29 +8,30 @@ def main():
     # --- CONFIGURATION DU MODÈLE ---
     # Architecture fixe pour garantir la compatibilité avec les checkpoints
     model_config = {
-        'n_embd': 384, 
-        'num_heads': 6, 
-        'n_layers': 6, 
+        'n_embd': 768,
+        'num_heads': 12,
+        'n_layers': 10,
         'block_size': 256, 
-        'dropout': 0.1
+        'dropout': 0.15
     }
 
     # --- HYPERPARAMÈTRES D'ENTRAÎNEMENT ---
     train_params = {
-        'batch_size': 32,
-        'grad_accum_steps': 4,      # Batch effectif de 128
+        'batch_size': 8, # pour libérer de la mémoire ...
+        'grad_accum_steps': 16,      # Batch effectif de 128
         'learning_rate': 3e-4, 
         'min_lr': 3e-5, 
         'warmup_iters': 2000,
         'lr_decay_iters': 80000, # initialement 100_000 mais le modèle rebondit vers 7000 steps 
-        'eval_interval': 300,
-        'eval_iters': 20,
-        'save_interval': 300,
-        'n_version' : 10,
+        'eval_interval': 200,
+        'eval_iters': 20, # mini 20 pour lisser 
+        'save_interval': 200,
+        'n_version' : 5,
         'use_compile': False,
         'cult_data': True,
-        'mixed_ratio': 0.35,  # Ratio de données CulturaX dans chaque batch
-        'ema_decay': 0.999, # 0 pour désactiver
+        'mixed_ratio': 0.50,  # Ratio de données CulturaX dans chaque batch
+        'ema_decay': 0., # 0 pour désactiver
+        'monitor_interval': 10,
     }
 
     # --- INITIALISATION DES COMPOSANTS ---
@@ -60,7 +61,7 @@ def main():
 
     # --- LANCEMENT ---
     print(f"📦 Démarrage du mode binaire (Continuous Training)")
-    print(f"🌡️  Surveillance Mac Pro : Maintenir sous 75°C idéalement.")
+    print(f"🌡️  Surveillance Mac Pro : On lance MAc Fans Control pour refroidir ....")
     # --- PRINT STARTUP CONFIG ---
     U = {"G": "\033[92m", "Y": "\033[93m", "C": "\033[96m", "B": "\033[1m", "RE": "\033[0m"}
     # Affichage Architecture

@@ -397,7 +397,7 @@ class ContinuousTrainer:
         self.model = model_class(vocab_size=len(tokenizer.vocab), **config)
         # On applique l'initialisation personnalisée sur le modèle neuf
         self.model.apply(self._init_weights)
-        self.model.to(self.device)
+        self.model.to(self.device) #, dtype=torch.float16 if self.device.type == 'mps' else torch.float32)
         # Check >Dtype
         print(f"Dtype du modèle : {next(self.model.parameters()).dtype}")
         # Initialisation des steps totaux : seront mis à jour par le load_checkpoint
@@ -510,6 +510,8 @@ class ContinuousTrainer:
         )
         # Initialisation (une seule fois au début de la classe) passage en float16 sur MPS
         self.scaler = torch.amp.GradScaler(self.device, enabled=True)
+        # Initialisation du monitor de log
+        self.monitor = Monitor()
         print(f"🚀 Init terminé.")
 
     def _setup_data(self,data_dir):
@@ -631,6 +633,7 @@ class ContinuousTrainer:
         """Charge les poids. Permet de changer les hyperparams d'entraînement (LR) mais garde les poids."""
         if os.path.exists(self.ckpt_path):
             print(f"📥 Chargement du checkpoint : {self.ckpt_path}")
+            batch_size = self.params.get('batch_size',32)
             # Chargement sur CPU d'abord pour sécurité
             ckpt = torch.load(self.ckpt_path, map_location=self.device) # à verifier ...
             
@@ -646,9 +649,9 @@ class ContinuousTrainer:
             # self.optimizer.load_state_dict(ckpt['optimizer'])
             # récupératoin du nombre de step effectués
             self.total_steps_done = ckpt.get('total_steps_done', 0)
-            self.total_step_wiki = ckpt.get('total_step_wiki', self.total_steps_done)
-            self.total_step_cult = ckpt.get('total_step_cult', 0)
-            print(f"📈 Reprise : Wiki à {self.total_step_wiki} | CulturaX à {self.total_step_cult}")
+            self.total_step_wiki = ckpt.get('total_step_wiki', self.total_steps_done) // batch_size
+            self.total_step_cult = ckpt.get('total_step_cult', 0) // batch_size
+            print(f"📈 Reprise : Wiki à {self.total_step_wiki} | CulturaX à {self.total_step_cult} | {batch_size}")
 
             # 3. SYNCHRONISATION DU SCHEDULER (Important !)
             # On avance le scheduler jusqu'au point actuel pour que le LR 
@@ -672,6 +675,7 @@ class ContinuousTrainer:
     def _save_checkpoint(self, n_versions=5):
         # print(f"💾 Sauvegarde du checkpoint...")
         print(f" | 💾", end="")
+        batch_size = self.params.get('batch_size', 32)
         # Récupération des poids "propres" (sans le wrapper de compilation)
         model_to_save = self.model._orig_mod if self.is_compiled else self.model
         ckpt = {
@@ -679,9 +683,10 @@ class ContinuousTrainer:
             'optimizer': self.optimizer.state_dict(),
             'config': self.config,
             'total_steps_done': self.total_steps_done, # Crucial pour le Scheduler
-            'total_step_wiki': self.total_step_wiki,
-            'total_step_cult': self.total_step_cult,
-            'vocab_size': len(self.tokenizer.vocab)
+            'total_step_wiki': self.total_step_wiki * batch_size,
+            'total_step_cult': self.total_step_cult * batch_size,
+            'vocab_size': len(self.tokenizer.vocab),
+            'params': self.params,
         }
         # On n'ajoute l'EMA que s'il existe
         if self.ema_model is not None:
@@ -709,7 +714,7 @@ class ContinuousTrainer:
         torch.save(light_ckpt, light_model_path)
         # print(f"✨ Modèle d'inférence prêt : {os.path.basename(light_model_path)}")
         print(f" | ✨")
-        
+
     def get_batch(self, data_tensor):
         block_size = self.config['block_size']
         batch_size = self.params['batch_size'] # faut il verifier len(data_tensor) / batch_size
@@ -972,6 +977,7 @@ class ContinuousTrainer:
         eval_interval = self.params.get('eval_interval', 1000) 
         eval_iters = self.params.get('eval_iters', 30) 
         save_interval = self.params.get('save_interval', 1000)
+        monitor_interval = self.params.get('monitor_interval', 10)
         
         batch_size = self.params['batch_size']
         grad_accum = self.params.get('grad_accum_steps', 1)
@@ -995,6 +1001,7 @@ class ContinuousTrainer:
         t_model=0
         t_init=0
         t_eval=0
+        t_monitor=time.time()
         previous_step = self.total_steps_done
         while self.total_steps_done < max_steps:
             start_step = time.time()
@@ -1053,6 +1060,10 @@ class ContinuousTrainer:
                 self.update_ema()            
             # --- EVALUATION & PLOT (Fréquent) ---
             t5 = time.time()
+            if self.total_steps_done % monitor_interval == 0:
+                self.monitor.log(self.total_steps_done, accum_loss, lr, monitor_interval, t5-t_monitor)
+                t_monitor=time.time()
+                
             if self.total_steps_done % eval_interval == 0:
                 elapsed = time.time() - start_time
                 # Calcul du Loss Val (Le vrai juge)
@@ -1089,9 +1100,9 @@ class ContinuousTrainer:
             # --- SAUVEGARDE CHECKPOINT (Sécurité) ---
             if self.total_steps_done % save_interval == 0:
                 self._save_checkpoint(n_versions=self.params.get('n_version',5))
-                # print(f"💾 Checkpoint sauvegardé au step {self.total_steps_done}")
             t_eval += time.time() - t5
 
+        self.monitor.stop()
         print("✅ Fin de l'entraînement (Max Steps atteint).")
 
     def run_training_loop(self, max_files_session=50):
@@ -1291,6 +1302,50 @@ class ContinuousTrainer:
         weight = 1.0 - self.ema_decay
         for ema_param, train_param in zip(self.ema_model.parameters(), self.model.parameters()):
             ema_param.data.lerp_(train_param.data, weight)
+
+class Monitor:
+    def __init__(self,file = 'model/monitor.log'):
+        self.file = file
+        self.queue = queue.Queue()
+        self.active = True
+        # Lancement du thread de monitoring
+        self.thread = threading.Thread(target=self._run, daemon=True)
+        self.thread.start()
+        print(f"🚀 Monitor activé : écriture dans {self.file}")
+
+    def _run(self):
+        while self.active:
+            data = self.queue.get()
+            if data is None: 
+                break
+            # Écriture au format JSONL (une ligne par entrée)
+            # C'est plus robuste pour les interruptions brutales
+            with open(self.file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(data) + "\n")
+            self.queue.task_done()
+            
+    def log(self, step, loss, lr, inter, elapse):
+        # Capture des stats système
+        mem = psutil.virtual_memory()
+        swap = psutil.swap_memory()    
+        data = {
+            "status": "RUNNING",
+            "last_update": time.strftime("%H:%M:%S"),
+            "step": step,
+            "loss": round(float(loss), 4),
+            "lr": f"{lr:.2e}",
+            "inter": inter,
+            "elapse": round(float(elapse),2),
+            "ram": mem.percent,
+            "swap": round(swap.used / (1024**3), 2),
+            }
+        self.queue.put(data)        
+
+    def stop(self):
+        """Ferme proprement le thread."""
+        self.active = False
+        self.queue.put(None)
+        self.thread.join(timeout=2)
 
 
 class BackgroundGenerator:

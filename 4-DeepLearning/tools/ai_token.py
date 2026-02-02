@@ -51,7 +51,36 @@ class BPETokenizer:
             self.text_raw = f.read()
         self.stats['len_raw'] = len(self.text_raw)
 
-    def preprocess_text(self): # Nettoie un fichier texte pour l'entraînement NLP
+    def preprocess_text(self):
+        # 1. Remplacements de caractères (très rapide)
+        replacements = {
+            '—': '-', '«': '"', '»': '"', '“': '"', '”': '"',
+            '[': '(', ']': ')', '{': '(', '}': ')',
+            '…': '...', '’': "'", '‘': "'"
+        }
+        for old, new in replacements.items():
+            self.text_raw = self.text_raw.replace(old, new)
+
+        # 2. Filtrage global via Regex (beaucoup plus rapide que la boucle for)
+        # On définit ce qu'on veut GARDER
+        keep_pattern = r'[^a-zA-Z0-9 .,;:!?\'\"\nàâçèéêëîïôùûÀÂÇÉÈÊËÎÏÔÙÛœŒ()-]'
+        self.text_cleaned = re.sub(keep_pattern, '', self.text_raw)
+
+        # 3. Normalisation de la ponctuation (pas d'espace avant)
+        self.text_cleaned = re.sub(r'\s+([.,;:!?])', r'\1', self.text_cleaned)
+
+        # 4. Normalisation finale des espaces
+        # On remplace les tabs et espaces multiples par un seul espace
+        self.text_cleaned = re.sub(r'[ \t]+', ' ', self.text_cleaned)
+        # On limite à maximum 2 sauts de ligne (garde les paragraphes, vire le vide)
+        self.text_cleaned = re.sub(r'\n{3,}', '\n\n', self.text_cleaned)
+        
+        self.text_cleaned = self.text_cleaned.strip()
+        
+        self.stats['len_cleaned'] = len(self.text_cleaned)
+        return self.text_cleaned
+
+    def preprocess_text_lent(self): # Nettoie un fichier texte pour l'entraînement NLP
         # Nettoyage
         self.text_cleaned = re.sub(r'[ \t]+', ' ', self.text_raw)              # Espaces multiples
         self.text_cleaned = re.sub(r'\n{3,}', '\n\n', self.text_cleaned)           # Lignes vides
@@ -74,7 +103,11 @@ class BPETokenizer:
             'àâçèéêëîïôùûÀÂÇÉÈÊËÎÏÔÙÛœŒ'
             '()'
         )
-        self.text_cleaned = ''.join(c for c in self.text_cleaned if c in allowed)
+        #self.text_cleaned = ''.join(c for c in self.text_cleaned if c in allowed)
+        # Tout ce qui n'est pas dans mon set "allowed" est supprimé
+        # (Note: il faut construire le regex avec précaution)
+        pattern = re.compile(r'[^a-zA-Z0-9 .,;:!?\'\"-\nàâçèéêëîïôùûÀÂÇÉÈÊËÎÏÔÙÛœŒ()]')
+        self.text_cleaned = pattern.sub('', self.text_cleaned)
         
         # 3. Normaliser espaces
         self.text_cleaned = re.sub(r' +', ' ', self.text_cleaned)

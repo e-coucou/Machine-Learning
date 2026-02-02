@@ -1,6 +1,7 @@
 import json
 import math
 import os
+from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -21,7 +22,7 @@ def calcul_ema(data_loss, data_steps, compare=None):
         end = len(data_steps) - 1
 
     # Calcul de la moyenne mobile exponentielle
-    for l in data_loss[:end]:
+    for l in data_loss[:end+1]:
         ema_loss = 0.1 * l + (1 - 0.1) * ema_loss
     return ema_loss, end
 
@@ -36,6 +37,8 @@ def plot_poussin_gap(
     third=None,
     compare=None,
     annot_event=None,
+    target=None,
+    speed=None
 ):
     # --- CHARGEMENT DATA 1 ---
     if not os.path.exists(log_path):
@@ -44,7 +47,7 @@ def plot_poussin_gap(
     with open(log_path, "r") as f:
         data = json.load(f)
 
-    if compare == 'Last':
+    if compare == -1:
         compare = data["steps"][-1]
 
     steps = np.array(data["steps"])
@@ -53,8 +56,6 @@ def plot_poussin_gap(
     gap = val_loss - train_loss
 
     # --- CHARGEMENT DATA 2 (COMPARAISON) ---
-    val_loss_second, steps_second = None, None
-    ema_loss_second, end_second = 0, 0
 
     if second and os.path.exists(second):
         with open(second, "r") as f2:
@@ -63,6 +64,8 @@ def plot_poussin_gap(
         steps_second = np.array(data_second["steps"])
         ema_loss_second, end_second = calcul_ema(val_loss_second, steps_second, compare=compare)
     else:
+        val_loss_second, steps_second = None, None
+        ema_loss_second, end_second = 0, 0
         print(f"⚠️  Note : Second fichier de log non chargé ({second})")
 
     if third and os.path.exists(third):
@@ -72,6 +75,8 @@ def plot_poussin_gap(
         steps_third = np.array(data_third["steps"])
         ema_loss_third, end_third = calcul_ema(val_loss_third, steps_third, compare=compare)
     else:
+        val_loss_third, steps_third = None, None
+        ema_loss_third, end_third = 0, 0
         print(f"⚠️  Note : Troisieme fichier de log non chargé ({third})")
 
     # --- LISSAGE ET EMA ---
@@ -80,7 +85,8 @@ def plot_poussin_gap(
             return x
         return np.convolve(x, np.ones(w), "valid") / w
 
-    ema_loss, end = calcul_ema(val_loss, steps, compare=None)
+    ema_loss, end = calcul_ema(val_loss, steps, compare=compare)
+    ema_last, end_last = calcul_ema(val_loss, steps, compare=None)
 
     # --- STYLE ET FIGURE ---
     plt.style.use("seaborn-v0_8-whitegrid")
@@ -167,35 +173,26 @@ def plot_poussin_gap(
         ax.plot(steps, train_loss, label="Train Loss", color="#3498db", lw=1.5)
         ax.plot(steps, val_loss, label="Val Loss", color="#fa831b", lw=2)
         ax.plot(steps, ema_smooth, label="EMA lissée", color="#ff0000", linestyle="-.", lw=1.5)
+
+    # --- TARGET --- (Ligne Horizontale) -------------
+    if target is not None:
+        ax.axhline( y=target, color="#aa55bb", alpha=0.7, linestyle="-.", lw=1.5)
+#        ax.text( 1000, (target+0.01), s="Cible à " ,color="#aa55bb", rotation=0, fontsize=9, horizontalalignment="left")
+        ax.text( 500, (target+0.01), s=("Loss Cible à "+f"{target:.2}") ,color="#aa55bb", rotation=0, fontsize=9, horizontalalignment="left")
     # --- ANNOTATIONS (Lignes verticales et texte) ---
     if annot_event:
         for ev in annot_event:
-            ax.axvline(
-                x=ev["step"],
-                color=ev.get("color", "black"),
-                linestyle="--",
-                alpha=0.6,
-                lw=ev.get("lw", 1),
-            )
-            ax.text(
-                ev["step"] - 500,
-                y_min + 0.02,
-                f"[{ev['step']:5d}] - " + ev["label"],
-                rotation=90,
-                color=ev.get("color", "black"),
-                fontsize=9,
-                verticalalignment="bottom",
-            )
+            if ((speed is not None) & (ev['step']>steps[-1])):
+                elapse = ((ev['step']-steps[-1])*speed)
+                eta = datetime.now() + timedelta(seconds=elapse)
+                ETA = " ("+eta.strftime("%d %H:%M")+")"
+            else:
+                ETA = ""
+            ax.axvline( x=ev["step"], color=ev.get("color", "black"), linestyle="--", alpha=0.6, lw=ev.get("lw", 1))
+            ax.text( ev["step"] - 500, y_min + 0.02, f"[{ev['step']:5d}] - " + ev["label"] + ETA, rotation=90, color=ev.get("color", "black"), fontsize=9, verticalalignment="bottom")
 
     if compare:
-        ax.axvline(
-            x=compare,
-            color="black",
-            linestyle="--",
-            alpha=0.7,
-            label="Point de comparaison",
-            lw=0.8,
-        )
+        ax.axvline( x=compare, color="black", linestyle="--", alpha=0.7, label="Point de comparaison des Loss/EMA", lw=0.8)
 
     # --- RÉGLAGES FINAUX ---
     ax.set_ylim(y_min, y_max)
@@ -221,8 +218,8 @@ def plot_poussin_gap(
 
     # Affichage des stats dans le terminal ()
     print("-" * 30)
-    print(f"Dernier Step: {steps[-1]} | Gap actuel: {gap[-1]:.4f}")
+    print(f"Dernier Step: {steps[-1]} | Gap actuel: {gap[-1]:.4f} | EMA loss : {ema_last:.3f}")
     if val_loss_second is not None:
-        print("COMPARE POINT ANALYSIS:")
+        print(f"COMPARE POINT ANALYSIS: {steps[end]} / {steps_second[end_second]} / {steps_third[end_third]}")
         print(f"  - Val Loss: {val_loss[-1]:.4f} vs {val_loss_second[end_second]:.4f} ➥ {val_loss_third[end_third]:.4f}")
         print(f"  - EMA Loss: {ema_loss:.3f} vs {ema_loss_second:.3f} ➥ {ema_loss_third:.3f}")

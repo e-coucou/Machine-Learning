@@ -151,7 +151,7 @@ def run_monitor():
             # Jauge de Loss (Cerveau) - Cible 2.4 à 3.5
             print(f"{U['C']}BRAIN (Loss){U['RE']}")
             print(f"{loss:.4f}")
-            _,color_loss,_ = get_color(loss,2.4,2.6,2.8,3.2,3.5)
+            _,color_loss,_ = get_color(loss,2.5,2.7,3.0,3.3,3.6)
             print(f"{color_loss}{get_gauge(loss, 1.8, 4.0,bars=SIZE-2)}{U['RE']}")
             
             # Jauge de Vitesse (SPS) - Cible 6.0 à 9.0
