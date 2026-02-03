@@ -16,6 +16,48 @@ import queue, gc
 # -----------------------------------------------------------------------------
 # 1. BLOCS DE BASE DU MODÈLE (Architecture GPT "Decoder-Only")
 # -----------------------------------------------------------------------------
+class MultiHeadAttention_linear(nn.Module):
+    """ Causal Self-Attention. C'est le coeur du mécanisme GPT. """
+    def __init__(self, num_heads, head_size, n_embd, block_size, dropout):
+        super().__init__()
+        self.num_heads = num_heads
+        self.head_size = head_size
+        
+        # Projection clés, requêtes, valeurs
+        self.qkv = nn.Linear(n_embd, 3 * n_embd, bias=False)
+        self.proj = nn.Linear(n_embd, n_embd)
+        
+        self.dropout_val = dropout # pour le passer en argument
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        B, T, C = x.shape
+        
+        # Calcul Q, K, V en une seule opération (optimisé M1)
+        qkv = self.qkv(x)  # (B, T, 3*n_embd)
+        qkv = qkv.reshape(B, T, 3, self.num_heads, self.head_size)
+        qkv = qkv.permute(2, 0, 3, 1, 4)  # (3, B, num_heads, T, head_size)
+        q, k, v = qkv[0], qkv[1], qkv[2]
+        
+        # Calcul des scores d'attention
+        out = F.scaled_dot_product_attention(
+            q, k, v,
+            attn_mask = None,
+            dropout_p = self.dropout_val if self.training else 0.0,
+            is_causal = True
+        )
+
+        # on reassemble
+        out = out.transpose(1, 2).contiguous().view(B, T, C)
+        
+        # Recomposition
+        # out = out.permute(0, 2, 1, 3).contiguous().reshape(B, T, C)
+        
+        out = self.proj(out)
+        out = self.dropout(out)
+        return out
+
+
 
 class MultiHeadAttention(nn.Module):
     """ Causal Self-Attention. C'est le coeur du mécanisme GPT. """
