@@ -12,9 +12,10 @@ TARGET_BLOCK_DS1 = 5963390
 TARGET_BLOCK_DS2 = 2429390
 MIXED = 0.4
 BATCH_SIZE = 8
+GRAD_ACCUM = 16
 
-def calcul_eta(step, target, mix, batch):
-    return int((target - step * batch) / mix)
+def calcul_eta(step, target, mix, batch, grad, t_step):
+    return int((target - step * batch) / (batch * mix * grad) + t_step)
     
 def calcul_ema(data_loss, data_steps, compare=None):
     if len(data_loss) == 0:
@@ -47,7 +48,8 @@ def plot_poussin_gap(
     annot_event=None,
     target=None,
     speed=None,
-    raw=False
+    raw=False,
+    titre = "Training GPT Mac-M1"
 ):
     # --- CHARGEMENT DATA 1 ---
     if not os.path.exists(log_path):
@@ -216,21 +218,32 @@ def plot_poussin_gap(
             else:
                 ETA = ""
             ax.axvline( x=ev["step"], color=ev.get("color", "black"), linestyle="--", alpha=0.6, lw=ev.get("lw", 1))
-            ax.text( ev["step"] - 500, y_min + 0.02, f"[{ev['step']:5d}] - " + ev["label"] + ETA, rotation=90, color=ev.get("color", "black"), fontsize=9, verticalalignment="bottom")
+            ax.text( ev["step"] - 800, y_min + 0.02, f"[{ev['step']:5d}] - " + ev["label"] + ETA, rotation=90, color=ev.get("color", "black"), fontsize=9, verticalalignment="bottom")
 
     if compare:
-        ax.axvline( x=compare, color="black", linestyle="--", alpha=0.7, label="Point de comparaison des Loss/EMA", lw=0.8)
+        ax.axvline( x=compare, color="black", linestyle="--", alpha=0.7, lw=0.8)
+        ax.text( compare+200, y_min + 0.02, "Point de comparaison des Loss/EMA" , rotation=90, color=ev.get("color", "black"), fontsize=9, verticalalignment="bottom")
         # echéances epoch
-        eta = calcul_eta(compare, TARGET_BLOCK_DS1, MIXED, BATCH_SIZE )
-        label = "ETA epoch 1 - Dataset 1 (Wiki)"
+        step = data_monitor[-1]['dataset1']
+        eta = calcul_eta(step=step, target=TARGET_BLOCK_DS1, mix=MIXED, batch=BATCH_SIZE, grad=GRAD_ACCUM , t_step=compare)
+        label = f"[{eta}] ETA epoch 1 - Dataset 1 (Wiki)"
         print(eta)
-        ax.axvline( x=eta, color="magenta", linestyle="--", alpha=0.7, label=label, lw=0.8)
+        if eta<x_max:
+            ax.axvline( x=eta, color="magenta", linestyle="--", alpha=0.7, lw=0.8)
+            ax.text( eta-800, y_min + 0.02, label , rotation=90, color=ev.get("color", "magenta"), fontsize=9, verticalalignment="bottom")
+        step = data_monitor[-1]['dataset2']
+        eta = calcul_eta(step=step, target=TARGET_BLOCK_DS2, mix=MIXED, batch=BATCH_SIZE, grad=GRAD_ACCUM , t_step=compare)
+        label = f"[{eta}] ETA epoch 1 - Dataset 2 (CulturaX)"
+        print(eta)
+        if eta<x_max :
+            ax.axvline( x=eta, color="magenta", linestyle="--", alpha=0.7, lw=0.8)
+            ax.text( eta-800, y_min + 0.02, label , rotation=90, color=ev.get("color", "magenta"), fontsize=9, verticalalignment="bottom")
 
     # --- RÉGLAGES FINAUX ---
     ax.set_ylim(y_min, y_max)
     ax.set_xlim(0, x_max)
     ax.set_title(
-        f"Analyse Mac-GPT | Step: {steps[-1]} | Gap: {gap[-1]:.4f}", fontsize=14
+        f"{titre} | Step: {steps[-1]} | Gap: {gap[-1]:.4f}", fontsize=14
     )
     ax.legend(loc="upper right")
     ax.grid(True, alpha=0.3)

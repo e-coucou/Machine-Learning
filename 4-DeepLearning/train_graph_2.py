@@ -14,6 +14,7 @@ def main():
     parser.add_argument("--target", type=float, default=None, help="Valeur Cible de Loss")
     parser.add_argument("--speed", type=float, default=None, help="Step par seconde")
     parser.add_argument("--raw", type=bool, default=False, help="Raw data")
+    parser.add_argument("--titre", type=str, default="Training Mac-M1", help="Titre du graphique")
     
     # Chemins des fichiers (avec tes valeurs actuelles par défaut)
     parser.add_argument("--log1", type=str, default="model/my_wiky_history.json")
@@ -47,7 +48,8 @@ def main():
         target=args.target,
         speed=args.speed,
         annot_event=mes_evenements,
-        raw=args.raw
+        raw=args.raw,
+        titre=args.titre,
     )
 
 if __name__ == "__main__":
