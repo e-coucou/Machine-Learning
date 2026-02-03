@@ -9,10 +9,11 @@ def main():
     parser.add_argument("--ymax", type=float, default=3.3, help="Limite haute de la Loss")
     parser.add_argument("--xmax", type=int, default=20000, help="Limite max de steps (axe X)")
     parser.add_argument("--smooth", type=int, default=5, help="Facteur de lissage des courbes")
-    parser.add_argument("--strore", action="store_true", help="Activer la sauvegarde Image")
+    parser.add_argument("--store", action="store_true", help="Activer la sauvegarde Image")
     parser.add_argument("--compare", type=int, default=None, help="Comparaison des courbes en un point")
     parser.add_argument("--target", type=float, default=None, help="Valeur Cible de Loss")
     parser.add_argument("--speed", type=float, default=None, help="Step par seconde")
+    parser.add_argument("--raw", type=bool, default=False, help="Raw data")
     
     # Chemins des fichiers (avec tes valeurs actuelles par défaut)
     parser.add_argument("--log1", type=str, default="model/my_wiky_history.json")
@@ -24,13 +25,11 @@ def main():
     # 2. Définition de tes événements (Historique du projet)
     mes_evenements = [
         {"step": 2000, "label": "End warmup", "color": "gray", "lw": 0.7},
-        {"step": 7200, "label": "Culturax Mix 0.5 / batch 8x16", "color": "blue", "lw": 1.2},
-        {"step": 12000, "label": "Cible 2.8", "color": "gray", "lw": 0.7},
-        {"step": 21500, "label": "Cible 2.7", "color": "cyan", "lw": 1.7},
-        {"step": 35000, "label": "Cible 2.6", "color": "cyan", "lw": 1.7},
-#        {"step": 19500, "label": "Dropout 0.15", "color": "gray", "lw": 0.7},
-#        {"step": 39000, "label": "LR_Decay Phase", "color": "orange", "lw": 0.7},
-#        {"step": 46589, "label": "Epoch 2", "color": "red", "lw": 1.1},
+        {"step": 7200, "label": "Culturax Mix à 0.5 / batch 8x16", "color": "blue", "lw": 1.2},
+        {"step": 13700, "label": "Cible 2.8 - Atteinte", "color": "gray", "lw": 1.},
+        {"step": 18700, "label": "Cible 2.7 - Atteinte", "color": "gray", "lw": 1.},
+        {"step": 19600, "label": "CulturaX Mix à 0.4", "color": "blue", "lw": 1.2},
+        {"step": 32500, "label": "Cible 2.6", "color": "magenta", "lw": 1.5},
     ]
 
     # 3. Appel de la fonction de graphisme
@@ -48,6 +47,7 @@ def main():
         target=args.target,
         speed=args.speed,
         annot_event=mes_evenements,
+        raw=args.raw
     )
 
 if __name__ == "__main__":

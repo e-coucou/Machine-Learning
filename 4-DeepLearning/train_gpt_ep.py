@@ -4,6 +4,8 @@ import torch
 import tools.ai_token as tk
 import tools.ai_gpt_ep as gpt
 
+CMDE = "nohup python3 -u train_gpt_ep.py > model/training.log 2>&1 &"     
+
 def main():
     # --- CONFIGURATION DU MODÈLE ---
     # Architecture fixe pour garantir la compatibilité avec les checkpoints
@@ -29,7 +31,7 @@ def main():
         'n_version' : 5,
         'use_compile': False,
         'cult_data': True,
-        'mixed_ratio': 0.50,  # Ratio de données CulturaX dans chaque batch
+        'mixed_ratio': 0.40,  # Ratio de données CulturaX dans chaque batch
         'ema_decay': 0., # 0 pour désactiver
         'monitor_interval': 10,
     }

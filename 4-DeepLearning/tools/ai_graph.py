@@ -7,7 +7,15 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 
+MONITOR_FILE = 'model/monitor.log'
+TARGET_BLOCK_DS1 = 5963390
+TARGET_BLOCK_DS2 = 2429390
+MIXED = 0.4
+BATCH_SIZE = 8
 
+def calcul_eta(step, target, mix, batch):
+    return int((target - step * batch) / mix)
+    
 def calcul_ema(data_loss, data_steps, compare=None):
     if len(data_loss) == 0:
         return 0, 0
@@ -38,7 +46,8 @@ def plot_poussin_gap(
     compare=None,
     annot_event=None,
     target=None,
-    speed=None
+    speed=None,
+    raw=False
 ):
     # --- CHARGEMENT DATA 1 ---
     if not os.path.exists(log_path):
@@ -47,6 +56,18 @@ def plot_poussin_gap(
     with open(log_path, "r") as f:
         data = json.load(f)
 
+    # chargement monitor_file
+    data_monitor = []
+    with open(MONITOR_FILE, "r") as f:
+        for line in f:
+            if line.strip():
+                data_monitor.append(json.loads(line))
+
+    monitor_step, monitor_loss = [], []
+    for d in data_monitor:
+        monitor_step.append(d['step'])
+        monitor_loss.append(d['loss'])
+ 
     if compare == -1:
         compare = data["steps"][-1]
 
@@ -96,7 +117,9 @@ def plot_poussin_gap(
     # Optionnel : Ajoute des petits traits (minuscules) tous les 500 pour plus de précision
     ax.xaxis.set_minor_locator(ticker.MultipleLocator(500))
     # Rotation des labels pour éviter qu'ils ne se chevauchent s'il y en a trop
+    ax.set_yticks(np.arange(y_min, y_max, (y_max-y_min)/10))
     plt.xticks(rotation=45)
+    
 
     # Zones de couleurs pour le GAP (Overfitting check)
     for i in range(len(steps) - 1):
@@ -169,10 +192,14 @@ def plot_poussin_gap(
         ax.plot(steps, train_loss, color="#3498db", alpha=0.2, lw=1)
         ax.plot(steps, val_loss, color="#fa8118", alpha=0.2, lw=1)
         ax.plot(steps, ema_smooth, label="EMA lissée", color="#ff0000", linestyle="-.", lw=1.5)
+        if raw:
+            ax.plot(monitor_step[20:], moving_average(monitor_loss,21)*1., label="train: raw data", color="#000000", linestyle=":", lw=0.5)
     else:
         ax.plot(steps, train_loss, label="Train Loss", color="#3498db", lw=1.5)
         ax.plot(steps, val_loss, label="Val Loss", color="#fa831b", lw=2)
         ax.plot(steps, ema_smooth, label="EMA lissée", color="#ff0000", linestyle="-.", lw=1.5)
+        if raw:
+            ax.plot(monitor_step[20:], moving_average(monitor_loss,21)*1, label="train: raw data", color="#000000", linestyle=":", lw=0.5)
 
     # --- TARGET --- (Ligne Horizontale) -------------
     if target is not None:
@@ -193,6 +220,11 @@ def plot_poussin_gap(
 
     if compare:
         ax.axvline( x=compare, color="black", linestyle="--", alpha=0.7, label="Point de comparaison des Loss/EMA", lw=0.8)
+        # echéances epoch
+        eta = calcul_eta(compare, TARGET_BLOCK_DS1, MIXED, BATCH_SIZE )
+        label = "ETA epoch 1 - Dataset 1 (Wiki)"
+        print(eta)
+        ax.axvline( x=eta, color="magenta", linestyle="--", alpha=0.7, label=label, lw=0.8)
 
     # --- RÉGLAGES FINAUX ---
     ax.set_ylim(y_min, y_max)

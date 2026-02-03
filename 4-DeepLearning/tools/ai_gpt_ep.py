@@ -649,7 +649,7 @@ class ContinuousTrainer:
             # self.optimizer.load_state_dict(ckpt['optimizer'])
             # récupératoin du nombre de step effectués
             self.total_steps_done = ckpt.get('total_steps_done', 0)
-            self.total_step_wiki = ckpt.get('total_step_wiki', self.total_steps_done) // batch_size
+            self.total_step_wiki = ckpt.get('total_step_wiki', 0) // batch_size
             self.total_step_cult = ckpt.get('total_step_cult', 0) // batch_size
             print(f"📈 Reprise : Wiki à {self.total_step_wiki} | CulturaX à {self.total_step_cult} | {batch_size}")
 
@@ -1061,7 +1061,7 @@ class ContinuousTrainer:
             # --- EVALUATION & PLOT (Fréquent) ---
             t5 = time.time()
             if self.total_steps_done % monitor_interval == 0:
-                self.monitor.log(self.total_steps_done, accum_loss, lr, monitor_interval, t5-t_monitor)
+                self.monitor.log(self.total_steps_done, accum_loss, lr, monitor_interval, t5-t_monitor, self.total_step_wiki, self.total_step_cult)
                 t_monitor=time.time()
                 
             if self.total_steps_done % eval_interval == 0:
@@ -1101,6 +1101,14 @@ class ContinuousTrainer:
             if self.total_steps_done % save_interval == 0:
                 self._save_checkpoint(n_versions=self.params.get('n_version',5))
             t_eval += time.time() - t5
+
+            # 3. Purge préventive avant l'effort d'évaluation
+            if self.total_steps_done % 50 == 0:
+                if torch.backends.mps.is_available():
+                    gc.collect()           # Libère la RAM CPU (NumPy/Tensors CPU)
+                    torch.mps.empty_cache()
+
+            
 
         self.monitor.stop()
         print("✅ Fin de l'entraînement (Max Steps atteint).")
@@ -1324,7 +1332,7 @@ class Monitor:
                 f.write(json.dumps(data) + "\n")
             self.queue.task_done()
             
-    def log(self, step, loss, lr, inter, elapse):
+    def log(self, step, loss, lr, inter, elapse, dataset1, dataset2):
         # Capture des stats système
         mem = psutil.virtual_memory()
         swap = psutil.swap_memory()    
@@ -1338,6 +1346,8 @@ class Monitor:
             "elapse": round(float(elapse),2),
             "ram": mem.percent,
             "swap": round(swap.used / (1024**3), 2),
+            "dataset1": dataset1,
+            "dataset2": dataset2,
             }
         self.queue.put(data)        
 

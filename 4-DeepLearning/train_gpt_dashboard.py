@@ -16,6 +16,8 @@ BLOCK_SIZE = 256
 TARGET_STEP = 46589 # Nombre total de steps pour 1 epoch : 5963390 block de 256 /(32*4) = 46589
 TARGET_TRAIN = 80000
 LIGNE_LEN = 67
+TARGET_BLOCK_DS1 = 5963390
+TARGET_BLOCK_DS2 = 2429390
 
 #---
 # Palette de couleurs ANSI pour GPT-Monitor
@@ -333,6 +335,7 @@ def get_dashboard():
     last_update = os.path.getmtime(LOG_FILE)
     steps_h, trains_h, vals_h, times_h = parse_history(HISTORY_FILE)
     gap_h = vals_h - trains_h
+    data_monitor = parse_monitor(MONITOR_FILE)
    
     if len(steps) < 5: 
         print('waiting pour 5 iter')
@@ -347,11 +350,12 @@ def get_dashboard():
     slope = np.polyfit(steps[-window:], losses[-window:], 1)[0]
     
     # Progression de l'entrainement epoch et steps total
-    pct = (steps[-1] / TARGET_STEP) * 100 
-    epoch = f"[epoch {int(pct/100 + 1)}]"
-    if pct > 100:
-        pct = pct % 100
-    bar = "▬" * (int(pct/4)-1)+ f"{UI['RED']}▬" +UI['DIM']+UI['WHITE']+ "┅" * (25 - int(pct/4)) #. ─
+#    pct_ds1 = (data_monitor[-1]['dataset1'] * batch_size/TARGET_BLOCK_DS1) * 100
+#    pct = (steps[-1] / TARGET_STEP) * 100 
+#    epoch = f"[epoch {int(pct/100 + 1)}]"
+#    if pct > 100:
+#        pct = pct % 100
+#    bar = "▬" * (int(pct_ds1/4)-1)+ f"{UI['RED']}▬" +UI['DIM']+UI['WHITE']+ "┅" * (25 - int(pct_ds1/4)) #. ─
     # bar = "█" * int(pct/2) + "░" * (50 - int(pct/2))
     pct_train = (steps[-1] / TARGET_TRAIN) * 100
     bar_train = "▬" * (int(pct_train/4)-1)+ f"{UI['RED']}▬" +UI['DIM']+UI['WHITE']+ "┅" * (25 - int(pct_train/4)) #. "▄"
@@ -367,10 +371,13 @@ def get_dashboard():
     next_step = steps[-1] + current_interval
     current_step_est = steps[-1] + int(steps_since_log)
     p_step = 1 - (next_step - current_step_est)/current_interval
- 
+
     file = MODEL_FILE
     status, pression, mem_rss, swap = get_memory_status()
     step, wiki, cult, config, model_ema, n_params, params = get_checkpoint(file)
+    batch_size = params.get('batch_size',32)
+    block_size = params.get('block_size',BLOCK_SIZE)
+    EBS = params['batch_size'] * params['grad_accum_steps']
     ratio_wiki = wiki/(wiki+cult)*100
     ratio_cult = cult/(wiki+cult)*100
     remaining_steps = TARGET_TRAIN - steps[-1]
@@ -385,10 +392,19 @@ def get_dashboard():
     for it in steps_h:
         lr_h.append(calcul_lr(it, params))
     lr_h = np.array(lr_h)
+
  
+  # Progression de l'entrainement epoch et steps total
+    pct_ds1 = (data_monitor[-1]['dataset1'] * batch_size/TARGET_BLOCK_DS1) * 100
+    pct_ds2 = (data_monitor[-1]['dataset2'] * batch_size/TARGET_BLOCK_DS2) * 100
+    pct = (steps[-1] / TARGET_STEP) * 100 
+    epoch = f"[epoch {int(pct/100 + 1)}]"
+    if pct > 100:
+        pct = pct % 100
+    bar_ds1 = "▬" * (int(pct_ds1/4)-1)+ f"{UI['RED']}▬" +UI['DIM']+UI['CYAN']+ "┅" * (25 - int(pct_ds1/4))
+    bar_ds2 = "▬" * (int(pct_ds2/4)-1)+ f"{UI['RED']}▬" +UI['DIM']+UI['CYAN']+ "┅" * (25 - int(pct_ds2/4))
     # --- AFFICHAGE DU DASHBOARD --------------------------------------------------------------------------------
     os.system('clear')
-    data_monitor = parse_monitor(MONITOR_FILE)
     Titre = f"🚀 M1 GPT-MONITOR {VERSION}. - {steps[-1]}/{current_interval} - {epoch}"
     timestamp = datetime.now().strftime('%H:%M:%S')
     header_right = f"{temp_color}{temp_icon} \033[1m{timestamp}\033[0m" 
@@ -404,10 +420,12 @@ def get_dashboard():
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
     print(f"  {cpu_status} CPU Usage: {cpu_color}{cpu_usage:.1f}% {UI['RESET']} | {gpu_status} GPU Usage: {gpu_color}{gpu_usage:.1f}% {UI['RESET']} | {ssd_status} SSD Usage {ssd_color}{ssd_usage:.1f}% ")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
-    print(f"  Epoch: {pct:4.1f}% {UI['CYAN']}┣{bar}┫ {UI['RESET']}pour {TARGET_STEP} steps")
+#    print(f"  Epoch: {pct:4.1f}% {UI['CYAN']}┣{bar}┫ {UI['RESET']}pour {TARGET_STEP} steps")
     print(f"  Train: {pct_train:4.1f}% {UI['CYAN']}┣{bar_train}┫ {UI['RESET']}pour {TARGET_TRAIN} steps")
-    print(f"  Wikipédia en cours : {wiki} steps  [{ratio_wiki*BATCH_SIZE*BLOCK_SIZE/100/1024/1024*steps[-1]:4.1f} Mo]")
-    print(f"  CulturaX  en cours : {cult} steps  [{ratio_cult*BATCH_SIZE*BLOCK_SIZE/100/1024/1024*steps[-1]:4.1f} Mo]")
+    print(f"  Wiki : {pct_ds1:4.1f}% {UI['CYAN']}┣{bar_ds1}┫ {UI['RESET']}pour {TARGET_BLOCK_DS1:7d} blocks")
+    print(f"  Cult : {pct_ds2:4.1f}% {UI['CYAN']}┣{bar_ds2}┫ {UI['RESET']}pour {TARGET_BLOCK_DS2:7d} blocks")
+    print(f"  Wikipédia en cours : {wiki} steps  [{wiki*BLOCK_SIZE/1024**2:.1f} Mo]")
+    print(f"  CulturaX  en cours : {cult} steps  [{cult*BLOCK_SIZE/1024**2:.1f} Mo]")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
     print(f"  {temp_icon} PERFORMANCES")
     print(f"  {temp_color}SPD : {sec_per_step:.2f} s/st{UI['RESET']} | DATA: {tok_s:,.0f} tok/s")
@@ -438,7 +456,7 @@ def get_dashboard():
     efficiency, asymptote_new, trend_1k = calculate_saturation_score(steps_h, vals_h, lr_h, window=5000)
     status = f"⚡ {UI['BLUE']}PRODUCTIF {UI['RESET']}" if efficiency > 0.5 else f"🐢 {UI['RED']}SATURATION{UI['RESET']}"
     level_name_new, _,color_asympt_new = get_intel_level(asymptote_new)
-    total_tokens = steps[-1] * BATCH_SIZE * BLOCK_SIZE
+    total_tokens = steps[-1] * EBS * BLOCK_SIZE
     pct = ratio_wiki
     w=UI['BLUE']
     c=UI['ORANGE']
@@ -510,7 +528,6 @@ def get_dashboard():
         print(f"{txt}"+" "*(30 - len(txt))+ f"|  {p} : {params[p]}")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
 
-    EBS = params['batch_size'] * params['grad_accum_steps']
     print(f"  🔄 Effective Batch Size (EBS) : {UI['BOLD']}{EBS}{UI['RESET']}")
     print(f"  📥 Taille du Model : {n_params/1e6:.2f}M Paramètres")
     ema_model_status = '✅' if model_ema is not None else '❌'
@@ -543,7 +560,7 @@ def get_dashboard():
 #    print(f" "*padding+f"{next_run.strftime('%H:%M')}{UI['RESET']}")
     # print(f"{U['D']}"+f" "*padding+f"{datetime.now().strftime('%H:%M:%S')}{U['RE']}")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
-
+    print(d)
 
 while True:
 #    print(get_gpu_usage())
