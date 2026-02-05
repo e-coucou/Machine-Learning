@@ -3,16 +3,16 @@
 🚀 Device: mps
 Dtype du modèle : torch.float32
 📥 Chargement du checkpoint : model/my_wiki.pth
-📈 Reprise : Wiki à 268302 | CulturaX à 187719 | 8
-✅ Modèle restauré. Steps faits: 32200
+📈 Reprise : Wiki à 193580 | CulturaX à 147235 | 8
+✅ Modèle restauré. Steps faits: 25000
 ✅ État de l'optimiseur restauré.
 🚀 Dataset Train: 1526.63M tokens.
 🚀 Dataset Val: 169.63M tokens.
 🚀 Dataset CulturaX: 621.92M tokens.
 ✅ Provider HP initialisé : 5963390 blocs uniques. Epoch : 0
-🔄 Reprise au batch 268302 [step : 268302]
+🔄 Reprise au batch 193580 [step : 193580]
 ✅ Provider HP initialisé : 2429390 blocs uniques. Epoch : 0
-🔄 Reprise au batch 187719 [step : 187719]
+🔄 Reprise au batch 147235 [step : 147235]
 🚀 Monitor activé : écriture dans model/monitor.log
 🚀 Init terminé.
 📦 Démarrage du mode binaire (Continuous Training)
@@ -36,14 +36,16 @@ Dtype du modèle : torch.float32
   n_version          : 5[0m
   use_compile        : False[0m
   cult_data          : True[0m
-  mixed_ratio        : 0.35[0m
+  mixed_ratio        : 0.4[0m
   ema_decay          : 0.0[0m
   monitor_interval   : 10[0m
   [1mEffective Batch Size: 128[0m
 ..................................................
 
 📦 Démarrage Training sur 3Go (Mode Continu)
-   ▶️ Reprise au step : 32200
+   ▶️ Reprise au step : 25000
    📉 Evaluation tous les : 200 steps
    💾 Sauvegarde tous les : 200 steps
-🟢 RAM Système: 51.5% | Process: 659Mo | Swap: 341Mo
+🟢 RAM Système: 57.7% | Process: 656Mo | Swap: 405Mo
+step 25200: train loss 2.5284, val loss 2.6073, lr 2.45e-04 (3242.34s) | 🟡 Po: 75.4% SW: 405Mo MPS: 1980Mo | 💾 | 🗑️ | ✨
+step 25400: train loss 2.6129, val loss 2.5512, lr 2.44e-04 (3257.18s) | 🟡 Po: 74.0% SW: 405Mo MPS: 1980Mo | 💾 | 🗑️ | ✨

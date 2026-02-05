@@ -10,11 +10,11 @@ import numpy as np
 MONITOR_FILE = 'model/monitor.log'
 TARGET_BLOCK_DS1 = 5963390
 TARGET_BLOCK_DS2 = 2429390
-MIXED = 0.4
+MIXED = 0.35
 BATCH_SIZE = 8
 GRAD_ACCUM = 16
 
-def calcul_eta(step, target, mix, batch, grad, t_step):
+def calcul_epoch(step, target, mix, batch, grad, t_step):
     return int((target - step * batch) / (batch * mix * grad) + t_step)
     
 def calcul_ema(data_loss, data_steps, compare=None):
@@ -72,6 +72,11 @@ def plot_poussin_gap(
  
     if compare == -1:
         compare = data["steps"][-1]
+        # echéances epoch
+    step_ds1 = data_monitor[-1]['dataset1']
+    epoch_ds1 = calcul_epoch(step=step_ds1, target=TARGET_BLOCK_DS1, mix=(1-MIXED), batch=BATCH_SIZE, grad=GRAD_ACCUM , t_step=compare)
+    step_ds2 = data_monitor[-1]['dataset2']
+    epoch_ds2 = calcul_epoch(step=step_ds2, target=TARGET_BLOCK_DS2, mix=MIXED, batch=BATCH_SIZE, grad=GRAD_ACCUM , t_step=compare)
 
     steps = np.array(data["steps"])
     train_loss = np.array(data["train_loss"])
@@ -132,6 +137,7 @@ def plot_poussin_gap(
     # Calcul de la couverture du dataset
     prc = []
     prc_train = []
+    prc_ds1, prc_ds2 = [], []
     ema_smooth = []
     ema_smooth_2 = []
     ema_smooth_3 = []
@@ -141,6 +147,8 @@ def plot_poussin_gap(
         prob = 1 - math.exp(-token_vu / dataset)
         prc.append(prob)
         prc_train.append(token_vu / dataset)
+        prc_ds1.append(steps[i]*(1-MIXED)*GRAD_ACCUM*BATCH_SIZE/TARGET_BLOCK_DS1)
+        prc_ds2.append(steps[i]*MIXED*GRAD_ACCUM*BATCH_SIZE/TARGET_BLOCK_DS2)
         # EMA lissée
         ema_smooth.append(calcul_ema(val_loss[: i + 1], steps[: i + 1])[0])
         if val_loss_second is not None:
@@ -156,14 +164,14 @@ def plot_poussin_gap(
             moving_average(train_loss, smooth),
             label=f"Train (Smooth {smooth})",
             color="#3498db",
-            lw=2,
+            lw=1.5,
         )
         ax.plot(
             s_smooth,
             moving_average(val_loss, smooth),
             label=f"Val (Smooth {smooth})",
             color="#e67e22",
-            lw=2,
+            lw=1.5,
         )
         # Tracé des courbes de comparaison si disponibles - second
         if val_loss_second is not None:
@@ -223,21 +231,14 @@ def plot_poussin_gap(
     if compare:
         ax.axvline( x=compare, color="black", linestyle="--", alpha=0.7, lw=0.8)
         ax.text( compare+200, y_min + 0.02, "Point de comparaison des Loss/EMA" , rotation=90, color=ev.get("color", "black"), fontsize=9, verticalalignment="bottom")
-        # echéances epoch
-        step = data_monitor[-1]['dataset1']
-        eta = calcul_eta(step=step, target=TARGET_BLOCK_DS1, mix=MIXED, batch=BATCH_SIZE, grad=GRAD_ACCUM , t_step=compare)
-        label = f"[{eta}] ETA epoch 1 - Dataset 1 (Wiki)"
-        print(eta)
-        if eta<x_max:
-            ax.axvline( x=eta, color="magenta", linestyle="--", alpha=0.7, lw=0.8)
-            ax.text( eta-800, y_min + 0.02, label , rotation=90, color=ev.get("color", "magenta"), fontsize=9, verticalalignment="bottom")
-        step = data_monitor[-1]['dataset2']
-        eta = calcul_eta(step=step, target=TARGET_BLOCK_DS2, mix=MIXED, batch=BATCH_SIZE, grad=GRAD_ACCUM , t_step=compare)
-        label = f"[{eta}] ETA epoch 1 - Dataset 2 (CulturaX)"
-        print(eta)
-        if eta<x_max :
-            ax.axvline( x=eta, color="magenta", linestyle="--", alpha=0.7, lw=0.8)
-            ax.text( eta-800, y_min + 0.02, label , rotation=90, color=ev.get("color", "magenta"), fontsize=9, verticalalignment="bottom")
+        label = f"[{epoch_ds1}] Epoch 1 - Dataset 1 (Wiki)"
+        if epoch_ds1<x_max:
+            ax.axvline( x=epoch_ds1, color="magenta", linestyle="--", alpha=0.7, lw=0.8)
+            ax.text( epoch_ds1-800, y_min + 0.02, label , rotation=90, color=ev.get("color", "magenta"), fontsize=9, verticalalignment="bottom")
+        label = f"[{epoch_ds2}] Epoch 1 - Dataset 2 (CulturaX)"
+        if epoch_ds2<x_max :
+            ax.axvline( x=epoch_ds2, color="magenta", linestyle="--", alpha=0.7, lw=0.8)
+            ax.text( epoch_ds2-800, y_min + 0.02, label , rotation=90, color=ev.get("color", "magenta"), fontsize=9, verticalalignment="bottom")
 
     # --- RÉGLAGES FINAUX ---
     ax.set_ylim(y_min, y_max)
@@ -252,8 +253,10 @@ def plot_poussin_gap(
     ax_droite = ax.twinx()
     ax_droite.grid(False)
     ax_droite.set_ylim(0.0, 1.0)
-    ax_droite.plot(steps, prc, color="#7BFFB0", alpha=0.7, label="%", lw=0.7)
-    ax_droite.plot(steps, prc_train, color="#f6881b", alpha=0.7, label="%", lw=0.7)
+    #ax_droite.plot(steps, prc, color="#7BFFB0", alpha=0.7, label="%", lw=0.7)
+    #ax_droite.plot(steps, prc_train, color="#f6881b", alpha=0.7, label="%", lw=0.7)
+    ax_droite.plot(steps, prc_ds1, color="#7BFFB0", alpha=0.7, label="%", lw=0.7)
+    ax_droite.plot(steps, prc_ds2, color="#7BFFB0", alpha=0.7, label="%", lw=0.7)
     # ax_droite.set_ylabel("Token vus", color="magenta")
 
     plt.tight_layout()
@@ -265,6 +268,6 @@ def plot_poussin_gap(
     print("-" * 30)
     print(f"Dernier Step: {steps[-1]} | Gap actuel: {gap[-1]:.4f} | EMA loss : {ema_last:.3f}")
     if val_loss_second is not None:
-        print(f"COMPARE POINT ANALYSIS: {steps[end]} / {steps_second[end_second]} / {steps_third[end_third]}")
-        print(f"  - Val Loss: {val_loss[-1]:.4f} vs {val_loss_second[end_second]:.4f} ➥ {val_loss_third[end_third]:.4f}")
-        print(f"  - EMA Loss: {ema_loss:.3f} vs {ema_loss_second:.3f} ➥ {ema_loss_third:.3f}")
+        print(f"COMPARE POINT ANALYSIS: {steps[end]} / {steps_second[end_second]}") #" / {steps_third[end_third]}")
+        print(f"  - Val Loss: {val_loss[-1]:.4f} vs {val_loss_second[end_second]:.4f}") #" ➥ {val_loss_third[end_third]:.4f}")
+        print(f"  - EMA Loss: {ema_loss:.3f} vs {ema_loss_second:.3f}") #" ➥ {ema_loss_third:.3f}")

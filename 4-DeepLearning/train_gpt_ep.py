@@ -31,7 +31,7 @@ def main():
         'n_version' : 5,
         'use_compile': False,
         'cult_data': True,
-        'mixed_ratio': 0.40,  # Ratio de données CulturaX dans chaque batch
+        'mixed_ratio': 0.35,  # Ratio de données CulturaX dans chaque batch
         'ema_decay': 0., # 0 pour désactiver
         'monitor_interval': 10,
     }

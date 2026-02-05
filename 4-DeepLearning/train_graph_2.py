@@ -27,10 +27,12 @@ def main():
     mes_evenements = [
         {"step": 2000, "label": "End warmup", "color": "gray", "lw": 0.7},
         {"step": 7200, "label": "Culturax Mix à 0.5 / batch 8x16", "color": "blue", "lw": 1.2},
-        {"step": 13700, "label": "Cible 2.8 - Atteinte", "color": "gray", "lw": 1.},
-        {"step": 18700, "label": "Cible 2.7 - Atteinte", "color": "gray", "lw": 1.},
-        {"step": 19600, "label": "CulturaX Mix à 0.4", "color": "blue", "lw": 1.2},
-        {"step": 32500, "label": "Cible 2.6", "color": "magenta", "lw": 1.5},
+        {"step": 13700, "label": "Palier 2.8 - Atteint", "color": "gray", "lw": 1.},
+        {"step": 18700, "label": "Palier 2.7 - Atteint", "color": "gray", "lw": 1.},
+        {"step": 19600, "label": "CulturaX Mix à 0.4", "color": "blue", "lw": 1.},
+        {"step": 25400, "label": "CulturaX Mix à 0.35", "color": "blue", "lw": 1.},
+        {"step": 27200, "label": "Palier 2.6 - Atteint", "color": "gray", "lw": 1.},
+        {"step": 50000, "label": "Cible 2.5", "color": "blue", "lw": 1.5},
     ]
 
     # 3. Appel de la fonction de graphisme

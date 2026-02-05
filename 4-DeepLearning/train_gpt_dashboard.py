@@ -1,12 +1,12 @@
 import json, re, time, os, psutil, subprocess, json, math
 import numpy as np
-import torch
+import torch, gc
 from datetime import timedelta, datetime
 from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
 
 # --- CONFIGURATION (À vérifier dans ton script d'entraînement) ---
-VERSION = 'v4.2'
+VERSION = 'v5.0'
 LOG_FILE = 'model/training.log'
 MONITOR_FILE = 'model/monitor.log'
 HISTORY_FILE = 'model/my_wiky_history.json'
@@ -46,6 +46,9 @@ UI = {
 
 color_rank = ["\033[91m","\033[38;5;208m","\033[93m","\033[92m","\033[94m","\033[95m"]
 
+def calcul_epoch(step, target, mix, batch, grad, t_step):
+    return int((target - step * batch) / (batch * mix * grad) + t_step)
+    
 def calcul_ema(data):
     # Calcul de la moyenne mobile exponentielle
     ema_loss=data[0]
@@ -377,7 +380,8 @@ def get_dashboard():
     step, wiki, cult, config, model_ema, n_params, params = get_checkpoint(file)
     batch_size = params.get('batch_size',32)
     block_size = params.get('block_size',BLOCK_SIZE)
-    EBS = params['batch_size'] * params['grad_accum_steps']
+    grad_accum_steps = params['grad_accum_steps']
+    EBS = batch_size * grad_accum_steps
     ratio_wiki = wiki/(wiki+cult)*100
     ratio_cult = cult/(wiki+cult)*100
     remaining_steps = TARGET_TRAIN - steps[-1]
@@ -403,7 +407,14 @@ def get_dashboard():
         pct = pct % 100
     bar_ds1 = "▬" * (int(pct_ds1/4)-1)+ f"{UI['RED']}▬" +UI['DIM']+UI['CYAN']+ "┅" * (25 - int(pct_ds1/4))
     bar_ds2 = "▬" * (int(pct_ds2/4)-1)+ f"{UI['RED']}▬" +UI['DIM']+UI['CYAN']+ "┅" * (25 - int(pct_ds2/4))
-    # --- AFFICHAGE DU DASHBOARD --------------------------------------------------------------------------------
+
+    epoch_ds1 = calcul_epoch(data_monitor[-1]['dataset1'] , TARGET_BLOCK_DS1, (1-params.get('mixed_ratio',0.4)), batch_size, grad_accum_steps, data_monitor[-1]['step'])
+    epoch_ds2 = calcul_epoch(data_monitor[-1]['dataset2'] , TARGET_BLOCK_DS2, (params.get('mixed_ratio',0.4)), batch_size, grad_accum_steps, data_monitor[-1]['step'])
+
+    #--------------------------------
+    # --- AFFICHAGE DU DASHBOARD --- ---------------------------------------------------------------------------
+    #--------------------------------
+    
     os.system('clear')
     Titre = f"🚀 M1 GPT-MONITOR {VERSION}. - {steps[-1]}/{current_interval} - {epoch}"
     timestamp = datetime.now().strftime('%H:%M:%S')
@@ -421,15 +432,15 @@ def get_dashboard():
     print(f"  {cpu_status} CPU Usage: {cpu_color}{cpu_usage:.1f}% {UI['RESET']} | {gpu_status} GPU Usage: {gpu_color}{gpu_usage:.1f}% {UI['RESET']} | {ssd_status} SSD Usage {ssd_color}{ssd_usage:.1f}% ")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
 #    print(f"  Epoch: {pct:4.1f}% {UI['CYAN']}┣{bar}┫ {UI['RESET']}pour {TARGET_STEP} steps")
-    print(f"  Train: {pct_train:4.1f}% {UI['CYAN']}┣{bar_train}┫ {UI['RESET']}pour {TARGET_TRAIN} steps")
-    print(f"  Wiki : {pct_ds1:4.1f}% {UI['CYAN']}┣{bar_ds1}┫ {UI['RESET']}pour {TARGET_BLOCK_DS1:7d} blocks")
-    print(f"  Cult : {pct_ds2:4.1f}% {UI['CYAN']}┣{bar_ds2}┫ {UI['RESET']}pour {TARGET_BLOCK_DS2:7d} blocks")
-    print(f"  Wikipédia en cours : {wiki} steps  [{wiki*BLOCK_SIZE/1024**2:.1f} Mo]")
-    print(f"  CulturaX  en cours : {cult} steps  [{cult*BLOCK_SIZE/1024**2:.1f} Mo]")
+    print(f"     Train: {pct_train:4.1f}% {UI['CYAN']}┣{bar_train}┫ {UI['RESET']}pour {TARGET_TRAIN} steps")
+    print(f"     Wiki : {pct_ds1:4.1f}% {UI['CYAN']}┣{bar_ds1}┫ {UI['RESET']}pour {TARGET_BLOCK_DS1:7d} blocks")
+    print(f"     Cult : {pct_ds2:4.1f}% {UI['CYAN']}┣{bar_ds2}┫ {UI['RESET']}pour {TARGET_BLOCK_DS2:7d} blocks")
+    print(f"     Wikipédia  | batch: {wiki} | end: {epoch_ds1} | {wiki*BLOCK_SIZE/1000**2:.1f} Mtoken")
+    print(f"     CulturaX   | batch: {cult} | end: {epoch_ds2} | {cult*BLOCK_SIZE/1000**2:.1f} Mtoken")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
     print(f"  {temp_icon} PERFORMANCES")
-    print(f"  {temp_color}SPD : {sec_per_step:.2f} s/st{UI['RESET']} | DATA: {tok_s:,.0f} tok/s")
-    print(f"  ETA {TARGET_TRAIN}: {eta_str}")
+    print(f"     {temp_color}SPD : {sec_per_step:.2f} s/st{UI['RESET']} | DATA: {tok_s:,.0f} tok/s")
+    print(f"     ETA {TARGET_TRAIN}: {eta_str}")
     print(f"{UI['GRAY']}"+f"━" * (LIGNE_LEN) + f"{UI['RESET']}")
     
 
@@ -469,16 +480,16 @@ def get_dashboard():
 
     print(f"  {loss_icon} {loss_color}{loss_name}{UI['RESET']}    | LOSS: {loss_color}{losses[-1]:.3f}{UI['RESET']} | EMA: {ema_color}{ema_loss:.3f}{UI['RESET']}")
     print(f"  📚 SAVOIR ABSORBÉ : {total_tokens / 1e6:.2f} Millions de tokens")
-    print(f"  Ratio {w}Wikipédia/{c}CulturaX : {w}{ratio_wiki:.1f}% / {c}{ratio_cult:.1f}% | {w}{bar}{UI['RESET']}")  
+    print(f"     Ratio {w}Wikipédia/{c}CulturaX : {w}{ratio_wiki:.1f}% / {c}{ratio_cult:.1f}% | {w}{bar}{UI['RESET']}")  
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
     print(f"  {status} | ratio efficience: {efficiency:.2f}")
-    print(f"  {gap_color}GAP: {gap:.3f}{UI['RESET']} | {graph}")
+    print(f"     {gap_color}GAP: {gap:.3f}{UI['RESET']} | {graph}")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
     
     # Predictions
     print(f"  🔮 PRÉDICTIONS ",end="")
     print(f" | TREND: {trend_1k:+.3f}/1k")
-    print("  ",end="")
+    print("    ",end="")
     for h in [1000, 5000,  10000]:
         target = losses[-1] + (slope * h)
         print(f" | +{h:5} st ➔ \033[1m{max(2.0, target):.3f}\033[0m", end="")
@@ -523,9 +534,11 @@ def get_dashboard():
     print(f"\n{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
 
     print(f"  📦 CONFIG du training")
-    for c, p in zip(config,params):
-        txt = f"     |  {c} : {config[c]} "
-        print(f"{txt}"+" "*(30 - len(txt))+ f"|  {p} : {params[p]}")
+    params_ = (list(params))
+    for  p, p2, c in zip(params_[:6], params_[6:], config):
+        txt = f"     {c}: {config[c]} "
+        txt2= f"| {p}: {params[p]}"
+        print(f"{txt}"+" "*(21 - len(txt))+ f"{txt2}" +" "*(23-len(txt2)) + f"| {p2}: {params[p2]}")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
 
     print(f"  🔄 Effective Batch Size (EBS) : {UI['BOLD']}{EBS}{UI['RESET']}")
@@ -538,9 +551,16 @@ def get_dashboard():
 
 #    {'status': 'RUNNING', 'last_update': '23:08:49', 'step': 10150, 'loss': 3.2715, 'lr': '2.93e-04', 'inter': 10, 'elapse': 161.98, 'ram': 81.2, 'swap': 0.6}
     d = data_monitor[-1]
+    star = f"{UI['MAGENTA']}{UI['BOLD']}\u2605 {UI['CYAN']}" if d['purg'] == 1 else ""
+    h, m , s = map(int,d['last_update'].split(':')) # - time.time()
+    elapse = (( datetime.now() - datetime.now().replace(hour=h, minute=m,second=s) ).total_seconds())/ (d['elapse'])
+    cpt = get_micro_graph([elapse],-0.05,1.05,-1,2)
+#    elapse_time = datetime.strptime(d['last_update'],"%HH:MM:SS").time() # - time.time()
+#    print( cpt)
     loss_avg = np.mean([d['loss'] for d in data_monitor[-100:]]) # *(1 - config['dropout'])
+    loss_avg = calcul_ema([ v['loss'] for v in data_monitor ])
     arrow = f"{UI['B_OR']}\u2191{UI['CYAN']}" if (d['loss'] > loss_avg) else f"{UI['B_MAG']}\u2193{UI['CYAN']}"
-    print(f"{UI['CYAN']}   STEP : {d['step']} | SPD : {(d['elapse']/d['inter']):.2f}/st | LOSS : {d['loss']:.4f} {arrow} | AVG : {loss_avg:.4f}{UI['RESET']}")
+    print(f"{UI['CYAN']}   {star}STEP: {d['step']} | SPD : {(d['elapse']/d['inter']):.2f}/st | LOSS : {d['loss']:.4f} {arrow} | AVG : {loss_avg:.4f}{UI['RESET']} {cpt}")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
 
     # Step dynamique (incrémente en temps réel)
@@ -553,19 +573,18 @@ def get_dashboard():
     run_ecart += f"{datetime.fromtimestamp(abs(next_run_ecart)).strftime('%M:%S')}"
     next_run = datetime.fromtimestamp(last_update + current_interval * sec_per_step)
 
-    print(f"{UI['CYAN']}   Run de {current_interval} steps  {UI['RED'] if p_step > 0.90 else UI['CYAN']} ┣{bar}┫ {UI['RESET']}{UI['CYAN']}   {next_run.strftime('%H:%M')} {run_ecart}){UI['RESET']}")  # ┣{bar}┫ {UI['DIM']")
+    print(f"{UI['CYAN']}   Run de {current_interval} steps  {UI['RED'] if p_step > 0.95 else UI['CYAN']} ┣{bar}┫ {UI['RESET']}{UI['CYAN']}   {next_run.strftime('%H:%M')} {run_ecart}){UI['RESET']}")  # ┣{bar}┫ {UI['DIM']")
     # print(f"{U['D']}Log: {curr['step']} (+{int(steps_since_log)}{U['RE']}")
     
 #    padding = (LIGNE_LEN - 5)//2
 #    print(f" "*padding+f"{next_run.strftime('%H:%M')}{UI['RESET']}")
     # print(f"{U['D']}"+f" "*padding+f"{datetime.now().strftime('%H:%M:%S')}{U['RE']}")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
-    print(d)
+#    print(d)
 
 while True:
-#    print(get_gpu_usage())
-
     try: get_dashboard()
     except: 
         print('error:')
+    gc.collect()
     time.sleep(30)

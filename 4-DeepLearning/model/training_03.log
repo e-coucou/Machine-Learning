@@ -1,0 +1,74 @@
+🚀 Initialisation de l'entraînement sur MPS...
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+📈 Reprise : Wiki à 141713 | CulturaX à 112696 | 8
+✅ Modèle restauré. Steps faits: 19600
+✅ État de l'optimiseur restauré.
+🚀 Dataset Train: 1526.63M tokens.
+🚀 Dataset Val: 169.63M tokens.
+🚀 Dataset CulturaX: 621.92M tokens.
+✅ Provider HP initialisé : 5963390 blocs uniques. Epoch : 0
+🔄 Reprise au batch 141713 [step : 141713]
+✅ Provider HP initialisé : 2429390 blocs uniques. Epoch : 0
+🔄 Reprise au batch 112696 [step : 112696]
+🚀 Monitor activé : écriture dans model/monitor.log
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : On lance MAc Fans Control pour refroidir ....
+[96m[Model config][0m
+  n_embd             : 768[0m
+  num_heads          : 12[0m
+  n_layers           : 10[0m
+  block_size         : 256[0m
+  dropout            : [93m0.15[0m
+[96m[Train params][0m
+  batch_size         : 8[0m
+  grad_accum_steps   : 16[0m
+  learning_rate      : [92m0.0003[0m
+  min_lr             : 3e-05[0m
+  warmup_iters       : 2000[0m
+  lr_decay_iters     : 80000[0m
+  eval_interval      : [92m200[0m
+  eval_iters         : 20[0m
+  save_interval      : 200[0m
+  n_version          : 5[0m
+  use_compile        : False[0m
+  cult_data          : True[0m
+  mixed_ratio        : 0.4[0m
+  ema_decay          : 0.0[0m
+  monitor_interval   : 10[0m
+  [1mEffective Batch Size: 128[0m
+..................................................
+
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 19600
+   📉 Evaluation tous les : 200 steps
+   💾 Sauvegarde tous les : 200 steps
+🟢 RAM Système: 57.7% | Process: 659Mo | Swap: 477Mo
+step 19800: train loss 2.7400, val loss 2.6392, lr 2.67e-04 (3250.20s) | 🟡 Po: 72.6% SW: 477Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 20000: train loss 2.5919, val loss 2.6665, lr 2.66e-04 (3241.66s) | 🟡 Po: 72.8% SW: 477Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 20200: train loss 2.6929, val loss 2.6687, lr 2.65e-04 (3261.90s) | 🟡 Po: 73.9% SW: 469Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 20400: train loss 2.7064, val loss 2.7204, lr 2.65e-04 (3269.13s) | 🟡 Po: 73.1% SW: 469Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 20600: train loss 2.7605, val loss 2.7416, lr 2.64e-04 (3245.11s) | 🟢 Po: 62.7% SW: 469Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 20800: train loss 2.6116, val loss 2.6709, lr 2.63e-04 (3272.74s) | 🟡 Po: 76.2% SW: 469Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 21000: train loss 2.6710, val loss 2.7086, lr 2.62e-04 (3393.69s) | 🟡 Po: 75.9% SW: 469Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 21200: train loss 2.6413, val loss 2.5451, lr 2.62e-04 (3395.14s) | 🟡 Po: 74.1% SW: 469Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 21400: train loss 2.6768, val loss 2.6324, lr 2.61e-04 (3397.34s) | 🟡 Po: 76.3% SW: 469Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 21600: train loss 2.6265, val loss 2.6819, lr 2.60e-04 (3395.11s) | 🟡 Po: 77.6% SW: 469Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 21800: train loss 2.5546, val loss 2.6351, lr 2.59e-04 (3333.72s) | 🟡 Po: 76.3% SW: 469Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 22000: train loss 2.5995, val loss 2.6745, lr 2.59e-04 (3274.66s) | 🟡 Po: 77.9% SW: 453Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 22200: train loss 2.7011, val loss 2.7040, lr 2.58e-04 (3394.42s) | 🟡 Po: 77.7% SW: 453Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 22400: train loss 2.6652, val loss 2.6837, lr 2.57e-04 (3394.02s) | 🟡 Po: 76.7% SW: 453Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 22600: train loss 2.5942, val loss 2.6964, lr 2.56e-04 (3397.90s) | 🟡 Po: 78.6% SW: 453Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 22800: train loss 2.7105, val loss 2.5546, lr 2.55e-04 (3397.80s) | 🟡 Po: 79.5% SW: 453Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 23000: train loss 2.6917, val loss 2.6328, lr 2.55e-04 (3397.51s) | 🟡 Po: 78.2% SW: 453Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 23200: train loss 2.6445, val loss 2.6719, lr 2.54e-04 (3396.24s) | 🟡 Po: 78.8% SW: 445Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 23400: train loss 2.6721, val loss 2.6080, lr 2.53e-04 (3395.80s) | 🟡 Po: 80.0% SW: 445Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 23600: train loss 2.4696, val loss 2.6336, lr 2.52e-04 (3396.15s) | 🟡 Po: 79.3% SW: 445Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 23800: train loss 2.4924, val loss 2.5162, lr 2.51e-04 (3395.38s) | 🟡 Po: 80.4% SW: 445Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 24000: train loss 2.5585, val loss 2.7575, lr 2.50e-04 (3395.95s) | 🟡 Po: 81.1% SW: 445Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 24200: train loss 2.5796, val loss 2.5935, lr 2.50e-04 (3396.31s) | 🟡 Po: 79.4% SW: 445Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 24400: train loss 2.4980, val loss 2.6498, lr 2.49e-04 (3359.93s) | 🟡 Po: 76.4% SW: 445Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 24600: train loss 2.7292, val loss 2.6054, lr 2.48e-04 (3271.07s) | 🟡 Po: 82.0% SW: 461Mo MPS: 1981Mo | 💾 | 🗑️ | ✨

@@ -12,12 +12,12 @@ import json
 import threading
 import queue, gc
 
-
 # -----------------------------------------------------------------------------
 # 1. BLOCS DE BASE DU MODÈLE (Architecture GPT "Decoder-Only")
 # -----------------------------------------------------------------------------
-class MultiHeadAttention_linear(nn.Module):
-    """ Causal Self-Attention. C'est le coeur du mécanisme GPT. """
+class MultiHeadAttention_large(nn.Module):
+    """ Causal Self-Attention. C'est le coeur du mécanisme GPT. 
+        Utilisation de la fonction intégrée dans Torch v2 avec le composant metal. """
     def __init__(self, num_heads, head_size, n_embd, block_size, dropout):
         super().__init__()
         self.num_heads = num_heads
@@ -27,7 +27,7 @@ class MultiHeadAttention_linear(nn.Module):
         self.qkv = nn.Linear(n_embd, 3 * n_embd, bias=False)
         self.proj = nn.Linear(n_embd, n_embd)
         
-        self.dropout_val = dropout # pour le passer en argument
+        self.dropout_val = dropout # pour le passer en argument à la SPDA
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
@@ -46,18 +46,14 @@ class MultiHeadAttention_linear(nn.Module):
             dropout_p = self.dropout_val if self.training else 0.0,
             is_causal = True
         )
-
-        # on reassemble
-        out = out.transpose(1, 2).contiguous().view(B, T, C)
-        
         # Recomposition
-        # out = out.permute(0, 2, 1, 3).contiguous().reshape(B, T, C)
+        #1 out = out.permute(0, 2, 1, 3).contiguous().reshape(B, T, C)
+        #2 out = out.transpose(1, 2).contiguous().view(B, T, C)
+        out = out.transpose( 1, 2).reshape(B, T, C)
         
         out = self.proj(out)
         out = self.dropout(out)
         return out
-
-
 
 class MultiHeadAttention(nn.Module):
     """ Causal Self-Attention. C'est le coeur du mécanisme GPT. """
@@ -102,7 +98,8 @@ class MultiHeadAttention(nn.Module):
         out = torch.matmul(attn_weights, v)  # (B, num_heads, T, head_size)
         
         # Recomposition
-        out = out.permute(0, 2, 1, 3).contiguous().reshape(B, T, C)
+        #out = out.permute(0, 2, 1, 3).contiguous().reshape(B, T, C)
+        out = out.transpose(1, 2).reshape(B, T, C)
         
         out = self.proj(out)
         out = self.dropout(out)
@@ -147,6 +144,9 @@ class GPTLanguageModel(nn.Module):
         
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
+
+        # on initialise ici pour éviter de le refaire à chaque cycle de forward
+        self.register_buffer('pos_idx', torch.arange(block_size))
         
         self.blocks = nn.Sequential(*[
             Block(n_embd, num_heads, block_size, dropout) for _ in range(n_layers)
@@ -172,7 +172,9 @@ class GPTLanguageModel(nn.Module):
         
         # Embeddings
         tok_emb = self.token_embedding_table(idx) # (B,T,C)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=device)) # (T,C)
+        # On utilise le buffer de l'init. plus besoin de faire le arange
+        #pos_emb = self.position_embedding_table(torch.arange(T, device=device)) # (T,C)
+        pos_emb = self.position_embedding_table(self.pos_idx[:T])
         x = tok_emb + pos_emb
         
         # Passage dans les blocs
@@ -184,8 +186,11 @@ class GPTLanguageModel(nn.Module):
         loss = None
         if targets is not None:
             B, T, C = logits.shape
-            logits = logits.view(B*T, C)
-            targets = targets.view(B*T)
+            # on utilise le reshape plus sure ...
+            #logits = logits.view(B*T, C)
+            #targets = targets.view(B*T)
+            logits = logits.reshape(-1, C)
+            targets = targets.reshape(-1)
             loss = F.cross_entropy(logits, targets)
 
         return logits, loss
@@ -680,7 +685,9 @@ class ContinuousTrainer:
             ckpt = torch.load(self.ckpt_path, map_location=self.device) # à verifier ...
             
             # 1. Chargement des poids du modèle et de l'EMA si existant
-            self.model.load_state_dict(ckpt['model'])
+            # SUite à la modif du model (suppression du mask triangulaire et utilisation SPDA)
+            #self.model.load_state_dict(ckpt['model'])
+            self.model.load_state_dict(ckpt['model'], strict=False)
             if 'ema_model' in ckpt:
                 self._saved_ema_state = ckpt['ema_model']
 
@@ -1043,6 +1050,7 @@ class ContinuousTrainer:
         t_model=0
         t_init=0
         t_eval=0
+        purge = 0
         t_monitor=time.time()
         previous_step = self.total_steps_done
         while self.total_steps_done < max_steps:
@@ -1103,8 +1111,9 @@ class ContinuousTrainer:
             # --- EVALUATION & PLOT (Fréquent) ---
             t5 = time.time()
             if self.total_steps_done % monitor_interval == 0:
-                self.monitor.log(self.total_steps_done, accum_loss, lr, monitor_interval, t5-t_monitor, self.total_step_wiki, self.total_step_cult)
+                self.monitor.log(self.total_steps_done, accum_loss, lr, monitor_interval, t5-t_monitor, self.total_step_wiki, self.total_step_cult, purge)
                 t_monitor=time.time()
+                purge=0
                 
             if self.total_steps_done % eval_interval == 0:
                 elapsed = time.time() - start_time
@@ -1146,9 +1155,10 @@ class ContinuousTrainer:
 
             # 3. Purge préventive avant l'effort d'évaluation
             if self.total_steps_done % 50 == 0:
+                gc.collect()           # Libère la RAM CPU (NumPy/Tensors CPU)
                 if torch.backends.mps.is_available():
-                    gc.collect()           # Libère la RAM CPU (NumPy/Tensors CPU)
                     torch.mps.empty_cache()
+                    purge=1
 
             
 
@@ -1374,7 +1384,7 @@ class Monitor:
                 f.write(json.dumps(data) + "\n")
             self.queue.task_done()
             
-    def log(self, step, loss, lr, inter, elapse, dataset1, dataset2):
+    def log(self, step, loss, lr, inter, elapse, dataset1, dataset2, purge):
         # Capture des stats système
         mem = psutil.virtual_memory()
         swap = psutil.swap_memory()    
@@ -1390,6 +1400,7 @@ class Monitor:
             "swap": round(swap.used / (1024**3), 2),
             "dataset1": dataset1,
             "dataset2": dataset2,
+            "purg": purge
             }
         self.queue.put(data)        
 
