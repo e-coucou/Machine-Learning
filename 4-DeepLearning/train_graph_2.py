@@ -32,6 +32,7 @@ def main():
         {"step": 19600, "label": "CulturaX Mix à 0.4", "color": "blue", "lw": 1.},
         {"step": 25400, "label": "CulturaX Mix à 0.35", "color": "blue", "lw": 1.},
         {"step": 27200, "label": "Palier 2.6 - Atteint", "color": "gray", "lw": 1.},
+        {"step": 34800, "label": "CulturaX Mix à 0.30", "color": "blue", "lw": 1.},
         {"step": 50000, "label": "Cible 2.5", "color": "blue", "lw": 1.5},
     ]
 

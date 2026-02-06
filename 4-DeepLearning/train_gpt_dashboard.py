@@ -15,7 +15,7 @@ BATCH_SIZE = 128   # au réel 32 Batch_size x 4 grad_accum
 BLOCK_SIZE = 256   
 TARGET_STEP = 46589 # Nombre total de steps pour 1 epoch : 5963390 block de 256 /(32*4) = 46589
 TARGET_TRAIN = 80000
-LIGNE_LEN = 67
+LIGNE_LEN = 73
 TARGET_BLOCK_DS1 = 5963390
 TARGET_BLOCK_DS2 = 2429390
 
@@ -506,7 +506,7 @@ def get_dashboard():
     asymptote_str = f"{asymptote:.3f}"
     target_txt = ['🎯', 'PLANCHER', 'THÉORIQUE', asymptote_str]
     # Affichage de l'asymptote avec couleur
-    print(f"  🔮 PRÉVISIONS (Scaling Law - Scipy)              |       🎯")
+    print(f"  🔮 PRÉVISIONS (Scaling Law - Scipy)                    |       🎯")
     if preds:
         i=1
         for h, val in preds.items():
@@ -535,17 +535,22 @@ def get_dashboard():
 
     print(f"  📦 CONFIG du training")
     params_ = (list(params))
-    for  p, p2, c in zip(params_[:6], params_[6:], config):
-        txt = f"     {c}: {config[c]} "
-        txt2= f"| {p}: {params[p]}"
-        print(f"{txt}"+" "*(21 - len(txt))+ f"{txt2}" +" "*(23-len(txt2)) + f"| {p2}: {params[p2]}")
+    for  p1, p2, p3 in zip(params_[:5], params_[5:10], params_[10:]):
+        txt = f"     {p1}: {params[p1]} "
+        txt2= f"| {p2}: {params[p2]}"
+        print(f"{txt}"+" "*(27 - len(txt))+ f"{txt2}" +" "*(25-len(txt2)) + f"| {p3}: {params[p3]}")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
 
-    print(f"  🔄 Effective Batch Size (EBS) : {UI['BOLD']}{EBS}{UI['RESET']}")
-    print(f"  📥 Taille du Model : {n_params/1e6:.2f}M Paramètres")
+    print(f"  🔄 Effective Batch Size (EBS) : {UI['BOLD']}{EBS}{UI['RESET']}     | ",end="")
     ema_model_status = '✅' if model_ema is not None else '❌'
     print(f"  {ema_model_status} Model EMA")
-    print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
+    print(f"  📥 Taille du Model : {UI['BOLD']}{n_params/1e6:.1f}M{UI['RESET']} Paramètres")
+    print(f"    ",end="")
+    for i, (c,v) in enumerate(config.items()):
+        txt = f" {c}: {v}"
+        print(txt+" "*(22 - len(txt))+"|",end="")
+        if i == 2: print("\n    ",end="")
+    print(f"\n{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
 
     #-----------  AFFICHE de Train/Run en cours -------------
 

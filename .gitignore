@@ -16,3 +16,6 @@ pongCritic.h5
 /4-DeepLearning/data/parquet
 4-DeepLearning/token_parquet.ipynb
 /4-DeepLearning/data/textes
+/4-DeepLearning/data/epub
+4-DeepLearning/data/corpus_litteraire_clean.txt
+4-DeepLearning/data/corpus_litteraire_clean_2.txt

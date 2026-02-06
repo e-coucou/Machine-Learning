@@ -124,7 +124,7 @@ def plot_poussin_gap(
     # Optionnel : Ajoute des petits traits (minuscules) tous les 500 pour plus de précision
     ax.xaxis.set_minor_locator(ticker.MultipleLocator(500))
     # Rotation des labels pour éviter qu'ils ne se chevauchent s'il y en a trop
-    ax.set_yticks(np.arange(y_min, y_max, (y_max-y_min)/10))
+    ax.set_yticks(np.arange(y_min, y_max, 0.1)) #(y_max-y_min)/10))
     plt.xticks(rotation=45)
     
 
@@ -209,7 +209,7 @@ def plot_poussin_gap(
         ax.plot(steps, val_loss, label="Val Loss", color="#fa831b", lw=2)
         ax.plot(steps, ema_smooth, label="EMA lissée", color="#ff0000", linestyle="-.", lw=1.5)
         if raw:
-            ax.plot(monitor_step[20:], moving_average(monitor_loss,21)*1, label="train: raw data", color="#000000", linestyle=":", lw=0.5)
+            ax.plot(monitor_step[10:], moving_average(monitor_loss,11)*1, label="train: raw data", color="#000000", linestyle=":", lw=0.5)
 
     # --- TARGET --- (Ligne Horizontale) -------------
     if target is not None:
@@ -226,7 +226,7 @@ def plot_poussin_gap(
             else:
                 ETA = ""
             ax.axvline( x=ev["step"], color=ev.get("color", "black"), linestyle="--", alpha=0.6, lw=ev.get("lw", 1))
-            ax.text( ev["step"] - 800, y_min + 0.02, f"[{ev['step']:5d}] - " + ev["label"] + ETA, rotation=90, color=ev.get("color", "black"), fontsize=9, verticalalignment="bottom")
+            ax.text( ev["step"] - 600, y_min + 0.02, f"[{ev['step']:5d}] - " + ev["label"] + ETA, rotation=90, color=ev.get("color", "black"), fontsize=9, verticalalignment="bottom")
 
     if compare:
         ax.axvline( x=compare, color="black", linestyle="--", alpha=0.7, lw=0.8)
@@ -234,11 +234,11 @@ def plot_poussin_gap(
         label = f"[{epoch_ds1}] Epoch 1 - Dataset 1 (Wiki)"
         if epoch_ds1<x_max:
             ax.axvline( x=epoch_ds1, color="magenta", linestyle="--", alpha=0.7, lw=0.8)
-            ax.text( epoch_ds1-800, y_min + 0.02, label , rotation=90, color=ev.get("color", "magenta"), fontsize=9, verticalalignment="bottom")
+            ax.text( epoch_ds1-600, y_min + 0.02, label , rotation=90, color=ev.get("color", "magenta"), fontsize=9, verticalalignment="bottom")
         label = f"[{epoch_ds2}] Epoch 1 - Dataset 2 (CulturaX)"
         if epoch_ds2<x_max :
             ax.axvline( x=epoch_ds2, color="magenta", linestyle="--", alpha=0.7, lw=0.8)
-            ax.text( epoch_ds2-800, y_min + 0.02, label , rotation=90, color=ev.get("color", "magenta"), fontsize=9, verticalalignment="bottom")
+            ax.text( epoch_ds2-600, y_min + 0.02, label , rotation=90, color=ev.get("color", "magenta"), fontsize=9, verticalalignment="bottom")
 
     # --- RÉGLAGES FINAUX ---
     ax.set_ylim(y_min, y_max)
