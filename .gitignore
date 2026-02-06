@@ -20,3 +20,4 @@ pongCritic.h5
 4-DeepLearning/data/corpus_litteraire_clean.txt
 4-DeepLearning/data/corpus_litteraire_clean_2.txt
 *.pyc
+*.pyc
