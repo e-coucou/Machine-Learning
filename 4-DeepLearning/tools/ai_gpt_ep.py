@@ -1030,6 +1030,7 @@ class ContinuousTrainer:
         
         batch_size = self.params['batch_size']
         grad_accum = self.params.get('grad_accum_steps', 1)
+        current_grad_norm = []
         
         # Combien de steps on vise au total (ex: 100 000)
         max_steps = self.params.get('lr_decay_iters', 100_000)
@@ -1095,7 +1096,8 @@ class ContinuousTrainer:
             # On redescend les gradients avant le clipping
             t4_start = time.time()
             self.scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+            norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+            current_grad_norm.append(float(norm))
             # Step final
             self.scaler.step(self.optimizer)
             self.scaler.update()
@@ -1111,8 +1113,9 @@ class ContinuousTrainer:
             # --- EVALUATION & PLOT (Fréquent) ---
             t5 = time.time()
             if self.total_steps_done % monitor_interval == 0:
-                self.monitor.log(self.total_steps_done, accum_loss, lr, monitor_interval, t5-t_monitor, self.total_step_wiki, self.total_step_cult, purge)
+                self.monitor.log(self.total_steps_done, accum_loss, lr, monitor_interval, t5-t_monitor, self.total_step_wiki, self.total_step_cult, purge, current_grad_norm)
                 t_monitor=time.time()
+                current_grad_norm = []
                 purge=0
                 
             if self.total_steps_done % eval_interval == 0:
@@ -1384,7 +1387,7 @@ class Monitor:
                 f.write(json.dumps(data) + "\n")
             self.queue.task_done()
             
-    def log(self, step, loss, lr, inter, elapse, dataset1, dataset2, purge):
+    def log(self, step, loss, lr, inter, elapse, dataset1, dataset2, purge, array_grad_norm):
         # Capture des stats système
         mem = psutil.virtual_memory()
         swap = psutil.swap_memory()    
@@ -1400,7 +1403,8 @@ class Monitor:
             "swap": round(swap.used / (1024**3), 2),
             "dataset1": dataset1,
             "dataset2": dataset2,
-            "purg": purge
+            "purg": purge,
+            "grad_norm": [ round(n, 4) for n in array_grad_norm]
             }
         self.queue.put(data)        
 
