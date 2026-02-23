@@ -3,16 +3,18 @@
 🚀 Device: mps
 Dtype du modèle : torch.float32
 📥 Chargement du checkpoint : model/my_wiki.pth
-📈 Reprise : Wiki à 189789 | CulturaX à 144623 | 8
-✅ Modèle restauré. Steps faits: 24600
+📈 Reprise : Wiki à 114287 | CulturaX à 5722 | 8
+✅ Modèle restauré. Steps faits: 5000
 ✅ État de l'optimiseur restauré.
-🚀 Dataset Train: 1526.63M tokens.
-🚀 Dataset Val: 169.63M tokens.
+🚀 Dataset Train: 1293.11M tokens.
+🚀 Dataset Val: 143.07M tokens.
 🚀 Dataset CulturaX: 621.92M tokens.
-✅ Provider HP initialisé : 5963390 blocs uniques. Epoch : 0
-🔄 Reprise au batch 189789 [step : 189789]
-✅ Provider HP initialisé : 2429390 blocs uniques. Epoch : 0
-🔄 Reprise au batch 144623 [step : 144623]
+🚀 Dataset Train: 1293.11M tokens.
+✅ Provider HP initialisé : 3367466 blocs uniques. Epoch : 0
+🔄 Reprise au batch 114287 [step : 114287]
+✅ Provider HP initialisé : 1619593 blocs uniques. Epoch : 0
+🔄 Reprise au batch 5722 [step : 5722]
+🔄 Mixer activé avec les sources : ['cult', 'wiki']
 🚀 Monitor activé : écriture dans model/monitor.log
 🚀 Init terminé.
 📦 Démarrage du mode binaire (Continuous Training)
@@ -20,32 +22,41 @@ Dtype du modèle : torch.float32
 [96m[Model config][0m
   n_embd             : 768[0m
   num_heads          : 12[0m
-  n_layers           : 10[0m
-  block_size         : 256[0m
+  n_layers           : 12[0m
+  block_size         : 384[0m
   dropout            : [93m0.15[0m
 [96m[Train params][0m
   batch_size         : 8[0m
-  grad_accum_steps   : 16[0m
+  grad_accum_steps   : 24[0m
   learning_rate      : [92m0.0003[0m
   min_lr             : 3e-05[0m
   warmup_iters       : 2000[0m
-  lr_decay_iters     : 80000[0m
-  eval_interval      : [92m200[0m
+  lr_decay_iters     : 60000[0m
+  eval_interval      : [92m100[0m
   eval_iters         : 20[0m
-  save_interval      : 200[0m
+  save_interval      : 100[0m
   n_version          : 5[0m
   use_compile        : False[0m
   cult_data          : True[0m
-  mixed_ratio        : 0.4[0m
-  ema_decay          : 0.0[0m
+  litt_data          : False[0m
+  cult_ratio         : 0.35[0m
+  litt_ratio         : 0.0[0m
   monitor_interval   : 10[0m
-  [1mEffective Batch Size: 128[0m
+  [1mEffective Batch Size: 192[0m
 ..................................................
 
 📦 Démarrage Training sur 3Go (Mode Continu)
-   ▶️ Reprise au step : 24600
-   📉 Evaluation tous les : 200 steps
-   💾 Sauvegarde tous les : 200 steps
-🟢 RAM Système: 48.7% | Process: 666Mo | Swap: 405Mo
-step 24800: train loss 2.5398, val loss 2.6000, lr 2.47e-04 (3406.34s) | 🟡 Po: 77.4% SW: 405Mo MPS: 1972Mo | 💾 | 🗑️ | ✨
-step 25000: train loss 2.6091, val loss 2.5581, lr 2.46e-04 (3415.17s) | 🟡 Po: 77.9% SW: 405Mo MPS: 1972Mo | 💾 | 🗑️ | ✨
+   ▶️ Reprise au step : 5000
+   📉 Evaluation tous les : 100 steps
+   💾 Sauvegarde tous les : 100 steps
+🟢 RAM Système: 47.6% | Process: 694Mo | Swap: 1210Mo
+step 5100: train loss 3.1363, val loss 3.2706, lr 2.98e-04 (4608.49s) | 🟡 Po: 78.2% SW: 1202Mo MPS: 2207Mo | 💾 | 🗑️ | ✨
+step 5200: train loss 3.2539, val loss 3.1783, lr 2.98e-04 (4613.81s) | 🟡 Po: 82.0% SW: 1202Mo MPS: 2221Mo | 💾 | 🗑️ | ✨
+step 5300: train loss 3.2537, val loss 3.2580, lr 2.98e-04 (4627.51s) | 🟡 Po: 82.1% SW: 1202Mo MPS: 2234Mo | 💾 | 🗑️ | ✨
+step 5400: train loss 3.2175, val loss 3.1849, lr 2.98e-04 (4627.60s) | 🟡 Po: 81.1% SW: 1194Mo MPS: 2239Mo | 💾 | 🗑️ | ✨
+step 5500: train loss 3.1809, val loss 3.2230, lr 2.98e-04 (4598.19s) | 🟡 Po: 78.4% SW: 1194Mo MPS: 2243Mo | 💾 | 🗑️ | ✨
+step 5600: train loss 3.2203, val loss 3.2208, lr 2.97e-04 (4603.77s) | 🟡 Po: 81.4% SW: 1178Mo MPS: 2248Mo | 💾 | 🗑️ | ✨
+step 5700: train loss 3.1635, val loss 3.2050, lr 2.97e-04 (4596.54s) | 🟡 Po: 82.0% SW: 1178Mo MPS: 2249Mo | 💾 | 🗑️ | ✨
+step 5800: train loss 3.1823, val loss 3.1948, lr 2.97e-04 (4606.24s) | 🟡 Po: 79.1% SW: 1178Mo MPS: 2249Mo | 💾 | 🗑️ | ✨
+step 5900: train loss 3.2442, val loss 3.2076, lr 2.97e-04 (4607.25s) | 🟡 Po: 79.2% SW: 1178Mo MPS: 2249Mo | 💾 | 🗑️ | ✨
+step 6000: train loss 3.1714, val loss 3.1535, lr 2.97e-04 (4652.21s) | 🔴 Po: 85.1% SW: 1229Mo MPS: 2249Mo | 💾 | 🗑️ | ✨

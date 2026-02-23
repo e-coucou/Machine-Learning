@@ -43,6 +43,7 @@ def batch_convert(input_folder, output_folder):
             
             if text_content:
                 # On crée le nom du fichier .txt
+                text_content = '/START/* '+ text_content
                 txt_filename = os.path.splitext(filename)[0] + ".txt"
                 txt_path = os.path.join(output_folder, txt_filename)
                 

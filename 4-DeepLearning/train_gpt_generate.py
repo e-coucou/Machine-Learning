@@ -28,17 +28,17 @@ def main():
     token_.load_merges('data/ep_merges_full.json')
     token = tk.OptimizedTokenizer(merges=token_.merges)    
 
-    print(f"📡 Chargement de : {args.model}")
+#    print(f"📡 Chargement de : {args.model}")
     try:
         # On passe le tokenizer et le chemin du checkpoint
-        model_gen = gpt.GenerateGPT(tokinizer=token, ckpt_path=args.model,default_model=args.default)
+        model_gen = gpt.GenerateGPT(tokenizer=token, ckpt_path=args.model,default_model=args.default)
         model_gen.load_for_inference()
-        print(model_gen.config)
+ #       print(model_gen.config)
     except Exception as e:
         print(f"❌ Erreur : {e}")
         return
 
-    print(f"🧠 Génération en cours... (Penalty: {args.rep_penalty})")
+#    print(f"🧠 Génération en cours... (Penalty: {args.rep_penalty})")
     
     # Appel de la fonction
     print("\n" + "-"*50)

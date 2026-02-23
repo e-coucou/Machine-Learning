@@ -21,3 +21,11 @@ pongCritic.h5
 4-DeepLearning/data/corpus_litteraire_clean_2.txt
 *.pyc
 *.pyc
+/4-DeepLearning/data/txt_litt
+*.pyc
+*.pyc
+4-DeepLearning/data/corpus_litteraire.txt
+4-DeepLearning/data/corpus_poussin_clean.txt
+4-DeepLearning/data/corpus_poussin_clean_2.txt
+4-DeepLearning/data/corpus_wiki_clean_train.txt
+4-DeepLearning/data/corpus_wiki_clean_val.txt

@@ -12,28 +12,29 @@ def main():
     model_config = {
         'n_embd': 768,
         'num_heads': 12,
-        'n_layers': 10,
-        'block_size': 256, 
+        'n_layers': 12,
+        'block_size': 384, 
         'dropout': 0.15
     }
 
     # --- HYPERPARAMÈTRES D'ENTRAÎNEMENT ---
     train_params = {
         'batch_size': 8, # pour libérer de la mémoire ...
-        'grad_accum_steps': 16,      # Batch effectif de 128
+        'grad_accum_steps': 48,      # Batch effectif de 128
         'learning_rate': 3e-4, 
-        'min_lr': 3e-5, 
+        'min_lr': 5e-5, 
         'warmup_iters': 2000,
         'lr_decay_iters': 80000, # initialement 100_000 mais le modèle rebondit vers 7000 steps 
-        'eval_interval': 200,
+        'eval_interval': 50,
         'eval_iters': 20, # mini 20 pour lisser 
-        'save_interval': 200,
+        'save_interval': 50,
         'n_version' : 5,
         'use_compile': False,
-        'cult_data': True,
-        'mixed_ratio': 0.30,  # Ratio de données CulturaX dans chaque batch
-        'ema_decay': 0., # 0 pour désactiver
-        'monitor_interval': 10,
+        'cult_data': True, # à supprimer car ne sert à rien
+        'litt_data': True, # à supprimer car ne sert à rien
+        'cult_ratio': 0.15,  # Ratio de données CulturaX dans chaque batch
+        'litt_ratio': 0.05,  # Ratio de données Littéraire  dans chaque batch
+        'monitor_interval': 5,
     }
 
     # --- INITIALISATION DES COMPOSANTS ---

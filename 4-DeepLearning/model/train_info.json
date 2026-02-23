@@ -1,0 +1,9 @@
+{
+  "model_4": [
+    {"start_step": 0, "end_step": 100000, "ebs": 192, "block_size": 256}
+  ],
+  "model_5": [
+    {"start_step": 0, "end_step": 8100, "ebs": 192, "block_size": 384},
+    {"start_step": 8101, "end_step": 80000, "ebs": 384, "block_size": 384}
+  ]
+}

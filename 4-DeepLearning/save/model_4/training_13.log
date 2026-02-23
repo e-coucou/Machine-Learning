@@ -1,0 +1,58 @@
+🚀 Initialisation de l'entraînement sur MPS...
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+📈 Reprise : Wiki à 478690 | CulturaX à 284672 | 8
+✅ Modèle restauré. Steps faits: 52800
+✅ État de l'optimiseur restauré.
+🚀 Dataset Train: 1293.11M tokens.
+🚀 Dataset Val: 143.07M tokens.
+🚀 Dataset CulturaX: 621.92M tokens.
+🚀 Dataset Litteraire: 44.58M tokens.
+✅ Provider HP initialisé : 5051199 blocs uniques. Epoch : 0
+🔄 Reprise au batch 478690 [step : 478690]
+✅ Provider HP initialisé : 2429390 blocs uniques. Epoch : 0
+🔄 Reprise au batch 284672 [step : 284672]
+✅ Provider HP initialisé : 174137 blocs uniques. Epoch : 1
+🔄 Reprise au batch 22277 [step : 22277]
+🔄 Mixer activé avec les sources : ['litt', 'cult', 'wiki']
+🚀 Monitor activé : écriture dans model/monitor.log
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : On lance MAc Fans Control pour refroidir ....
+[96m[Model config][0m
+  n_embd             : 768[0m
+  num_heads          : 12[0m
+  n_layers           : 10[0m
+  block_size         : 256[0m
+  dropout            : [93m0.15[0m
+[96m[Train params][0m
+  batch_size         : 8[0m
+  grad_accum_steps   : 16[0m
+  learning_rate      : [92m0.0003[0m
+  min_lr             : 3e-05[0m
+  warmup_iters       : 2000[0m
+  lr_decay_iters     : 80000[0m
+  eval_interval      : [92m200[0m
+  eval_iters         : 20[0m
+  save_interval      : 200[0m
+  n_version          : 5[0m
+  use_compile        : False[0m
+  cult_data          : True[0m
+  litt_data          : True[0m
+  mixed_ratio        : 0.3[0m
+  litt_ratio         : 0.05[0m
+  ema_decay          : 0.0[0m
+  monitor_interval   : 10[0m
+  [1mEffective Batch Size: 128[0m
+..................................................
+
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 52800
+   📉 Evaluation tous les : 200 steps
+   💾 Sauvegarde tous les : 200 steps
+🟢 RAM Système: 67.5% | Process: 696Mo | Swap: 1000Mo
+step 53000: train loss 2.8415, val loss 2.8862, lr 1.02e-04 (3240.75s) | 🟢 Po: 69.6% SW: 1000Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 53200: train loss 2.8580, val loss 2.7850, lr 1.01e-04 (3238.31s) | 🟡 Po: 74.1% SW: 1000Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+step 53400: train loss 2.9161, val loss 2.8974, lr 1.00e-04 (3302.59s) | 🟡 Po: 70.1% SW: 992Mo MPS: 1981Mo | 💾 | 🗑️ | ✨

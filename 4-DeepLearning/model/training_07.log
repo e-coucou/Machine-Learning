@@ -3,16 +3,20 @@
 🚀 Device: mps
 Dtype du modèle : torch.float32
 📥 Chargement du checkpoint : model/my_wiki.pth
-📈 Reprise : Wiki à 268302 | CulturaX à 187719 | 8
-✅ Modèle restauré. Steps faits: 32200
+📈 Reprise : Wiki à 178936 | CulturaX à 45040 | 8
+✅ Modèle restauré. Steps faits: 8900
 ✅ État de l'optimiseur restauré.
-🚀 Dataset Train: 1526.63M tokens.
-🚀 Dataset Val: 169.63M tokens.
+🚀 Dataset Train: 1293.11M tokens.
+🚀 Dataset Val: 143.07M tokens.
 🚀 Dataset CulturaX: 621.92M tokens.
-✅ Provider HP initialisé : 5963390 blocs uniques. Epoch : 0
-🔄 Reprise au batch 268302 [step : 268302]
-✅ Provider HP initialisé : 2429390 blocs uniques. Epoch : 0
-🔄 Reprise au batch 187719 [step : 187719]
+🚀 Dataset Litteraire: 44.58M tokens.
+✅ Provider HP initialisé : 3367466 blocs uniques. Epoch : 0
+🔄 Reprise au batch 178936 [step : 178936]
+✅ Provider HP initialisé : 1619593 blocs uniques. Epoch : 0
+🔄 Reprise au batch 45040 [step : 45040]
+✅ Provider HP initialisé : 116091 blocs uniques. Epoch : 0
+🔄 Reprise au batch 8842 [step : 8842]
+🔄 Mixer activé avec les sources : ['litt', 'cult', 'wiki']
 🚀 Monitor activé : écriture dans model/monitor.log
 🚀 Init terminé.
 📦 Démarrage du mode binaire (Continuous Training)
@@ -20,43 +24,44 @@ Dtype du modèle : torch.float32
 [96m[Model config][0m
   n_embd             : 768[0m
   num_heads          : 12[0m
-  n_layers           : 10[0m
-  block_size         : 256[0m
+  n_layers           : 12[0m
+  block_size         : 384[0m
   dropout            : [93m0.15[0m
 [96m[Train params][0m
   batch_size         : 8[0m
-  grad_accum_steps   : 16[0m
+  grad_accum_steps   : 48[0m
   learning_rate      : [92m0.0003[0m
-  min_lr             : 3e-05[0m
+  min_lr             : 5e-05[0m
   warmup_iters       : 2000[0m
   lr_decay_iters     : 80000[0m
-  eval_interval      : [92m200[0m
+  eval_interval      : [92m50[0m
   eval_iters         : 20[0m
-  save_interval      : 200[0m
+  save_interval      : 50[0m
   n_version          : 5[0m
   use_compile        : False[0m
   cult_data          : True[0m
-  mixed_ratio        : 0.35[0m
-  ema_decay          : 0.0[0m
-  monitor_interval   : 10[0m
-  [1mEffective Batch Size: 128[0m
+  litt_data          : True[0m
+  cult_ratio         : 0.35[0m
+  litt_ratio         : 0.1[0m
+  monitor_interval   : 5[0m
+  [1mEffective Batch Size: 384[0m
 ..................................................
 
 📦 Démarrage Training sur 3Go (Mode Continu)
-   ▶️ Reprise au step : 32200
-   📉 Evaluation tous les : 200 steps
-   💾 Sauvegarde tous les : 200 steps
-🟢 RAM Système: 51.5% | Process: 659Mo | Swap: 341Mo
-step 32400: train loss 2.6431, val loss 2.4944, lr 2.11e-04 (3219.07s) | 🟡 Po: 75.3% SW: 341Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
-step 32600: train loss 2.6072, val loss 2.6155, lr 2.10e-04 (3221.91s) | 🟡 Po: 73.0% SW: 341Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
-step 32800: train loss 2.5473, val loss 2.5318, lr 2.09e-04 (3220.62s) | 🟡 Po: 77.1% SW: 341Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
-step 33000: train loss 2.5449, val loss 2.5378, lr 2.08e-04 (3224.05s) | 🟡 Po: 78.0% SW: 341Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
-step 33200: train loss 2.5620, val loss 2.6340, lr 2.07e-04 (3221.05s) | 🟡 Po: 78.1% SW: 341Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
-step 33400: train loss 2.4568, val loss 2.5435, lr 2.06e-04 (3220.64s) | 🟡 Po: 77.9% SW: 341Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
-step 33600: train loss 2.6158, val loss 2.4284, lr 2.05e-04 (3221.24s) | 🟡 Po: 78.7% SW: 341Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
-step 33800: train loss 2.4533, val loss 2.5813, lr 2.04e-04 (3221.29s) | 🟡 Po: 78.6% SW: 341Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
-step 34000: train loss 2.5171, val loss 2.4185, lr 2.03e-04 (3221.12s) | 🟡 Po: 78.9% SW: 333Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
-step 34200: train loss 2.4917, val loss 2.5989, lr 2.02e-04 (3220.59s) | 🟡 Po: 78.9% SW: 333Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
-step 34400: train loss 2.5837, val loss 2.6739, lr 2.00e-04 (3222.10s) | 🟡 Po: 79.3% SW: 333Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
-step 34600: train loss 2.4981, val loss 2.4412, lr 1.99e-04 (3234.75s) | 🟡 Po: 79.2% SW: 333Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
-step 34800: train loss 2.5111, val loss 2.5686, lr 1.98e-04 (3293.74s) | 🟡 Po: 79.9% SW: 333Mo MPS: 1981Mo | 💾 | 🗑️ | ✨
+   ▶️ Reprise au step : 8900
+   📉 Evaluation tous les : 50 steps
+   💾 Sauvegarde tous les : 50 steps
+🟢 RAM Système: 63.6% | Process: 699Mo | Swap: 797Mo
+step 8950: train loss 3.0293, val loss 3.0204, lr 2.95e-04 (4589.64s) | 🟡 Po: 79.7% SW: 789Mo MPS: 2198Mo | 💾 | 🗑️ | ✨
+step 9000: train loss 2.9327, val loss 3.0075, lr 2.95e-04 (4615.96s) | 🟡 Po: 80.5% SW: 780Mo MPS: 2207Mo | 💾 | 🗑️ | ✨
+step 9050: train loss 3.1157, val loss 3.0386, lr 2.95e-04 (4591.71s) | 🟡 Po: 82.6% SW: 796Mo MPS: 2214Mo | 💾 | 🗑️ | ✨
+step 9100: train loss 2.9477, val loss 3.0035, lr 2.95e-04 (4584.19s) | 🟡 Po: 83.1% SW: 796Mo MPS: 2221Mo | 💾 | 🗑️ | ✨
+step 9150: train loss 2.9707, val loss 2.9990, lr 2.95e-04 (4639.51s) | 🟡 Po: 82.2% SW: 919Mo MPS: 2227Mo | 💾 | 🗑️ | ✨
+step 9200: train loss 2.9833, val loss 2.9674, lr 2.95e-04 (4596.65s) | 🟡 Po: 82.1% SW: 911Mo MPS: 2234Mo | 💾 | 🗑️ | ✨
+step 9250: train loss 2.9239, val loss 3.0291, lr 2.95e-04 (4589.27s) | 🟡 Po: 81.8% SW: 911Mo MPS: 2236Mo | 💾 | 🗑️ | ✨
+step 9300: train loss 3.0308, val loss 3.0211, lr 2.95e-04 (4577.33s) | 🟡 Po: 82.9% SW: 903Mo MPS: 2239Mo | 💾 | 🗑️ | ✨
+step 9350: train loss 3.0129, val loss 3.0095, lr 2.95e-04 (4614.83s) | 🟡 Po: 79.3% SW: 831Mo MPS: 2241Mo | 💾 | 🗑️ | ✨
+step 9400: train loss 2.9681, val loss 2.9907, lr 2.94e-04 (4576.84s) | 🟡 Po: 82.3% SW: 831Mo MPS: 2243Mo | 💾 | 🗑️ | ✨
+step 9450: train loss 2.9232, val loss 2.9566, lr 2.94e-04 (4579.68s) | 🟡 Po: 82.4% SW: 831Mo MPS: 2245Mo | 💾 | 🗑️ | ✨
+step 9500: train loss 2.9981, val loss 3.0844, lr 2.94e-04 (4589.51s) | 🟡 Po: 79.7% SW: 831Mo MPS: 2248Mo | 💾 | 🗑️ | ✨
+step 9550: train loss 2.9795, val loss 2.9548, lr 2.94e-04 (4600.88s) | 🟡 Po: 82.6% SW: 898Mo MPS: 2249Mo | 💾 | 🗑️ | ✨
