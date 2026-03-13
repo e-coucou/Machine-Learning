@@ -1,0 +1,35 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : [���]
+La ville de Luxembourg (Allemagne), en région Grand Est, vous donne son nom au vieux Luxembourg. Le roi Philippe le Bel dans la province de Hainaut est à proximité, là où il a été décidé que les premiers Juifs aient tenté de s'y rendre.
+Commandé par un grand nombre d'habitants des villes belges et espagnoles, la ville a reçu 5000 habitants
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  de lettres de la femme, lui fit une balle en bois. Elle fut ensuite accueillie par un marchand. Le jeune homme était enfermé dans sa maison. De retour à Paris pour voir son frère aîné, il n'a pas pu quitter le château. C'est là qu'il avait pu trouver de nouveaux propriétaires. Il commença à s'enfuir mais il eut besoin d'un certain nombre d'hommes qui se
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  la même couleur que celle de l'original. Il faut donc oublier que le noir est également très doux chez les garçons.
+La couleur est un peu plus sombre chez les garçons que chez les filles: des lèvres très longues pour les cheveux blancs ou gris foncé, des oreilles courtes pour les yeux bleus ou gris foncé sur le visage.
+C'est la couleur la plus noire chez les garçons qu'à l'âge adulte
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

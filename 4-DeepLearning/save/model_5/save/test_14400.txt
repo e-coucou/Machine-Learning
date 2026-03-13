@@ -1,0 +1,44 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : �� l���Ile-de-France compte 8 000 habitants, 13 000 habitants et plus de 1 500 personnes sur les 28 qu���il s���agit des 80 communes du département. La ville se situe à 3 km au nord-est de Paris. Elle est la deuxième ville de France après Paris et la sixième ville d
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  d'affaire était assis sur une chaise longue; son maître, un peu effrayé par le bruit des pas, avait reconnu ses deux sœurs, mais il avait été pris d'une fièvre nerveuse. Il n'avait rien entendu de plus grave qu'un autre sentiment que celui d'un homme qui ne se serait jamais aperçu du sommeil, et auquel les traits de sa vue seraient presque toujours fixés vers leurs yeux
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  l'égalité entre les deux points. On peut alors écrire l'égalité d'un point qui est un triangle rectangle à une distance de ce dernier.
+La définition des inégalités d'un triangle rectangle est donnée par la formule suivante: "p"1 
+Il existe donc deux types de discriminations d'un triangle rectangle: le symbole "p"0 (qui signifie "cou", en anglais) et le symbole "p"2 (qui signifie "pou") dans le cas où "p" désigne un triangle rectangle à une distance de lui-même. L'égalité des deux sommets est définie comme le complémentaire de l'égalité de deux triangles rectangles à une distance de leur sommet.
+L'égalité des trois premiers carrés de tous les
+--------------------------------------------------
+
+
+[TEST 0 RISQUE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : �� l���un des plus importants centres d���intérêt touristique du pays ��, a déclaré le président de la République.
+La ville de Saint-Denis, en Guadeloupe, est située à 30 km au nord-ouest de Paris. Elle est également connue pour ses plages de sable blanc et ses plages de sable blanc.
+Le centre-ville de Saint-Denis est situé à 
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

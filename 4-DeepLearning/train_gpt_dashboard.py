@@ -6,19 +6,19 @@ from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
 
 # --- CONFIGURATION (À vérifier dans ton script d'entraînement) ---
-VERSION = 'v5.9.5'
+VERSION = 'v6.3.4'
 LOG_FILE = 'model/training.log'
 MONITOR_FILE = 'model/monitor.log'
 HISTORY_FILE = 'model/my_wiky_history.json'
 MODEL_FILE = 'model/my_wiki.pth'
-BATCH_SIZE = 128   # au réel 32 Batch_size x 4 grad_accum 
-BLOCK_SIZE = 256   
+BATCH_SIZE = 384   # au réel 4 Batch_size x 16 grad_accum 
+BLOCK_SIZE = 512   
 TARGET_STEP = 46589 # Nombre total de steps pour 1 epoch : 5963390 block de 256 /(32*4) = 46589
 TARGET_TRAIN = 80000
 LIGNE_LEN = 74
-TARGET_BLOCK_DS1 = 3367466 #5051199 # old avec wiki_raw 5963390
-TARGET_BLOCK_DS2 = 1619593 #2429390
-TARGET_BLOCK_DS3 = 116091 #174137
+TARGET_BLOCK_DS1 = 2525599 #3367466 #5051199 # old avec wiki_raw 5963390
+TARGET_BLOCK_DS2 = 1203058 #1619593 #2429390
+TARGET_BLOCK_DS3 = 85440 #116091 #174137
 
 timeout = 0
 first = True
@@ -73,9 +73,9 @@ def calcul_ema(data):
     
 def calcul_lr(it,params):
     # Utilisation des paramètres passés à l'init
-    warmup = params.get('warmup_iters', 500)
-    max_iters = params.get('lr_decay_iters', 80000)
-    lr_max = params.get('learning_rate', 0.0003)
+    warmup = params.get('warmup_iters', 1500)
+    max_iters = params.get('lr_decay_iters', 30000)
+    lr_max = params.get('learning_rate', 0.00035)
     lr_min = params.get('min_lr', lr_max * 0.1)
     # 1) Phase de warmup
     if it < warmup:
@@ -155,6 +155,27 @@ def get_gpu_usage():
         return 0.0, "❌", "\033[96m" ,0.0
 
     return 0.0, "?", "\033[96m", 0.0
+
+def get_throttle():
+    """Récupère l'utilisation GPU via powermetrics (macOS)"""
+    try:
+        # On lance une mesure rapide (échantillon de 10ms)
+        cmd = ["sudo", "powermetrics", "-n", "1", "--samplers", "thermal"]
+        result = subprocess.check_output(cmd).decode("utf-8")
+
+        throttle=100
+        match_th = re.search(r"Current pressure level:\s+(\w+)", result)
+        if match_th:
+            throttle = match_th.group(1)
+
+        status = "🟣" if throttle=="Nominal" else "🔴"
+        color = "\033[95m" if throttle=="Nominal" else "\033[91m"
+        return throttle, status, color
+        
+    except Exception:
+        return 0.0, "❌", "\033[96m"
+
+    return 0.0, "?", "\033[96m"
 
 def get_ssd_usage():
     try:
@@ -237,16 +258,12 @@ def get_forecast(steps, losses, horizons):
     except Exception as e:
         return None, None
 
+# Modèle : L(s) = a * s^-b + c
+def power_law(s, a, b, c):
+    return a * np.power(s, -b) + c
+
+
 def parse_monitor(monitor_log):
-#    steps, losses, times, lr, trains = [], [], [], [], []
-    """
-    data = []
-    if not os.path.exists(monitor_log): return data
-    with open(monitor_log, 'r') as f:
-        for line in f:
-            if line.strip():
-                data.append(json.loads(line))
-    """
     if not os.path.exists(monitor_log): 
         return []
     
@@ -272,9 +289,13 @@ def parse_history(history_log):
     train_loss = np.array(data["train_loss"])
     val_loss = np.array(data["val_loss"])
     time_run = np.array(data["time_elapse"])
+    val_loss_wiki = np.array(data["val_loss_wiki"])
+    val_loss_cult = np.array(data["val_loss_cult"])
+    val_loss_litt = np.array(data["val_loss_litt"])
 
-    return steps, train_loss, val_loss, time_run
+    return steps, train_loss, val_loss, time_run, val_loss_wiki, val_loss_cult, val_loss_litt
 
+""" ancien training.log
 def parse_logs(current_log):
     steps, losses, times, lr, trains = [], [], [], [], []
     
@@ -285,13 +306,15 @@ def parse_logs(current_log):
     
     # pattern = r"step (\d+): .*val loss ([\d.]+), .* \(([\d.]+)s\)"
     # pattern = r"step (\d+): train loss ([\d.]+), val loss ([\d.]+), lr ([\d.e-]+) \(([\d.]+)s\) \| .* Po: ([\d.]+)%"
-    pattern = r"step (\d+): train loss ([\d.]+), val loss ([\d.]+), lr ([\d.e-]+) \(([\d.]+)s\)" # \| .* Po: ([\d.]+)%"
-    
+    pattern = r"step (\d+): train loss ([\d.]+), val loss ([\d.]+), lr ([\d.e+-]+) \(([\d.]+)s\)" # \| .* Po: ([\d.]+)%"
+
     for file_path in all_log_files:
         if not os.path.exists(file_path): continue
         with open(file_path, 'r') as f:
             for line in f:
+#                print(line,end=" | ")
                 match = re.search(pattern, line)
+#                print(match)
                 if match:
                     s = int(match.group(1))
                     # On évite les doublons si un step est présent dans deux fichiers
@@ -314,26 +337,27 @@ def parse_logs_single(file_path):
             if match:
                 steps.append(int(match.group(1))); losses.append(float(match.group(2))); times.append(float(match.group(3)))
     return np.array(steps), np.array(losses), np.array(times)
+"""
 
 def get_intel_level(ema_loss):
-    if ema_loss > 4.00: return "CHAOS.    ", "🔴" , "\033[91m"
-    if ema_loss > 3.25: return "PHONÉTIQUE", "🟠", "\033[38;5;208m"
-    if ema_loss > 2.90: return "SYNTAXIQUE", "🟡", "\033[93m"
-    if ema_loss > 2.60: return "PERROQUET ", "🟢", "\033[92m"
-    if ema_loss > 2.45: return "ÉTUDIANT. ", "🔵", "\033[94m"
-    if ema_loss > 2.35: return "EXPERT.   ", "🟣", "\033[95m"
+    if ema_loss > 4.50: return "CHAOS.    ", "🔴" , "\033[91m" # 90
+    if ema_loss > 3.70: return "PHONÉTIQUE", "🟠", "\033[38;5;208m" # 40
+    if ema_loss > 3.00: return "SYNTAXIQUE", "🟡", "\033[93m" #20
+    if ema_loss > 2.70: return "PERROQUET ", "🟢", "\033[92m" #15
+    if ema_loss > 2.45: return "ÉTUDIANT. ", "🔵", "\033[94m" #11
+    if ema_loss > 2.30: return "EXPERT.   ", "🟣", "\033[95m" # #10
     return "MÉMORISATION", "🔥", "\033[1;38;5;201m"
 
 def get_speed_level(tok_s): # ce sont désormais des tokens/s
-    if tok_s < 1000:
+    if tok_s < 500:
         return "🔴", UI["RED"], "SURCHAUFFE"
-    elif tok_s < 1200:
+    elif tok_s < 650:
         return "🟠", UI["ORANGE"], "BOUILLANT"
-    elif tok_s < 1400:
+    elif tok_s < 800:
         return "🟡", UI["YELLOW"], "CHAUD"
-    elif tok_s < 1600:
+    elif tok_s < 930:
         return "🟢", UI["GREEN"], "FROID"
-    elif tok_s < 1800:
+    elif tok_s < 1000:
         return "🔵", UI["BLUE"], "GLACE"
     else:
         return "🟣", UI["MAGENTA"], "-----"
@@ -350,6 +374,14 @@ def get_green_level(level):
     else:
         leaf = "☢️" # c'est la panique ...
     return leaf
+
+def get_bias_status(prc):
+#    bias_wiki = f"{UI['RED']}\u25bc Spéc." if bias_wiki_v<-5 else f"{UI['RED']}\u25b2 Galère" if bias_wiki_v >5 else f"{w}\u25ac Optimal"
+    prc_abs = abs(prc)
+    bias_status = f"{UI['RED']}\u25bc Overfit" if prc < -15. else f"{UI['RED']}\u25b2 Galère" if prc > 15 else f"{UI['MAGENTA']}\u25ac Optimal" if  prc_abs<5 else f"{UI['BLUE']}\u25ac Div. No." if prc <15  else f"{UI['ORANGE']}\u25ac Alerte"
+
+    return bias_status
+
 
 def get_micro_graph(data,m_min=0,m_max=1,seuil_l=0.05, seuil_h=0.12):
     # Graphique amélioré
@@ -398,7 +430,10 @@ def predict_loss_projection(steps, losses, target_step, start_idx=-1):
 
     # On garde une fenêtre glissante si start_idx n'est pas défini
     if start_idx == -1:
-        start_idx = len(steps) // 10 
+        start_idx = len(steps) // 10
+
+    if len(steps)<(start_idx+1):
+        start_idx = 0
     
     fit_steps = np.array(steps[start_idx:])
     fit_losses = np.array(losses[start_idx:])
@@ -439,7 +474,7 @@ def predict_loss_projection(steps, losses, target_step, start_idx=-1):
         return popt
     except Exception as e:
         print(f"Erreur d'extrapolation : {e}")
-        print(losses[100:110])
+        print(losses[:110])
         print('dimension du loss:',len(losses), len(steps))
         return None # Uniquement cour, None, None
 
@@ -477,31 +512,34 @@ def get_gn_status(norms):
     max_gn = max(norms)
     
     # Détermination du statut et de la couleur (codes ANSI)
-    if max_gn >= 0.95:
+    if max_gn >= 4.5:
         # Zone de Clipping : le modèle force trop
-        status = f"{UI['RED']}\u26a1 CRITIQUE (Max: {max_gn:.3f}){UI['RESET']}" 
-    elif max_gn > 0.70:
+        status = f"{UI['RED']}\u26a1 CRITIQUE ({max_gn:.3f}){UI['RESET']}" 
+    elif max_gn > 2.20:
         # Zone de turbulence : attention au dataset
-        status = f"{UI['ORANGE']}\u26a0INSTABLE (Max: {max_gn:.3f}){UI['RESET']}"
-    elif avg_gn < 0.01:
+        status = f"{UI['ORANGE']}\u26a0INSTABLE ({max_gn:.3f}){UI['RESET']}"
+    elif avg_gn < 0.15:
         # Zone de gel : le modèle n'apprend plus
-        status = f"{UI['CYAN']}\u2744GELÉ (Avg: {avg_gn:.3f}){UI['RESET']}"
+        status = f"{UI['CYAN']}\u2744GELÉ ({avg_gn:.3f}){UI['RESET']}"
     else:
         # Zone nominale
         status = f"{UI['GREEN']}\u2714 OK ({avg_gn:.3f}){UI['RESET']}"
         
     return status, avg_gn, max_gn
-
+#-----------------------------------------------------------------------------------------------------------------------------------------
+#   GET DASH BOARD -- MAIN --
+#-----------------------------------------------------------------------------------------------------------------------------------------
 def get_dashboard():
     global update
-    steps, losses, times, lr, trains = parse_logs(LOG_FILE)
-    last_update = os.path.getmtime(LOG_FILE)
-    steps_h, trains_h, vals_h, times_h = parse_history(HISTORY_FILE)
+#    steps, losses, times, lr, trains = parse_logs(LOG_FILE)
+    last_update = os.path.getmtime(HISTORY_FILE)
+    steps_h, trains_h, vals_h, times_h, vals_h_wiki, vals_h_cult, vals_h_litt = parse_history(HISTORY_FILE)
+
     gap_h = vals_h - trains_h
     data_monitor = parse_monitor(MONITOR_FILE)
 
     file = MODEL_FILE
-    status, pression, mem_rss, swap = get_memory_status()
+    status_RAM, pression, mem_rss, swap = get_memory_status()
     step, wiki, cult, litt, config, params = get_checkpoint(file)
     batch_size = params.get('batch_size',32)
     block_size = config.get('block_size',BLOCK_SIZE)
@@ -509,30 +547,59 @@ def get_dashboard():
     grad_accum_steps = params['grad_accum_steps']
     EBS = batch_size * grad_accum_steps
     
-    if len(steps) < 5: 
-        print('waiting pour 5 iter')
+    if len(steps_h) < 5: 
+        print('waiting pour 5 iter', steps_h)
         return
-    current_interval = steps[-1] - steps[-2]
+    current_interval = steps_h[-1] - steps_h[-2]
   
     # Performances et vitesses
 #    sec_per_step = times[-1] / current_interval
     sec_per_step = data_monitor[-1]['elapse'] / data_monitor[-1]['inter']
     tok_s = (EBS * block_size) / sec_per_step
     
+    # Calcul des performance pour chaque Dataset
+    ppl_wiki =round(math.exp(vals_h_wiki[-1]))
+    ppl_cult =round(math.exp(vals_h_cult[-1]))
+    ppl_litt =round(math.exp(vals_h_litt[-1]))
+
+#    x = np.arange(20)
+    x = np.array(steps_h[-20:])
+    slope_wiki = np.polyfit(x, vals_h_wiki[-20:], 1) [0] * 1000
+    slope_cult = np.polyfit(x, vals_h_cult[-20:], 1) [0] * 1000
+    slope_litt = np.polyfit(x, vals_h_litt[-20:], 1) [0] * 1000
+
+    _,_, wiki_status =get_intel_level(vals_h_wiki[-1])
+    _,_, cult_status =get_intel_level(vals_h_cult[-1])
+    _,_, litt_status =get_intel_level(vals_h_litt[-1])
+
+    # Nouveau calculs plus loin avec les Watt consommés
+    """
+    eff_wiki = abs(slope_wiki) * (3600 / tok_s)
+    eff_cult = abs(slope_cult) * (3600 / tok_s)
+    eff_litt = abs(slope_litt) * (3600 / tok_s)
+    """
+
+    w=UI['BLUE']
+    c=UI['ORANGE']
+    l=UI['GREEN']
+    r=UI['RESET']    
+
+    bias_wiki_v = (vals_h_wiki[-1] / vals_h[-1] -1) * 100.
+    bias_wiki = get_bias_status(bias_wiki_v)
+    bias_cult_v = (vals_h_cult[-1] / vals_h[-1] -1) * 100.
+    bias_cult = get_bias_status(bias_cult_v)
+    bias_litt_v = (vals_h_litt[-1] / vals_h[-1] -1) * 100.
+    bias_litt = get_bias_status(bias_litt_v)
+
+
+
     # Tendance & Projection (Moyenne glissante pour éviter les sauts)
     window = 10
-    slope = np.polyfit(steps[-window:], losses[-window:], 1)[0]
+    slope = np.polyfit(steps_h[-window:], vals_h[-window:], 1)[0]
 
     # Progression de l'entrainement epoch et steps total
-#    pct_ds1 = (data_monitor[-1]['dataset1'] * batch_size/TARGET_BLOCK_DS1) * 100
-#    pct = (steps[-1] / TARGET_STEP) * 100 
-#    epoch = f"[epoch {int(pct/100 + 1)}]"
-#    if pct > 100:
-#        pct = pct % 100
-#    bar = "▬" * (int(pct_ds1/4)-1)+ f"{UI['RED']}▬" +UI['DIM']+UI['WHITE']+ "┅" * (25 - int(pct_ds1/4)) #. ─
-    # bar = "█" * int(pct/2) + "░" * (50 - int(pct/2))
-    pct_train = (steps[-1] / target_train) * 100
-    bar_train = "▬" * (int(pct_train/4)-1)+ f"{UI['RED']}\u2719" +UI['DIM']+UI['WHITE']+ "┅" * (25 - int(pct_train/4)) #. "▄"
+    pct_train = (steps_h[-1] / target_train) * 100
+    bar_train = "▬" * (int(pct_train/4)-1)+ f"{UI['RED']}\u2719" +UI['DIM']+UI['WHITE']+ "┅" * (25 + (-1 if int(pct_train/4)==0 else 0) - int(pct_train/4)) #. "▄"
 
     # Alerte Thermique (basée sur le temps de cycle)
     # Si le Mac met plus de 195s pour 25 steps, on affiche en Orange/Rouge
@@ -542,20 +609,26 @@ def get_dashboard():
     # Calcul du progrès interne
     elapsed = time.time() - last_update
     steps_since_log = elapsed / sec_per_step
-    next_step = steps[-1] + current_interval
-    current_step_est = steps[-1] + int(steps_since_log)
+    next_step = steps_h[-1] + current_interval
+    current_step_est = steps_h[-1] + int(steps_since_log)
     p_step = 1 - (next_step - current_step_est)/current_interval
 
     ratio_wiki = wiki/(wiki+cult+litt)*100
     ratio_cult = cult/(wiki+cult+litt)*100
     ratio_litt = litt/(wiki+cult+litt)*100
-    remaining_steps = target_train - steps[-1]
+    remaining_steps = target_train - steps_h[-1]
     eta_seconds = remaining_steps * sec_per_step
     eta_str = str(timedelta(seconds=int(eta_seconds)))
 
     ssd_usage, ssd_status, ssd_color = get_ssd_usage()        
     cpu_usage, cpu_status, cpu_color = get_cpu_usage()
     gpu_usage, gpu_status, gpu_color, gpu_watts = get_gpu_usage()
+    throttle_info, throttle_status, throttle_color = get_throttle()
+
+    eff_wiki = abs(slope_wiki) / gpu_watts * 100
+    eff_cult = abs(slope_cult) / gpu_watts * 100
+    eff_litt = abs(slope_litt) / gpu_watts * 100
+    
 
     # Indicateur visuel "Green"
     monitor_inter = data_monitor[-1]['inter']
@@ -564,9 +637,12 @@ def get_dashboard():
     green_status = get_green_level(mJ_tok)
 
     lr_h = []
-    for it in steps_h:
-        lr_h.append(calcul_lr(it, params))
+    for it in data_monitor: #steps_h:
+        lr_h.append(calcul_lr(it['step'], params))
     lr_h = np.array(lr_h)
+
+    lr_status = f"{UI['MAGENTA']}\u25bc" if lr_h[-1]<lr_h[-2] else f"{UI['MAGENTA']}\u25b2" if lr_h[-1] >lr_h[-2] else f"{w}\u25ac"
+
 
     monitor_steps = [s['step'] for s in data_monitor]
     monitor_losses = [l['loss'] for l in data_monitor]
@@ -578,7 +654,7 @@ def get_dashboard():
     pct_ds2 = (data_monitor[-1]['dataset2'] * batch_size/TARGET_BLOCK_DS2 - epoch_2) * 100
     epoch_3 = int((data_monitor[-1]['dataset3'] * batch_size/TARGET_BLOCK_DS3))
     pct_ds3 = (data_monitor[-1]['dataset3'] * batch_size/TARGET_BLOCK_DS3 - epoch_3) * 100
-    pct = (steps[-1] / TARGET_STEP) * 100 
+    pct = (steps_h[-1] / TARGET_STEP) * 100 
     epoch = f"[epoch {int(pct/100 + 1)}]"
     if pct > 100:
         pct = pct % 100
@@ -616,16 +692,17 @@ def get_dashboard():
     # On initialise l'EMA avec la première valeur de la liste
     ema_loss = calcul_ema(vals_h)
     ema_name, ema_icon, ema_color = get_intel_level(ema_loss)
-    loss_name, loss_icon, loss_color = get_intel_level(losses[-1])
+    loss_name, loss_icon, loss_color = get_intel_level(vals_h[-1])
+    _, _, train_color = get_intel_level(trains_h[-1])
     
     # --- CALCUL DU TREND SUR LA LOSS LISSÉE ---
     # On prend les 15 derniers points lissés pour une tendance stable
     window = 15
-    if len(steps) >= window:
+    if len(steps_h) >= window:
         # On recalcule une petite série lissée pour la pente
         # Cela évite les "Trend: +0.059" quand un seul point remonte
-        y_segment = losses[-window:]
-        x_segment = steps[-window:]
+        y_segment = vals_h[-window:]
+        x_segment = steps_h[-window:]
         slope = np.polyfit(x_segment, y_segment, 1)[0]
     else:
         slope = 0
@@ -636,7 +713,7 @@ def get_dashboard():
     #--------------------------------
     
     os.system('clear')
-    Titre = f"  🚀   M1 MONITOR {VERSION}. - {steps[-1]}/{current_interval}"
+    Titre = f"  🚀   M1 - LLM Training Monitor {VERSION}.    - {steps_h[-1]} -"
     timestamp = datetime.now().strftime('%H:%M:%S')
     header_right = f"  \033[1m{timestamp}\033[0m" 
 #    header_right = f"{temp_color}{timeout_pattern[timeout]}  \033[1m{timestamp}\033[0m" 
@@ -645,46 +722,49 @@ def get_dashboard():
 #    print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
     print(f"{loss_color}\033[1m{Titre}\033[0m" + (" " * padding) + header_right)
 
-    # Affichage de l'entrainement en cours ...
-    print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
-    print(f"  {status} RAM Système: {pression}% /({data_monitor[-1]['ram']}%) | Process: {mem_rss:.0f}Mo | Swap: {swap:.0f}Mo")
-    print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
-    print(f"  {cpu_status} CPU : {cpu_color}{cpu_usage:.1f}% {UI['RESET']} | {gpu_status} GPU : {gpu_color}{gpu_usage:.1f}% {UI['RESET']} ⚡ {gpu_watts:.1f}W | {ssd_status} SSD : {ssd_color}{ssd_usage:.1f}% | {green_status} {mJ_tok:.1f}mJ/tk")
-    print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
-#    print(f"  Epoch: {pct:4.1f}% {UI['CYAN']}┣{bar}┫ {UI['RESET']}pour {TARGET_STEP} steps")
-    print(f"     Train:    {pct_train:4.1f}% {UI['CYAN']}  ┣{bar_train}┫ {UI['RESET']}pour {f_num(target_train).rjust(10)} steps")
-    print(f"     Wiki ({epoch_1:1d}): {pct_ds1:4.1f}% {UI['CYAN']}  ┣{bar_ds1}┫ {UI['RESET']}pour {f_num(TARGET_BLOCK_DS1).rjust(10)} blocks")
-    print(f"     Cult ({epoch_2:1d}): {pct_ds2:4.1f}% {UI['CYAN']}  ┣{bar_ds2}┫ {UI['RESET']}pour {f_num(TARGET_BLOCK_DS2).rjust(10)} blocks")
-    print(f"     Litt ({epoch_3:1d}): {pct_ds3:4.1f}% {UI['CYAN']}  ┣{bar_ds3}┫ {UI['RESET']}pour {f_num(TARGET_BLOCK_DS3).rjust(10)} blocks")
-    print(f"     Wikipédia  [{ratio_ds1:.2f}] | batch: {batch_ds1:8} | end: {epoch_ds1:6} | {batch_ds1*block_size*batch_size/1000**2:6.1f} Mtoken")
-    print(f"     CulturaX   [{ratio_ds2:.2f}] | batch: {batch_ds2:8} | end: {epoch_ds2:6} | {batch_ds2*block_size*batch_size/1000**2:6.1f} Mtoken")
-    print(f"     Litteraire [{ratio_ds3:.2f}] | batch: {batch_ds3:8} | end: {epoch_ds3:6} | {batch_ds3*block_size*batch_size/1000**2:6.1f} Mtoken")
-    print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
-    print(f"  {temp_icon} PERFORMANCES |", end="")
-    print(f" {temp_color}SPD : {sec_per_step:.2f} s/st{UI['RESET']} | {temp_color}DATA: {tok_s:,.0f} tok/s{UI['RESET']}")
-    print(f"     ETA {target_train}: {eta_str}")
-    print(f"{UI['GRAY']}"+f"━" * (LIGNE_LEN) + f"{UI['RESET']}")
     
     # Calcul d'Efficience du model (v. simple sinon ajouter Delta Loss/Delta LR)
-#    efficiency, asymptote_new, trend_1k = calculate_saturation_score(steps, losses, lr, window=5000)
     efficiency, asymptote_new, trend_1k = calculate_saturation_score(steps_h, vals_h, lr_h, window=5000)
     status = f"⚡ {UI['BLUE']}PRODUCTIF {UI['RESET']}" if efficiency > 0.5 else f"🐢 {UI['RED']}SATURATION{UI['RESET']}"
     level_name_new, _,color_asympt_new = get_intel_level(asymptote_new)
     total_tokens = (batch_ds1 + batch_ds2 + batch_ds3) * block_size * batch_size   #steps[-1] * EBS * block_size
     pct = ratio_wiki
-    w=UI['BLUE']
-    c=UI['ORANGE']
-    l=UI['GREEN']
-    bar = f"{w}" +"▬" * (int(pct/6)-1) +f"{c}"+ "▬" * (int(ratio_cult/6))+f"{l}"+ "▬" * (int(ratio_litt/6)) #
+    bar = f"{w}" +"▬" * (int(pct/5)-1) +f"{c}"+ "▬" * (int(ratio_cult/5))+f"{l}"+ "▬" * (round(ratio_litt/5)) #
     # Calcul du GAP (Sur-apprentissage)
-    gap = losses[-1] - trains[-1]
+    gap = vals_h[-1] - trains_h[-1]
     gap_h_last = gap_h[-1]
     gap_color = UI['GREEN'] if gap < 0.05 else (UI['YELLOW'] if gap < 0.12 else UI['RED'])
     graph = get_micro_graph(gap_h[-15:],-1)
 
-    print(f"  {loss_icon} {loss_color}{loss_name}{UI['RESET']}      | LOSS: {loss_color}{losses[-1]:.3f}{UI['RESET']} | EMA: {ema_color}{ema_loss:.3f}{UI['RESET']}")
-    print(f"  📚 SAVOIR ABSORBÉ : {total_tokens / 1e6:.2f} Millions de tokens")
-    print(f"     {w}Wikipédia/{c}CulturaX/{l}Litteraire : {w}{ratio_wiki:2.0f}% / {c}{ratio_cult:2.0f}% / {l}{ratio_litt:2.0f}% | {w}{bar}{UI['RESET']}")  
+
+    # Affichage de l'entrainement en cours ...
+    print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
+    print(f"  {status_RAM} RAM: {pression}% /({data_monitor[-1]['ram']}%) | Process: {mem_rss:.0f}Mo | Swap: {swap:.0f}Mo | {throttle_status}{throttle_color} Throttle{r}")
+#    print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
+    print(f"  {cpu_status} CPU : {cpu_color}{cpu_usage:.1f}% {UI['RESET']} | {gpu_status} GPU : {gpu_color}{gpu_usage:.1f}% {UI['RESET']} ⚡ {gpu_watts:.1f}W | {ssd_status} SSD : {ssd_color}{ssd_usage:.1f}% | {green_status}{r} {mJ_tok:.1f}mJ/tk")
+    print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
+#    print(f"  Epoch: {pct:4.1f}% {UI['CYAN']}┣{bar}┫ {UI['RESET']}pour {TARGET_STEP} steps")
+    print(f"  📚 SAVOIR ABSORBÉ: {total_tokens / 1e6:.1f}M tk | {w}{ratio_wiki:3.1f}%/ {c}{ratio_cult:3.1f}%/ {l}{ratio_litt:3.1f}% | {w}{bar}{r}")  
+    print(f"     Train:    {pct_train:4.1f}% {UI['CYAN']}  ┣{bar_train}┫ {UI['RESET']}pour {f_num(target_train).rjust(10)} steps")
+    print(f"     {w}Wiki ({epoch_1:1d}): {pct_ds1:4.1f}% {UI['CYAN']}  ┣{bar_ds1}┫ {UI['RESET']}pour {f_num(TARGET_BLOCK_DS1).rjust(10)} blocks")
+    print(f"     {c}Cult ({epoch_2:1d}): {pct_ds2:4.1f}% {UI['CYAN']}  ┣{bar_ds2}┫ {UI['RESET']}pour {f_num(TARGET_BLOCK_DS2).rjust(10)} blocks")
+    print(f"     {l}Litt ({epoch_3:1d}): {pct_ds3:4.1f}% {UI['CYAN']}  ┣{bar_ds3}┫ {UI['RESET']}pour {f_num(TARGET_BLOCK_DS3).rjust(10)} blocks")
+    print(f"     Wikipédia  [{ratio_ds1:.2f}] | batch: {batch_ds1:8} | end: {epoch_ds1:6} | {batch_ds1*block_size*batch_size/1000**2:6.1f} Mtoken")
+    print(f"     CulturaX   [{ratio_ds2:.2f}] | batch: {batch_ds2:8} | end: {epoch_ds2:6} | {batch_ds2*block_size*batch_size/1000**2:6.1f} Mtoken")
+    print(f"     Litteraire [{ratio_ds3:.2f}] | batch: {batch_ds3:8} | end: {epoch_ds3:6} | {batch_ds3*block_size*batch_size/1000**2:6.1f} Mtoken")
+    print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
+    print(f"  {temp_icon} PERFORMANCES |", end="")
+    print(f" {temp_color}SPD: {sec_per_step:.2f} s/st{UI['RESET']} | {temp_color}DATA: {tok_s:,.0f} tok/s{UI['RESET']} | lr: {lr_h[-1]:10.9f} {lr_status}{r}")
+    eta_mess = f"     ETA {target_train}: {eta_str}"
+    lr_delta = " "*(55 - len(eta_mess)) + "|" + f" \u0394: {(lr_h[-1]-lr_h[-2]):11.9f}"
+    print(f"{eta_mess}{lr_delta}")
+    print(f"{UI['GRAY']}"+f"━" * (LIGNE_LEN) + f"{UI['RESET']}")
+
+    print(f"  {loss_icon} {loss_color}{loss_name}{UI['RESET']}       | LOSS: {loss_color}{vals_h[-1]:.3f}{UI['RESET']} | EMA LOSS: {ema_color}{ema_loss:.3f}{UI['RESET']} | TRAIN LOSS: {train_color}{trains_h[-1]:.3f}")
+    print(f"     {w}Wiki {r}Loss: {wiki_status}{vals_h_wiki[-1]:.3f}{r} | PPL: {ppl_wiki:4d} | \u0394/1k: {slope_wiki:6.3f} | eff: {eff_wiki:4.1f} | {bias_wiki}")
+    print(f"     {c}Cult {r}Loss: {cult_status}{vals_h_cult[-1]:.3f}{r} | PPL: {ppl_cult:4d} | \u0394/1k: {slope_cult:6.3f} | eff: {eff_cult:4.1f} | {bias_cult}")
+    print(f"     {l}Litt {r}Loss: {litt_status}{vals_h_litt[-1]:.3f}{r} | PPL: {ppl_litt:4d} | \u0394/1k: {slope_litt:6.3f} | eff: {eff_litt:4.1f} | {bias_litt}")
+#    print(f"     {w}Wikipédia/{c}CulturaX/{l}Litteraire : {w}{ratio_wiki:2.0f}% / {c}{ratio_cult:2.0f}% / {l}{ratio_litt:2.0f}% | {w}{bar}{UI['RESET']}")  
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
     print(f"  {status} | efficience: {efficiency:.2f} ", end="")
     print(f"| {gap_color}GAP: {gap:.3f}{UI['RESET']}  >  {graph}")
@@ -695,21 +775,25 @@ def get_dashboard():
     print(f" | TREND: {trend_1k:+.3f}/1k")
     print("    ",end="")
     for h in [100, 1000,  10000]:
-        target = losses[-1] + (slope * h)
+        target = vals_h[-1] + (slope * h)
         print(f" | +{h:5} st ➔ \033[1m{max(2.0, target):.3f}\033[0m", end="")
     print(f"\n{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
 
     # Prédictions améliorées ...
     # anciennes prédictions ...
     horizons = [100, 500]
-    preds, asymptote = get_forecast(steps_h, vals_h, horizons)
+#    preds, asymptote = get_forecast(steps_h, vals_h, horizons)
 
-    # NOUVELLE STATISTIQUE DE PROJECTION ...
+    # Nouvelle Statistuqye de Prédiction ...
     horizon = target_train
-    proj = 10;
+    proj = 20;
 #    popt = predict_loss_projection(monitor_steps, monitor_losses, 0, proj*1)
     popt = predict_loss_projection(steps_h, vals_h, 0, proj)
-    stats = check_efficiency(popt, steps[-1], horizon)
+    preds={}
+    for h in horizons:
+        preds[h] =  power_law(steps_h[-1]+h, *popt)
+
+    stats = check_efficiency(popt, steps_h[-1], horizon)
     status_plateau = f"{UI['RED']}\u2715 Non" if stats["is_plateau"] else f"{UI['GREEN']}\u2714 Yes !"
     asymptote = stats['loss_horizon']
     _, _, color_asympt = get_intel_level(asymptote)
@@ -728,13 +812,12 @@ def get_dashboard():
             txt += (" "*pad) + "|" +(" "*pad2) + f"{color_asympt}" +target_txt[i]+ f"{UI['RESET']}"
             print(txt)
             i += 1
-#        print(f"   🎯 Nouvelle prévision modèle final : {UI['BOLD']}{color_asympt_new}{asymptote_new:.2f} {level_name_new}{UI['RESET']}")
         print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
     else:
         print("  (Collecte de données pour Scipy...)")
 
     # Graphique amélioré
-    mini = losses[-40:] # On prend plus de points pour le graph
+    mini = vals_h[-40:] # On prend plus de points pour le graph
     m_min, m_max = min(mini), max(mini)
     print(f"  📉 LOSS History > ", end="")
     for v in mini:
@@ -749,11 +832,10 @@ def get_dashboard():
     for  p1, p2, p3 in zip(params_[:5], params_[5:10], params_[10:]):
         txt = f"     {p1}: {params[p1]} "
         txt2= f"| {p2}: {params[p2]}"
-        print(f"{txt}"+" "*(27 - len(txt))+ f"{txt2}" +" "*(25-len(txt2)) + f"| {p3}: {params[p3]}")
+        print(f"{txt}"+" "*(28 - len(txt))+ f"{txt2}" +" "*(25-len(txt2)) + f"| {p3}: {params[p3]}")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
 
     print(f"  🔄 Effective Batch Size (EBS) : {UI['BOLD']}{EBS}{UI['RESET']}            | ",end="")
-#    ema_model_status = '✅' if model_ema is not None else '❌'
     ema_model_status = f"{UI['GREEN']}\u2714" if model_ema is not None else f"{UI['RED']}\u2718"
     print(f"  {UI['BOLD']}{ema_model_status}{UI['RESET']} Model EMA")
     print(f"  📥 Taille du Model : {UI['BOLD']}{n_params/1e6:.1f}M{UI['RESET']} Paramètres")
@@ -766,7 +848,6 @@ def get_dashboard():
 
     #-----------  AFFICHE de Train/Run en cours -------------
 
-#    {'status': 'RUNNING', 'last_update': '23:08:49', 'step': 10150, 'loss': 3.2715, 'lr': '2.93e-04', 'inter': 10, 'elapse': 161.98, 'ram': 81.2, 'swap': 0.6}
     d = data_monitor[-1]
     star = f"{UI['MAGENTA']}{UI['BOLD']}\u2605 {UI['RESET']}{UI['CYAN']}" if d['purg'] == 1 else ""
     update_icon = f"{UI['MAGENTA']}{UI['BOLD']}🔊 {UI['CYAN']}" if update['status'] == 1 else ""
@@ -776,22 +857,16 @@ def get_dashboard():
     pattern = [' ','⡀','⡄','⡆','⡇']
     val = round(elapse*5)
     cpt = f"{pattern[val%5]}"*1
-#    cpt = get_micro_graph([elapse],-0.05,1.05,-1,2)
-#    elapse_time = datetime.strptime(d['last_update'],"%HH:MM:SS").time() # - time.time()
-#    print( cpt)
     loss_avg = np.mean([d['loss'] for d in data_monitor[-100:]]) # *(1 - config['dropout'])
     loss_avg = calcul_ema([ v['loss'] for v in data_monitor ])
-#    arrow = f"{UI['B_OR']}\u2191{UI['CYAN']}" if (d['loss'] > loss_avg) else f"{UI['B_MAG']}\u2193{UI['CYAN']}"
-#    arrow = f"{UI['B_OR']}\u2934{UI['CYAN']}" if (d['loss'] > loss_avg) else f"{UI['B_MAG']}\u2935{UI['CYAN']}"
     arrow = f"{UI['B_OR']}\u2b06{UI['CYAN']}" if (d['loss'] > loss_avg) else f"{UI['B_MAG']}\u2b07{UI['CYAN']}"
-#    print(f"{UI['CYAN']}   {star}{update_icon}STEP: {d['step']} | SPD : {(d['elapse']/d['inter']):.2f}/st | LOSS train : {d['loss']:.3f} {arrow} | EMA : {loss_avg:.3f}{UI['RESET']} {cpt}")
     print(f"{UI['CYAN']}   {star}STEP: {d['step']}    | SPD : {(d['elapse']/d['inter']):.2f}/st | LOSS train : {d['loss']:.3f} {arrow} | EMA : {loss_avg:.3f}{UI['RESET']}")
-    # Gard Norm en live ...
+    # Grad Norm en live ...
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
     print(f"   {gn_status}{UI['CYAN']}  | Evolution du Grad Norm. valeur Maxi  : [\u2191 {gn_max:.3f}]")    
 
     # Step dynamique (incrémente en temps réel)
-    pct = p_step * 100.
+    pct = min(p_step, 1.01) * 100.
     bar = "▬" * (int(pct/4)-1)+ f"{UI['RED']}▬" +f"{UI['GRAY']}"+ "┅" * (25 - int(pct/4))
     running_step = current_interval // data_monitor[-1]['inter'] 
     next_run_ecart = ((current_interval * (-sec_per_step + np.mean([d['elapse'] for d in data_monitor[-running_step:]])/data_monitor[-1]['inter'])))
@@ -811,6 +886,8 @@ def get_dashboard():
 #    print(update)
 #    print(ratio_ds1, ratio_ds2, ratio_ds3, EBS)
 #    print(stats)
+#    print(vals_h)
+#    print(throttle_info, throttle_color, throttle_status)
 
 #-----------------------
 
@@ -821,25 +898,26 @@ def get_last_modified(file):
         return 0
 
 last_time = get_last_modified(MONITOR_FILE)
-last_time_log = get_last_modified(LOG_FILE)
+last_time_log = get_last_modified(HISTORY_FILE)
 
-print(f"📡 Monitoring réactif activé sur {MONITOR_FILE}")
+print(f"📡 Monitoring réactif activé sur {MONITOR_FILE} et {HISTORY_FILE}")
 timeout_pattern = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏']
 timeout = 0;
 while True:
     current_time_M = get_last_modified(MONITOR_FILE)
-    current_time_L = get_last_modified(LOG_FILE)
+    current_time_L = get_last_modified(HISTORY_FILE)
     current_time = max(current_time_M, current_time_L)
     seconds_since_update = time.time() - current_time
     progression = seconds_since_update / max(1, update['elapse'])
+    progression = min(1.01, progression)
     timeout = (timeout + 1) % len(timeout_pattern) 
-#    print(f"⏳ Progression estimée du step : {min(100, progression*100):.1f}%",end="\r")
-    print(f"   {timeout_pattern[timeout]}  Progression estimée du step : {UI['RED'] if progression>0.95 else UI['RESET']}{min(100, progression*100):.1f}%     ",end="\r")
+    bar = f"{UI['BLUE']}" +"▬" * (int(progression*100/4)-1) +  f"{UI['GRAY']}" +"▬" * (int((1-progression)*100/4)) + f"{UI['BLUE']}"
+    print(f"   {timeout_pattern[timeout]}  Progression estimée du step : {UI['RED'] if progression>0.95 else UI['RESET']}{min(100, progression*100):.1f}% {bar} \u00A9 eC\u00B2 ",end="\r")
     # Si le fichier a été modifié depuis la dernière vérification
     if ( (current_time > last_time) | (first==True) ):
         try:
-            time.sleep(3)
-            print("updating data in progress ...                         ")
+            time.sleep(5)
+            print("Updating data in progress ... " + " "*26+"\u00A9 2026 e-Coucou  ")
             get_dashboard()
             last_time = current_time # On met à jour le marqueur
         except Exception as e:

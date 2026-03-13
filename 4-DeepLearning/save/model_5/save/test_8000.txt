@@ -1,0 +1,34 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : ��l'équipage des véhicules en vue d'une opération de contrôle de qualité�� - Organisation du transport aérien et d'un réseau de navettes à destination d'Odessa, le port de Rafj Khabar. L'aéroport d'Odessa, qui se trouve à, dispose de quelques infrastructures avec un aéroport et une raffinerie.
+Depuis quelques mois, la route nationale N
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  s'était mis à courir dans les rues sans bruit. Et il avait même pris le parti de sortir avec le couteau. Il était seul, en route, comme un grand homme qui se dirigeait vers moi. Et puis il ne fut plus question d'une place qu'à une autre, et ce qui lui donnait le droit de se tenir de sa main jusqu'au bout. À peu près, il y avait
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  une forme presque identique (donc pour les plus petites variétés), un autre changement de couleur dans le blanc a été produit par la suite. Cela signifie que l'on peut voir qu'une fleur rouge a évolué au cours des années 1960.
+Les variétés.
+Dans un article publié en 2009, "Spinmakerch" a noté que les plantes sont beaucoup plus rares à être cultivées
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

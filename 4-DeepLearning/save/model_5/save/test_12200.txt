@@ -1,0 +1,33 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : 3ème arrondissement de Paris.
+Frontière avec le quartier de Belleville, la Maison du Commerce et des Affaires Étrangères du Samedi 17 septembre dernier, Mme Fleurier a été nommée par Pierre Frenier ministre dans l'exercice de sa fonction de chargée du commerce et des affaires à La Rochelle (Mayenne), auprès du Premier Ministre Pierre Mosson. Elle aura pour
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  en avait profité pour venir à son secours. Il s'était assis sur un banc de sable au milieu d'une petite colline du côté des collines, dans le voisinage des montagnes. Le ciel était clair, les nuages étaient noirs; les nuages étaient bleus comme une nappe profonde, et ses yeux brillaient de gris. La lune était sombre. La lune avait de quoi ressembler à celle de cette
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  alors un résultat plus facile à trouver. Par ailleurs, le mélange des deux côtés est plus facile à trouver dans les deux cas.
+Le rouge a une action très rapide au début d'un morceau de pain ou d'eau, ce qui permet d'obtenir des résultats plus précis que sur la pâte de papier. De plus, le brun réagit avec le blanc à la pâte et peut ainsi rester concentré. Il va
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

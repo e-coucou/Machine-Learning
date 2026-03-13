@@ -4,8 +4,10 @@ import os
 import tools.ai_token as tk
 
 # --- CONFIG ---
-input_file = "data/corpus_wiki_clean_val.txt"
-output_file = "data/encoded/val_wiki.bin"
+#input_file = "data/corpus_wiki_clean_val.txt"
+input_file = "data/val_litt_final.txt"
+output_file = "data/encoded/val_litteraire.bin"
+#output_file = "data/encoded/val_wiki.bin"
 chunk_size = 10 * 1024 * 1024  # On traite 10 Mo de texte à la fois
 
 # Initialisation Tokenizer

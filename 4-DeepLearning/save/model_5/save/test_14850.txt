@@ -1,0 +1,45 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : 1er arrondissement de Paris, la ville où il réside actuellement. Ses habitants sont appelés les Brassonnais.
+Cette commune se situe à 3 km du centre-ville de Paris et à 2 km de l'aéroport international de Paris-Charles-de-Gaulle.
+La région possède un patrimoine naturel remarquable qui comprend une forêt de boisement, des espaces verts, des zones humides et des zones protégées.
+
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  lui avait dit qu'il ne pouvait espérer plus, comme si son cheval avait été perdu. -Pourquoi ne pas se souvenir de ce que vous avez fait, madame? demanda-t-il. -Mais non, madame, répondit M.Brass en s'arrêtant à son tour. J'ai trouvé le pauvre homme qui vous a sauvé... Il est ici chez un homme de
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  des nuances plus vives que dans le précédent. Ainsi les nuances varient au fil du temps.
+L'avènement de la couleur se fait en quelques étapes: "La robe", "les cheveux" et surtout "l'unique" sont respectivement dominés par une série de tons plus ou moins sombres, avec un motif sur la tête, tandis que "Mara", "Blanc" et "Gris" restent des nuances plus sombres, tandis que "Alana" est davantage marquée par le blanc.
+Les tons bruns sont très nombreux, avec plus d'une gamme de tons plus larges que ceux des autres couleurs, mais aussi par leur absence de pics. La différence entre ces deux teintes varie selon les pays, même si l'on distingue
+--------------------------------------------------
+
+
+[TEST 0 RISQUE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : �� l���Alsace, le pays des Vosges et du Nord ��. Elle est située à 1 km au sud-ouest de Strasbourg, dans un environnement naturel préservé.
+La ville se situe sur une colline qui domine les collines de la vallée de la Moselle, à 2 km au nord-est de Strasbourg, dans un paysage vallonné, avec des paysages verdoyants
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

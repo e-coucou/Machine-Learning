@@ -1,0 +1,44 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : �� l'âge du monde ��
+Etat civil et militaire du Mali (Mali)
+Le président malien a décidé d'organiser la cérémonie d'ouverture de la session extraordinaire d'ouverture de la session parlementaire le 27 mars prochain. Le projet de loi du 26 février 2020, portant sur les mesures à prendre en charge par le gouvernement, prévoit que les députés à l'Assemblée nationale
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  avait déjà vu le ciel en fleurs. "C'est vrai, dit-il avec un honnêteté qui ne pouvait se décider que à dormir et à bavarder, il faut qu'il soit sorti. Je me suis sentie bien plus tôt." CÉLIQUE V Où est-il? LE CAPITAL DU SŒUR À PO
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  une couleur différente au niveau de la pièce suivante (voir image ci-contre). Dans l'exemple ci-dessus, si on mélange du rouge et du vert, on obtient une couleur différente à l'intérieur d'une pièce. On remarque que les objets possédant ce même motif sont plus "sauvés", comme le rouge, qui est un motif de couleur similaire dans l'image ci-dessus.
+Propriétés.
+Souvent, les couleurs n'ont pas encore été observées par le principe de la théorie des nombres. On peut tout d'abord conclure qu'un nombre fini ne possède aucun motif, mais qu'il existe plusieurs motifs à chaque couleur sur la toile. Le résultat obtenu avec ces symboles est que le nombre fini est égal au nombre fini des 6 premiers chiffres du 1
+--------------------------------------------------
+
+
+[TEST 0 RISQUE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : [���]
+La ville de Saint-Étienne a été le théâtre d'une bataille entre les forces du Front national et celles des Forces armées françaises libres. Le 14 juin, l'armée française libre a bombardé la ville de Saint-Étienne. Les combats ont commencé à 7h30, heure locale. La ville a été libérée par les troupes allemandes qui ont pris le contrôle de la ville
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

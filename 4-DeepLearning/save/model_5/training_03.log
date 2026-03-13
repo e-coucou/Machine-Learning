@@ -1,0 +1,60 @@
+🚀 Initialisation de l'entraînement sur MPS...
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+📈 Reprise : Wiki à 98905 | CulturaX à 1901 | 8
+✅ Modèle restauré. Steps faits: 4200
+✅ État de l'optimiseur restauré.
+🚀 Dataset Train: 1293.11M tokens.
+🚀 Dataset Val: 143.07M tokens.
+🚀 Dataset CulturaX: 621.92M tokens.
+🚀 Dataset Train: 1293.11M tokens.
+✅ Provider HP initialisé : 3367466 blocs uniques. Epoch : 0
+🔄 Reprise au batch 98905 [step : 98905]
+✅ Provider HP initialisé : 1619593 blocs uniques. Epoch : 0
+🔄 Reprise au batch 1901 [step : 1901]
+🔄 Mixer activé avec les sources : ['cult', 'wiki']
+🚀 Monitor activé : écriture dans model/monitor.log
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : On lance MAc Fans Control pour refroidir ....
+[96m[Model config][0m
+  n_embd             : 768[0m
+  num_heads          : 12[0m
+  n_layers           : 12[0m
+  block_size         : 384[0m
+  dropout            : [93m0.15[0m
+[96m[Train params][0m
+  batch_size         : 8[0m
+  grad_accum_steps   : 24[0m
+  learning_rate      : [92m0.0003[0m
+  min_lr             : 3e-05[0m
+  warmup_iters       : 2000[0m
+  lr_decay_iters     : 60000[0m
+  eval_interval      : [92m100[0m
+  eval_iters         : 20[0m
+  save_interval      : 100[0m
+  n_version          : 5[0m
+  use_compile        : False[0m
+  cult_data          : True[0m
+  litt_data          : False[0m
+  cult_ratio         : 0.2[0m
+  litt_ratio         : 0.0[0m
+  monitor_interval   : 10[0m
+  [1mEffective Batch Size: 192[0m
+..................................................
+
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 4200
+   📉 Evaluation tous les : 100 steps
+   💾 Sauvegarde tous les : 100 steps
+🟢 RAM Système: 43.6% | Process: 694Mo | Swap: 1328Mo
+step 4300: train loss 3.1865, val loss 3.2534, lr 2.99e-04 (4652.64s) | 🟡 Po: 75.9% SW: 1248Mo MPS: 2207Mo | 💾 | 🗑️ | ✨
+step 4400: train loss 3.2281, val loss 3.2728, lr 2.99e-04 (4631.45s) | 🟡 Po: 76.0% SW: 1240Mo MPS: 2221Mo | 💾 | 🗑️ | ✨
+step 4500: train loss 3.2599, val loss 3.2889, lr 2.99e-04 (4641.74s) | 🟡 Po: 78.7% SW: 1216Mo MPS: 2234Mo | 💾 | 🗑️ | ✨
+step 4600: train loss 3.2724, val loss 3.2689, lr 2.99e-04 (4621.29s) | 🟡 Po: 82.8% SW: 1208Mo MPS: 2239Mo | 💾 | 🗑️ | ✨
+step 4700: train loss 3.2051, val loss 3.1373, lr 2.99e-04 (4628.32s) | 🟡 Po: 81.4% SW: 1176Mo MPS: 2243Mo | 💾 | 🗑️ | ✨
+step 4800: train loss 3.2033, val loss 3.2597, lr 2.98e-04 (4746.00s) | 🟡 Po: 80.3% SW: 1195Mo MPS: 2248Mo | 💾 | 🗑️ | ✨
+step 4900: train loss 3.2613, val loss 3.2363, lr 2.98e-04 (4629.39s) | 🟡 Po: 80.9% SW: 1187Mo MPS: 2249Mo | 💾 | 🗑️ | ✨
+step 5000: train loss 3.2380, val loss 3.2596, lr 2.98e-04 (4634.15s) | 🟡 Po: 78.6% SW: 1210Mo MPS: 2249Mo | 💾 | 🗑️ | ✨

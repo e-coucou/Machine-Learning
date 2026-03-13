@@ -459,6 +459,7 @@ class ContinuousTrainer:
         self.litt_data = train_params.get('litt_data', False)
         self.cult_ratio = train_params.get('cult_ratio', 0.0)
         self.litt_ratio = train_params.get('litt_ratio', 0.0)
+        self.wiki_ratio = 1. - self.cult_ratio - self.litt_ratio
         self.ema_decay = train_params.get('ema_decay', 0) # 0 pour désactiver
         # Gestion du Device / préférence sur MPS /
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -562,7 +563,9 @@ class ContinuousTrainer:
         train_path = os.path.join(data_dir, 'train_wiki.bin')
         val_path = os.path.join(data_dir, 'val_wiki.bin')
         train_cult_path = os.path.join(data_dir, 'train_culturax.bin')
+        val_cult_path = os.path.join(data_dir, 'val_culturax.bin')
         train_litt_path = os.path.join(data_dir, 'train_litteraire.bin')
+        val_litt_path = os.path.join(data_dir, 'val_litteraire.bin')
         
         if os.path.exists(train_path):
             self.train_data = np.memmap(train_path, dtype=np.uint16, mode='r')
@@ -575,6 +578,8 @@ class ContinuousTrainer:
         if self.cult_data and os.path.exists(train_cult_path):
             self.train_data_cult = np.memmap(train_cult_path, dtype=np.uint16, mode='r')
             print(f"🚀 Dataset CulturaX: {len(self.train_data_cult)/1e6:.2f}M tokens.")
+            self.val_cult = np.memmap(val_cult_path, dtype=np.uint16, mode='r')
+            print(f"🚀 Dataset Val: {len(self.val_cult)/1e6:.2f}M tokens.")
         else:
             self.train_data_cult = None
             print("ℹ️ Mode Source Unique : Wiki uniquement.")    
@@ -582,6 +587,8 @@ class ContinuousTrainer:
         if self.litt_data and os.path.exists(train_litt_path):
             self.train_data_litt = np.memmap(train_litt_path, dtype=np.uint16, mode='r')
             print(f"🚀 Dataset Litteraire: {len(self.train_data_litt)/1e6:.2f}M tokens.")
+            self.val_litt = np.memmap(val_litt_path, dtype=np.uint16, mode='r')
+            print(f"🚀 Dataset Val: {len(self.val_litt)/1e6:.2f}M tokens.")
         else:
             self.train_data_litt = None
             print(f"🚀 Dataset Train: {len(self.train_data)/1e6:.2f}M tokens.")
@@ -683,7 +690,7 @@ class ContinuousTrainer:
         if os.path.exists(self.history_path):
             with open(self.history_path, 'r') as f:
                 return json.load(f)
-        return {'train_loss': [], 'val_loss': [], 'steps': [], 'time_elapse': [], 'time_model':[],'time_batch': [], 'time_bacwd': [], 'time_optim': [], 'time_init': [], 'time_eval': []}
+        return {'train_loss': [], 'val_loss': [], 'val_loss_wiki': [], 'val_loss_cult': [], 'val_loss_litt': [], 'steps': [], 'time_elapse': [], 'time_model':[],'time_batch': [], 'time_bacwd': [], 'time_optim': [], 'time_init': [], 'time_eval': []}
 
     def _save_history(self):
         with open(self.history_path, 'w') as f:
@@ -850,6 +857,30 @@ class ContinuousTrainer:
         # gc.collect()        
                 
         return x, y
+
+    def get_batch_from_source(self, data):
+        """
+        Version optimisée de la fonction pour piocher dans n'importe quel memmap.
+        """
+        # 1. Générer tous les indices d'un coup
+        ix = np.random.randint(0, len(data) - self.config['block_size'], (self.params['batch_size'],))
+        
+        # 2. Grille d'indices (la "magie" NumPy)
+        offsets = np.arange(self.config['block_size'])
+        indices = ix[:, None] + offsets 
+        
+        x_np = data[indices]
+        y_np = data[indices + 1]
+
+        # Conversion en Tenseur (on reste en long pour la CrossEntropy)
+        # Note: On passe en .long() car la CrossEntropy ne prend pas le uint16
+        x = torch.from_numpy(x_np).to(self.device).long()
+        y = torch.from_numpy(y_np).to(self.device).long()
+
+        del x_np, y_np # zut oublié de détruire ces derniers !!
+
+        return x, y
+
     
     def get_batch_bin_tensor(self, split='train'):
         data = self.train_data if split == 'train' else self.val_data
@@ -1070,6 +1101,12 @@ class ContinuousTrainer:
         Entraînement continu sur fichier binaire.
         - Sauvegarde et évalue tous les 'eval_interval' steps.
         - Gère la reprise parfaite de l'optimizer.
+        - Inclus tous les metrics monitoring
+        - Gère plusieurs datasets (3)
+        - Gradient normalisé pour éviter les NaN
+        - Shuffle déterministe sur chaque dataset, et gère la reprises en fonction des batch_size et grad_accum
+        - Shuffle recaculer à chaque changement d'epochs dataset par datasets
+        - inclus les timings 
         """
         self.model.train()
         
@@ -1164,26 +1201,30 @@ class ContinuousTrainer:
                 self.update_ema()            
             # --- EVALUATION & PLOT (Fréquent) ---
             t5 = time.time()
-            if self.total_steps_done % monitor_interval == 0:
+            if (self.total_steps_done % monitor_interval == 0) | (self.total_steps_done<5):
                 self.monitor.log(self.total_steps_done, accum_loss, lr, monitor_interval, t5-t_monitor, self.total_step_wiki, self.total_step_cult, self.total_step_litt, purge, current_grad_norm,self.params)
                 t_monitor=time.time()
                 current_grad_norm = []
                 purge=0
                 
-            if self.total_steps_done % eval_interval == 0:
+            if (self.total_steps_done % eval_interval == 0) | (self.total_steps_done<6):
                 elapsed = time.time() - start_time
                 # Calcul du Loss Val (Le vrai juge)
-                losses, status, pression, mem_rss = self.estimate_loss_bin(eval_iters=eval_iters)
+                losses, status, pression, mem_rss = self.estimate_loss_bin_v6(eval_iters=eval_iters)
+                purge=1
                 swap = psutil.swap_memory().used / (1_048_576)
                 if self.total_steps_done % save_interval == 0:
                     print(f"step {self.total_steps_done}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}, lr {lr:.2e} ({elapsed:.2f}s) | {status} Po: {pression:.1f}% SW: {swap:.0f}Mo MPS: {torch.mps.current_allocated_memory() / 1_048_576:.0f}Mo", end="")
                 else:
-                    print(f"step {self.total_steps_done}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}, lr {lr:.2e} ({elapsed:.2f}s) | {status} Po: {pression:.1f}% SW: {swap:.0f}Mo MPS: {torch.mps.current_allocated_memory() / 1_048_576:.0f}")
+                    print(f"step {self.total_steps_done}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}, lr {lr:.2e} ({elapsed:.2f}s) | {status} Po: {pression:.1f}% SW: {swap:.0f}Mo MPS: {torch.mps.current_allocated_memory() / 1_048_576:.0f}Mo")
                 # Mise à jour historique
                 nb_step = self.total_steps_done - previous_step
                 previous_step = self.total_steps_done
                 self.history['train_loss'].append(losses['train'])
                 self.history['val_loss'].append(losses['val'])
+                self.history['val_loss_wiki'].append(losses['v_wiki'])
+                self.history['val_loss_cult'].append(losses['v_cult'])
+                self.history['val_loss_litt'].append(losses['v_litt'])
                 self.history['steps'].append(self.total_steps_done)
                 self.history['time_elapse'].append(elapsed)
                 self.history['time_model'].append(t_model/nb_step)
@@ -1204,16 +1245,18 @@ class ContinuousTrainer:
                 t_eval=0
                 # print(f"Mémoire allouée MPS : {torch.mps.current_allocated_memory() / 1024**2:.2f} MB")
             # --- SAUVEGARDE CHECKPOINT (Sécurité) ---
-            if self.total_steps_done % save_interval == 0:
+            if (self.total_steps_done % save_interval == 0) | (self.total_steps_done == 1):
                 self._save_checkpoint(n_versions=self.params.get('n_version',5))
             t_eval += time.time() - t5
 
             # 3. Purge préventive avant l'effort d'évaluation
-            if self.total_steps_done % 50 == 0:
+            """
+            if self.total_steps_done %10 == 0:
                 gc.collect()           # Libère la RAM CPU (NumPy/Tensors CPU)
                 if torch.backends.mps.is_available():
                     torch.mps.empty_cache()
                     purge=1
+            """
 
             
 
@@ -1354,6 +1397,69 @@ class ContinuousTrainer:
         self.model.train()
         return out
     
+    def estimate_loss_bin_v6(self, eval_iters=30):
+        """
+        Fonction helper pour estimer le loss sans dropout (mode eval).
+        eval_iters: nombre de batchs pour moyenner et avoir un score stable.
+        ici en V6 on va calculer par rapport aux 3 datasets
+        """
+        out = {}
+        self.model.eval() # Désactive Dropout
+        # on fixe les datasets
+        # Dictionnaire des sources de validation à tester
+        val_sources = {
+            'wiki': self.val_data,
+            'cult': self.val_cult,
+            'litt': self.val_litt
+            }
+
+        
+        # 1. Purge préventive avant l'effort d'évaluation
+        gc.collect()           # Libère la RAM CPU (NumPy/Tensors CPU)
+        if torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+
+        # 2. Utilisation de inference_mode (plus rapide que no_grad sur Metal)
+        with torch.inference_mode(): # ce code crash !!
+            with torch.autocast(device_type='mps', dtype=torch.float16):
+#            with torch.no_grad():
+            #2.1/ le train
+                losses = torch.zeros(eval_iters)
+                for k in range(eval_iters):
+                    X, Y = self.get_batch_bin(split='train')
+                    _, loss = self.model(X, Y)
+                    losses[k] = loss.item()
+                out['train'] = losses.mean().item()
+
+            # 2.2 /Validation détaillée par domaine
+            for name, data_source in val_sources.items():
+                if data_source is not None:
+                    v_losses = torch.zeros(eval_iters)
+                    for k in range(eval_iters):
+                        # On utilise ta logique "magie numpy" directement sur le source
+                        X, Y = self.get_batch_from_source(data_source)
+                        _, loss = self.model(X, Y)
+                        v_losses[k] = loss.item()
+                    out[f'v_{name}'] = v_losses.mean().item()
+
+        # Calcul de la Loss globale pondérée pour le graphe principal
+        out['val'] =  (self.wiki_ratio * out.get('v_wiki', 0) + 
+                       self.cult_ratio * out.get('v_cult', 0) + 
+                       self.litt_ratio * out.get('v_litt', 0))
+        
+        self.model.train() # Réactive Dropout
+            
+        # 3. Purge préventive avant l'effort d'évaluation
+        gc.collect()           # Libère la RAM CPU (NumPy/Tensors CPU)
+        if torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+
+        status, pression, mem_rss = self.log_memory_status()
+
+        return out, status, pression, mem_rss
+
+
+    
     def estimate_loss_bin(self, eval_iters=30):
         """
         Fonction helper pour estimer le loss sans dropout (mode eval).
@@ -1387,7 +1493,7 @@ class ContinuousTrainer:
         status, pression, mem_rss = self.log_memory_status()
 
         return out, status, pression, mem_rss
-    
+
     def log_memory_status(self, v=False):
         # RAM système
         vm = psutil.virtual_memory()

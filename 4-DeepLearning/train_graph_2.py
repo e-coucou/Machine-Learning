@@ -17,39 +17,41 @@ def main():
     parser.add_argument("--target", type=float, default=None, help="Valeur Cible de Loss")
     parser.add_argument("--speed", type=float, default=None, help="Step par seconde")
     parser.add_argument("--raw", type=bool, default=False, help="Raw data")
+    parser.add_argument("--ds", type=bool, default=False, help="Show dataset val Loss")
     parser.add_argument("--titre", type=str, default="Training Mac-M1", help="Titre du graphique")
     
     # Chemins des fichiers (avec tes valeurs actuelles par défaut)
     parser.add_argument("--log1", type=str, default="model/my_wiky_history.json")
-    parser.add_argument("--log2", type=str, default="save/model_4/my_wiky_history.json")
+    parser.add_argument("--log2", type=str, default="save/model_5/my_wiky_history.json")
     parser.add_argument("--log3", type=str, default="save/model_3/my_wiky_history.json")
 
     args = parser.parse_args()
 
     # 2. Définition de tes événements (Historique du projet)
     mes_evenements = [
-        {"step": 2000, "label": "End warmup", "color": "gray", "lw": 0.7},
-        {"step": 3400, "label": "Introduction de CulturaX à 10%", "color": "gray", "lw": 1.},
-        {"step": 4200, "label": "CulturaX à 20%", "color": "gray", "lw": 1.},
-        {"step": 5000, "label": "CulturaX à 35%", "color": "gray", "lw": 1.},
-        {"step": 6000, "label": "Introduction de 10% de Littéraire (35/55)", "color": "gray", "lw": 1.},
-        {"step": 8100, "label": "Passage EBS à 384 ( 8 x 48)", "color": "gray", "lw": 1.},
-        {"step": 10200, "label": "Mixte 60/35/5", "color": "gray", "lw": 1.},
-        {"step": 12300, "label": "Mixte 80/15/5", "color": "gray", "lw": 1.},
+        {"step": 380, "label": "Mixte : 70/25/5", "color": "gray", "lw": 0.7},
+        {"step": 1500, "label": "End warmup", "color": "gray", "lw": 0.7},
+#        {"step": 3400, "label": "Introduction de CulturaX à 10%", "color": "gray", "lw": 1.},
+#        {"step": 4200, "label": "CulturaX à 20%", "color": "gray", "lw": 1.},
+#        {"step": 5000, "label": "CulturaX à 35%", "color": "gray", "lw": 1.},
+#        {"step": 6000, "label": "Introduction de 10% de Littéraire (35/55)", "color": "gray", "lw": 1.},
+#        {"step": 8100, "label": "Passage EBS à 384 ( 8 x 48)", "color": "gray", "lw": 1.},
+#        {"step": 10200, "label": "Mixte 60/35/5", "color": "gray", "lw": 1.},
+#        {"step": 12300, "label": "Mixte 80/15/5", "color": "gray", "lw": 1.},
 #        {"step": 7200, "label": "Culturax Mix 50/50 / batch 8x16", "color": "magenta", "lw": 1.},
-        {"step": 13700, "label": "Palier 2.8 - Model v4", "color": "orange", "lw": 1.},
-        {"step": 18700, "label": "Palier 2.7 - Atteint", "color": "orange", "lw": 1.},
+#        {"step": 13700, "label": "Palier 2.8 - Model v4", "color": "orange", "lw": 1.},
+#        {"step": 18700, "label": "Palier 2.7 - Atteint", "color": "orange", "lw": 1.},
 #        {"step": 19600, "label": "CulturaX Mix 40/60", "color": "magenta", "lw": 1.},
 #        {"step": 25400, "label": "CulturaX Mix 35/65", "color": "magenta", "lw": 1.},
-        {"step": 27200, "label": "Palier 2.6 - Atteint", "color": "orange", "lw": 1.},
+ #       {"step": 27200, "label": "Palier 2.6 - Atteint", "color": "orange", "lw": 1.},
 #        {"step": 34800, "label": "CulturaX Mix 30/70", "color": "magenta", "lw": 1.},
 #        {"step": 39800, "label": "CulturaX Mix 35/75", "color": "magenta", "lw": 1.},
 #        {"step": 44800, "label": "Litteraire Mix 50/30/20", "color": "blue", "lw": 1.},
-        {"step": 45000, "label": "Palier 2.5 - Atteint", "color": "orange", "lw": 1.},
+#        {"step": 45000, "label": "Palier 2.5 - Atteint", "color": "orange", "lw": 1.},
 #        {"step": 46200, "label": "Litteraire Mix 20/30/50", "color": "blue", "lw": 1.},
 #        {"step": 48600, "label": "Litteraire Mix 05/30/65 + wiki Clean", "color": "blue", "lw": 1.},
  #       {"step": 53400, "label": "EBS=192, Dropout 0.10", "color": "red", "lw": 1.},
-        {"step": 60000, "label": "Cible 2.45", "color": "red", "lw": 1.5},
+ #       {"step": 60000, "label": "Cible 2.45", "color": "red", "lw": 1.5},
     ]
 
     # 3. Appel de la fonction de graphisme
@@ -71,7 +73,8 @@ def main():
         raw=args.raw,
         titre=args.titre,
         horizon=args.horizon,
-        proj=args.proj
+        proj=args.proj,
+        ds=args.ds
     )
 
 if __name__ == "__main__":

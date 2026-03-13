@@ -1,0 +1,32 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : 24H00, le siège social de notre société est à Bruxelles. La ville de Bruxelles possède également des commerces, restaurants et boutiques.
+Le centre commercial international Kicker s���attaque au trafic d���internet. Sa situation financière reste à confirmer lors des négociations entre les gouvernements belges et américains. Pour l'instant, c'est le point d'honneur pour tout le monde
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  qui avait pris le parti de son mari s'était assis devant lui. Il y avait au moins deux ans, un garçon très âgé que nous sommes tous. Il avait vécu une partie de sa vie dans la maison où il vivait. Il était connu pour être un des plus grands hommes du monde. Il a été amené à rencontrer quelqu'un d'autre qu'un homme peu âgé. Ce n'est pas si
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  ici en deux étapes. Le vert est mélangé à la couleur de l'acier : une première pour le blanc et un autre pour le rouge. Pour finir, on laisse des ciseaux noirs très sombres. Ensuite, les blancs sont coupés avec de la glace, puis le jaune au-dessus du blanc est mélangé. Enfin, pour finir, les blancs et les bleus ne sont plus dans
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

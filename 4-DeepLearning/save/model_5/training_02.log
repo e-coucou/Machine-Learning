@@ -1,0 +1,60 @@
+🚀 Initialisation de l'entraînement sur MPS...
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+📈 Reprise : Wiki à 81603 | CulturaX à 0 | 8
+✅ Modèle restauré. Steps faits: 3400
+✅ État de l'optimiseur restauré.
+🚀 Dataset Train: 1293.11M tokens.
+🚀 Dataset Val: 143.07M tokens.
+🚀 Dataset CulturaX: 621.92M tokens.
+🚀 Dataset Train: 1293.11M tokens.
+✅ Provider HP initialisé : 3367466 blocs uniques. Epoch : 0
+🔄 Reprise au batch 81603 [step : 81603]
+✅ Provider HP initialisé : 1619593 blocs uniques. Epoch : 0
+🔄 Reprise au batch 0 [step : 0]
+🔄 Mixer activé avec les sources : ['cult', 'wiki']
+🚀 Monitor activé : écriture dans model/monitor.log
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : On lance MAc Fans Control pour refroidir ....
+[96m[Model config][0m
+  n_embd             : 768[0m
+  num_heads          : 12[0m
+  n_layers           : 12[0m
+  block_size         : 384[0m
+  dropout            : [93m0.15[0m
+[96m[Train params][0m
+  batch_size         : 8[0m
+  grad_accum_steps   : 24[0m
+  learning_rate      : [92m0.0003[0m
+  min_lr             : 3e-05[0m
+  warmup_iters       : 2000[0m
+  lr_decay_iters     : 60000[0m
+  eval_interval      : [92m100[0m
+  eval_iters         : 20[0m
+  save_interval      : 100[0m
+  n_version          : 5[0m
+  use_compile        : False[0m
+  cult_data          : True[0m
+  litt_data          : False[0m
+  cult_ratio         : 0.1[0m
+  litt_ratio         : 0.0[0m
+  monitor_interval   : 10[0m
+  [1mEffective Batch Size: 192[0m
+..................................................
+
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 3400
+   📉 Evaluation tous les : 100 steps
+   💾 Sauvegarde tous les : 100 steps
+🟢 RAM Système: 57.8% | Process: 703Mo | Swap: 807Mo
+step 3500: train loss 3.3510, val loss 3.4058, lr 3.00e-04 (4643.91s) | 🟡 Po: 78.4% SW: 783Mo MPS: 2207Mo | 💾 | ✨
+step 3600: train loss 3.3464, val loss 3.3750, lr 2.99e-04 (4601.05s) | 🟡 Po: 79.0% SW: 783Mo MPS: 2221Mo | 💾 | ✨
+step 3700: train loss 3.3525, val loss 3.4203, lr 2.99e-04 (4609.13s) | 🟡 Po: 82.3% SW: 767Mo MPS: 2234Mo | 💾 | ✨
+step 3800: train loss 3.3502, val loss 3.3195, lr 2.99e-04 (4602.88s) | 🟡 Po: 82.2% SW: 767Mo MPS: 2239Mo | 💾 | ✨
+step 3900: train loss 3.3424, val loss 3.3455, lr 2.99e-04 (4607.36s) | 🟡 Po: 82.4% SW: 767Mo MPS: 2243Mo | 💾 | 🗑️ | ✨
+step 4000: train loss 3.3176, val loss 3.2465, lr 2.99e-04 (4603.39s) | 🟡 Po: 82.7% SW: 767Mo MPS: 2248Mo | 💾 | 🗑️ | ✨
+step 4100: train loss 3.2368, val loss 3.2614, lr 2.99e-04 (4641.26s) | 🟡 Po: 80.2% SW: 759Mo MPS: 2249Mo | 💾 | 🗑️ | ✨
+step 4200: train loss 3.1918, val loss 3.2595, lr 2.99e-04 (4660.74s) | 🟡 Po: 80.2% SW: 1352Mo MPS: 2249Mo | 💾 | 🗑️ | ✨

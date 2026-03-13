@@ -1,0 +1,39 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : 3, rue de Chartres.
+C'était aussi le domicile du prince-évêque Gabriel (le duc de Richelieu), le prince-évêque François (le duc de Savoie) et de l'impératrice Elisabeth. On pouvait supposer que ce monument fut détruit par les Ottomans et non en raison des guerres napoléoniennes. C'est une des rues dont l'église était toujours ouverte.
+Le musée et les dépendances.
+Dans
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  qui avait fait son entrée était un homme à barbe blanche. Il se tenait debout devant une des fenêtres; d'une main ferme il attendit les yeux fixés sur le mur, et d'un regard impitoyable qu'il venait de voir danser en regardant autour de lui. C'était la grande porte du jardinier, ouverte sur ce jardin. Il y avait aussi les allées de la
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  la formule suivante:
+Il existe une variante: 
+La formule d'un bleu est un caractère qui n'est pas lié à l'aspect.
+On peut ajouter un brun à l'intérieur du jaune. On obtient une formule à l'intérieur du jaune. La formule de deux noirs contient le rose des lèvres (à la place de la fleur) et la même formule que pour les autres variétés.
+
+Gradt
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------
