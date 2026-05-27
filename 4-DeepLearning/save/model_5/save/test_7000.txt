@@ -1,0 +1,35 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : [���]
+Roland d'Octobre à février 11, 2019 à 09:48
+Pour le moment, ce n'est pas une petite ville, on a beaucoup travaillé en France, mais dans toute la région, ce fut un début de culture économique qui me forçait à gagner du temps en faisant des économies et d'incertitude (c'est tout
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  qui s'approchait de lui était assis, un jeune homme qui le regardait en la regardant avec son visage. Il avait pris sa femme à la place, et il pensait en se retournant, les yeux fixés aux oreilles. Il savait que c'était une vieille fille, et qu'il ne s'agissait plus d'un homme que d'une mère de trois ans, mais d'un père de
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  un point de fusion qui prend place à l'ombre d'un disque, soit par une série de points, soit par une bande de quatre chiffres.
+Le disque reste stable aux États-Unis jusqu'au milieu des années 2000.
+Le disque est alors souvent utilisé pour le groupe de musique RCA. Il n'est donc pas intégré dans les synthétiseurs américains mais il est toujours utilisé pour la bande
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

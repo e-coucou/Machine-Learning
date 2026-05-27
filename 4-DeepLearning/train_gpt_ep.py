@@ -10,30 +10,31 @@ def main():
     # --- CONFIGURATION DU MODÈLE ---
     # Architecture fixe pour garantir la compatibilité avec les checkpoints
     model_config = {
-        'n_embd': 768,
-        'num_heads': 12,
-        'n_layers': 10,
-        'block_size': 256, 
-        'dropout': 0.15
+        'n_embd': 896, # v5 = 768,
+        'num_heads': 14, # v5 = 12,
+        'n_layers': 16, # v5 = 12,
+        'block_size': 512, # v5 = 384, 
+        'dropout': 0.10 # v5 = 0.15
     }
 
     # --- HYPERPARAMÈTRES D'ENTRAÎNEMENT ---
     train_params = {
-        'batch_size': 8, # pour libérer de la mémoire ...
-        'grad_accum_steps': 16,      # Batch effectif de 128
-        'learning_rate': 3e-4, 
-        'min_lr': 3e-5, 
-        'warmup_iters': 2000,
-        'lr_decay_iters': 80000, # initialement 100_000 mais le modèle rebondit vers 7000 steps 
-        'eval_interval': 200,
-        'eval_iters': 20, # mini 20 pour lisser 
-        'save_interval': 200,
+        'batch_size': 4, # pour libérer de la mémoire ...
+        'grad_accum_steps': 96,      # Batch effectif de 128
+        'learning_rate': 3.5e-4, 
+        'min_lr': 3.5e-5, 
+        'warmup_iters': 1500,
+        'lr_decay_iters': 30000, # initialement 100_000 mais le modèle rebondit vers 7000 steps 
+        'eval_interval': 10,
+        'eval_iters': 12, # mini 20 pour lisser 
+        'save_interval': 50,
         'n_version' : 5,
         'use_compile': False,
-        'cult_data': True,
-        'mixed_ratio': 0.30,  # Ratio de données CulturaX dans chaque batch
-        'ema_decay': 0., # 0 pour désactiver
-        'monitor_interval': 10,
+        'cult_data': True, # à supprimer car ne sert à rien
+        'litt_data': True, # à supprimer car ne sert à rien
+        'cult_ratio': 0.25,  # Ratio de données CulturaX dans chaque batch
+        'litt_ratio': 0.05,  # Ratio de données Littéraire  dans chaque batch
+        'monitor_interval': 2,
     }
 
     # --- INITIALISATION DES COMPOSANTS ---

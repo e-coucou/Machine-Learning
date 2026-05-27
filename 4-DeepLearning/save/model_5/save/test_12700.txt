@@ -1,0 +1,34 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : 1er étage , salle de réunion pour personnes handicapées , atelier ou bureau maison , cuisine , espace de rangement , cuisine , salon , WC , un bureau , salle de bain , douche , bureau , climatisation , toilettes , poêle , toilettes , etc , etc . Nous avons vu toutes ces créations en 2 pièces avec photos et autres photographies. Notre studio est composé d
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  qui s'était mis le plus près pour me dire qu'un homme n'avait pas vu un homme dans les rues; il y avait là une foule de voitures, et tout cela en deux mots. Je m'en rends compte, je pense que c'est quelque chose à faire... Mais il faut lui aussi lui donner une idée des choses auxquelles je dois dire, répondit MlleBourrienne.
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  un allongement de la largeur des trous noirs. On peut utiliser cette méthode pour obtenir une distance approximative avec un point d'observation plus élevé.
+La résolution de la longueur formula1 pour un trou noir est donnée par:
+où formula2 est le carré "S" de l'espace vectoriel: formula5
+Le théorème de la longueur formula6 du terme formula7, qui permet de
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

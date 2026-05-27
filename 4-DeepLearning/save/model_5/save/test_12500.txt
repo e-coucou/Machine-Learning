@@ -1,0 +1,32 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : 3 de celui de Genève . Célèbre pour son architecture moderne, ses bâtiments en béton armé et sa cour centrale dont il a fait les beaux dessins, mais aussi pour le décor intérieur. Il est construit en brique avec un toit de chaume.
+Le rez-de-chaussée et l'étage sont constitués de trois grands ensembles: appartements - deux pièces - un cabinet privé, un jardin de fleurs et une cuisine
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  se dirigeait vers le puits qui lui était enlevée. Son camarade, plus fort que jamais, avait dit un mot; le vieux ne s'était point trompé dans son esprit. Il était mort, mais il n'avait pas encore vu ni entendu parler de ce qu'il pensait. C'est donc là un homme qui venait d'avoir affaire à un homme qui, lui ayant donné son nom, vivait
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  donc un petit nombre de points noirs dans le volume des "Métamorphoses". On mesure l'intensité d'une onde de choc. Si on mélange du blanc et du vert pour obtenir le volume des "Métamorphoses", on peut considérer que formula5 est un paramètre sur lequel on a formula6. Le premier paramètre représente la valeur des coordonnées formula8 où formula9 est
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

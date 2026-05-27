@@ -1,0 +1,34 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : �� | Lien
+L'économie française, dans le centre.
+Elle comprend aussi les villes de banlieue de Paris ou d'une périphérie à l'est et à l'ouest. Elle comprend également la ville de Lyon qui compte au total près de de salariés. Dans ce dernier cas, il n'y a pas eu de situation de fermeture des magasins parisiens, les espaces d'accueil étant à quelques mètres de
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  du tonnerre, qui s'en allaient se lever, tomba sur une croupe, avec un sourire, et sans avoir pris connaissance. Le vent, les roues de la voiture avaient disparu dans les ténèbres du soleil. J'étais en train d'être seul à courir, comme si on ne faisait pas quelques tours sous le ciel, et je fus obligé d'aller jusqu'à la frontière du pays
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  le nom de "plateforme", parce que les "plateforme" sont des caillots.
+En 2019, une étude a montré que la couleur des feuilles est plus sombre que celle des fleurs. Elle a ainsi été réalisée sur les arbres d'un arbre de ce genre, tandis qu'une autre étude a publié un article dans le magazine "Lightman" en 2021
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

@@ -1,0 +1,34 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : 10 rue Jean-Baptiste Poumet, à partir du 23/09/2016.
+Avec le concours et le classement des restaurants de l'agglomération Saint-Colombes (Loire-Atlantique), l'enseigne a été labellisée Restaurant Urbain en France. Elle vient compléter les collections de ses clients par une nouvelle boutique de souvenirs...
+Lire la suiteVous êtes ici : Acc
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  était déjà là, mais sans doute avec la plus grande résistance possible. Il y avait sur un terrain de dix hectares une petite prairie humide où le plus grand nombre d'ouvriers se rendait chaque jour à la chasse qu'ils occupaient pour faire des courses de chevaux; et, d'après ce qu'on peut croire, tous les ouvriers, excepté les ouvriers qui avaient été employés par ces mêmes hommes
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  un effet de contraste plus favorable. Les notes d'eau sont généralement accompagnées de l'aluminium par exemple, qui est souvent utilisé pour le verre.
+Pour obtenir des résultats en matière plastique, il faut utiliser un procédé d'alliage dit "polycarbonate". La plupart de ces solutions sont principalement utilisées pour les surfaces industrielles. Toutefois, comme la plupart des matériaux utilisés, on ne peut pas les
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

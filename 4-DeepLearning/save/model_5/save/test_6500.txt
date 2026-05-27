@@ -1,0 +1,33 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : 1 rue de Bruxelles à Paris. Aujourd'hui, la ville se situe entre l'École Nationale Supérieure des Sciences et Technologie de Paris (EGBA) et le collège François-Marie de Tulle.
+L'École nationale Supérieure des Sciences, de Paris, est une école privée située dans l'ancienne caserne de la Marine, actuellement place Royale de Bruxelles. L'ASPTT (École Française des Arts
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  de son âge se trouva seul avec un air qui lui semblait tout à fait innocente. Le jour s'était tourné vers ce moment-là, pour se réchauffer, comme le matin était venu au milieu des rues voisines, pour y revenir. -Je suis là? demanda la reine. -Vous êtes ici? ne vous parlez pas du même sujet, je suis sûr que vous alle
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  généralement les mêmes conditions que celles de la matière première.
+Le bleu foncé est une plante herbacée vivace qui se différencie des autres plantes. C'est un arbrisseau très riche en pigments blancs, qui pousse sur le bord costal des fruits. Ses feuilles sont petites et s'épanouissent très bien et se développent au travers d'un tronc, à l'exception des fleurs qui restent en place
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

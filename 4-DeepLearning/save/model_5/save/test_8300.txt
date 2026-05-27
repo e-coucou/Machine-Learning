@@ -1,0 +1,36 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : 2 - M. le comte est un homme des 4, 6, 13 ans et 24 ans ; l'un des plus gros propriétaires de trésors à Paris (en dehors de sa maison) , [���]
+N��1 sur le marché immobilier.
+Nombre d'usines pour les grands commerçants à Paris (plus de 3 millions d'euros)
+Type
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  se sentit au milieu de ces bois pleins d'or. À peine avait-il aperçu son père qu'ils étaient là, et que le monde s'en souvenait. Alors, comme il avait fait la guerre avec eux, on ne les avait point empressés, et ils n'avaient plus rien perdu. Tous deux avaient mis leurs mains dans leurs bras en sanglots. Avez-vous pris cette main
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  ainsi un point blanc de 2,5 m par seconde. Les points rouges sont ensuite marqués avec un point de 2,0 m par seconde. Un autre point rouge est obtenu avec 1,0 m.
+Pronostic.
+Le laser pixel peut être utilisé pour mesurer l'infrarouge (avec une précision allant jusqu'à 5000 m), mais sa taille est inférieure
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

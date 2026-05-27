@@ -1,0 +1,46 @@
+--------------------------------------------------
+🚀 LANCEMENT DES TESTS - POUSSIN-V2
+--------------------------------------------------
+
+[TEST GÉOGRAPHIE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : ... pour vous aider à trouver des endroits où se trouvent les meilleures opportunités. Vous pouvez trouver de nombreux commerces dans le sud de la France, notamment à Nîmes et à Perpignan, ainsi que plusieurs musées à Montpellier et Montpellier. Les différents musées sont situés en région Occitanie.
+Le musée de l'oeuvre d'art contemporain du département du Gard est situé à Nîmes, près du
+--------------------------------------------------
+
+
+[TEST LITTÉRAIRE]
+
+--------------------------------------------------
+[1mLe soir tombait sur la plaine, et l'homme[0m
+🤖 IA :  n'avait vu que le nom de son mari, qui venait d'arriver. Il ne voyait rien de plus joyeux qu'une chose inconnue. La femme était habillée en rouge, avec des fesses, comme des vêpres ou des hurlements, et n'eut pas froid pendant une courte période. Le lendemain était venu, il avait fait semblant à la femme de s'asse
+--------------------------------------------------
+
+
+[TEST DE COHÉRENCE]
+
+--------------------------------------------------
+[1mSi on mélange du bleu et du jaune, on obtient[0m
+🤖 IA :  par exemple un point jaune avec le point jaune. On obtient une mesure de la variation de couleur en fonction des paramètres de transition.
+La variation de température est notée formula1 pour les deux périodes:
+formula2
+Si l'on a obtenu une mesure de cette variation en fonction des paramètres de transition (c'est-à-dire de la pression partielle sur les valeurs des valeurs des paramètres de transition), on obtient la valeur de la variation de température dans le cas où l'on souhaite comparer la variation de couleur à celle d'un changement de vitesse formula3. C'est ce qui démontre qu'il n'y a pas de différence pour le moment entre la variation de gris et le changement de direction de l'équateur.
+Pour le changement de vitesse de la variation de température
+--------------------------------------------------
+
+
+[TEST 0 RISQUE]
+
+--------------------------------------------------
+[1mParis est la capitale de , [0m
+🤖 IA : �� l���histoire de la ville de Paris ��, a-t-elle déclaré.
+La ville de Paris est le siège d���une communauté urbaine qui compte plus de 50 000 habitants. Elle est située dans le quartier du Montparnasse, à proximité immédiate de la gare de Paris-Saint-Lazare et de la rue de la Gare.
+Le quartier de la Gare
+--------------------------------------------------
+
+
+--------------------------------------------------
+✅ TESTS TERMINÉS
+--------------------------------------------------

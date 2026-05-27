@@ -1,6 +1,19 @@
 import os
 import re
+import regex # À installer via pip install regex
 
+def super_clean(text):
+    # On utilise un quantificateur possessif : .*+ 
+    # Le '+' après le '*' interdit au moteur de revenir en arrière (backtracking)
+    # C'est ce qui rend l'opération instantanée.
+    # Le .*+ est possessif par nature, il mangera tout jusqu'au dernier "vendu." du bloc
+#    pattern = r'(?ms)^[A-ZÉÀ].*?+ne peut en aucun cas être vendu\.\s*'
+    # On capture le bloc de manière atomique (?>...) pour interdire le retour en arrière
+    pattern = r'(?ms)^[A-ZÉÀ](?>.*?+)ne peut en aucun cas être vendu\.\s*'
+    
+    # regex.sub est beaucoup plus optimisé que re.sub
+    return regex.sub(pattern, '', text)
+    
 def clean_gutenberg_hardcore(text):
     # 1. On cherche le marqueur de début (insensible à la casse)
     # Ce marqueur est standard : *** START OF THE PROJECT GUTENBERG EBOOK ... ***
@@ -27,6 +40,12 @@ def clean_gutenberg_hardcore(text):
     # 3. Suppression des lignes de "Table des matières" (lignes avec beaucoup de points)
     # Ex: Chapitre premier ................... 12
     text = re.sub(r'\.\.+\s*\d*$', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^.*ebooksgratuits\.com.*$\n*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^.*feedbooks\.com.*$\n*', '', text, flags=re.MULTILINE)
+    # Ajout de \s* à la fin pour supprimer aussi les gros espaces blancs laissés après suppression
+#    text = re.sub(r'^[A-ZÉÀ].*?ne peut en aucun cas être vendu\.\s*', '', text, flags=re.DOTALL | re.MULTILINE)
+    text = re.sub(r'^[A-ZÉÀ].*?ne peut en aucun cas être vendu\.', '', text, flags=re.MULTILINE)
+#    text = super_clean(text)
 
     patterns_a_supprimer = [
         r"Produced by.*",

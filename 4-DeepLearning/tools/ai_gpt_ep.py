@@ -15,7 +15,7 @@ import queue, gc
 # -----------------------------------------------------------------------------
 # 1. BLOCS DE BASE DU MODÈLE (Architecture GPT "Decoder-Only")
 # -----------------------------------------------------------------------------
-class MultiHeadAttention_large(nn.Module):
+class MultiHeadAttention(nn.Module): # version light
     """ Causal Self-Attention. C'est le coeur du mécanisme GPT. 
         Utilisation de la fonction intégrée dans Torch v2 avec le composant metal. """
     def __init__(self, num_heads, head_size, n_embd, block_size, dropout):
@@ -55,7 +55,7 @@ class MultiHeadAttention_large(nn.Module):
         out = self.dropout(out)
         return out
 
-class MultiHeadAttention(nn.Module):
+class MultiHeadAttention_full(nn.Module):
     """ Causal Self-Attention. C'est le coeur du mécanisme GPT. """
     def __init__(self, num_heads, head_size, n_embd, block_size, dropout):
         super().__init__()
@@ -422,6 +422,28 @@ class DeterministicProvider:
             yield x, y
             self.step += 1
 
+class BackgroundGenerator:
+    def __init__(self, generator_func, max_prefetch=1):
+        self.queue = queue.Queue(maxsize=max_prefetch)
+        self.generator_func = generator_func
+        self.stop_event = threading.Event()
+        self.thread = threading.Thread(target=self._run, daemon=True)
+        self.thread.start()
+
+    def _run(self):
+        while not self.stop_event.is_set():
+            # Prépare le batch (CPU + NumPy)
+            batch = self.generator_func()
+            # Attend que la queue ait de la place pour le déposer
+            self.queue.put(batch)
+
+    def next(self):
+        return self.queue.get()
+
+# -----------------------------------------------------------------------------
+# 3.  CONTINUOUS TRAINING - version finale avec chargement plusieurs datasets
+# -----------------------------------------------------------------------------
+
 class ContinuousTrainer:
     def __init__(self, model_class, tokenizer, config, train_params, data_root, 
                  ckpt_path='ckpt.pth', log_file='processed_log.txt',history_path='history.json',data_dir="data/encoded"):
@@ -434,9 +456,11 @@ class ContinuousTrainer:
         self.log_file = log_file
         self.history_path = history_path
         self.cult_data = train_params.get('cult_data', False)
-        self.mixed_ratio = train_params.get('mixed_ratio', 0.0)
+        self.litt_data = train_params.get('litt_data', False)
+        self.cult_ratio = train_params.get('cult_ratio', 0.0)
+        self.litt_ratio = train_params.get('litt_ratio', 0.0)
+        self.wiki_ratio = 1. - self.cult_ratio - self.litt_ratio
         self.ema_decay = train_params.get('ema_decay', 0) # 0 pour désactiver
-
         # Gestion du Device / préférence sur MPS /
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
         print(f"🚀 Device: {self.device}")
@@ -451,9 +475,163 @@ class ContinuousTrainer:
         self.total_steps_done = 0
         self.total_step_cult = 0
         self.total_step_wiki = 0
+        self.total_step_litt = 0
         # Chargement du checkpoint si disponible
         self._load_checkpoint()
         # Initialisation de l'EMA si activée
+        self._init_EMA()
+        # Compilation optionnelle avec torch.compile (PyTorch 2.0+)
+        self._init_compile()
+        # Optimiseur (On l'initialise ici, mais son état peut être écrasé si on charge un checkpoint)
+        self.optimizer = torch.optim.AdamW(
+                    self.model.parameters(), 
+                    lr=train_params['learning_rate'],
+                    weight_decay=train_params.get('weight_decay', 0.1)
+                )
+        # Chargement de l'état de l'optimiseur si disponible
+        # Restauration de l'état de l'Optimiseur
+        if hasattr(self, '_saved_optimizer_state') and self._saved_optimizer_state:
+            self.optimizer.load_state_dict(self._saved_optimizer_state)
+            del self._saved_optimizer_state # Libère la mémoire
+            print("✅ État de l'optimiseur restauré.")
+        # Liste des fichiers déjà traités (obsolète, maintenant on charge un fichier de token unique) & l'historique
+        # self.processed_files = self._load_processed_log()
+        self.history = self._load_history()    
+        self._setup_data(data_dir)
+        # Préparation des providers et de l'itérateurs
+        #   On crée l'itérateur persistant ici
+        #   Le BackgroundGenerator utilise l'itérateur existant
+        self._init_providers()
+        self.train_iterator = self._training_mixer()
+        # Note : on utilise 'next(self.train_iterator)' SANS le 'iter()' sinon reset à chaque iter
+        self.train_queue = BackgroundGenerator(
+            lambda: next(self.train_iterator), 
+            max_prefetch=2 # peut monter à 5 pour plus de fluidité ... mais on sature le bus ram unifié et ralenti le GPU !
+        )
+        # Initialisation (une seule fois au début de la classe) passage en float16 sur MPS
+        self.scaler = torch.amp.GradScaler(self.device, enabled=True)
+        # Initialisation du monitor de log
+        self.monitor = Monitor()
+        print(f"🚀 Init terminé.")
+
+    # Création du Mixer optimisé
+    def _training_mixer(self):
+        """
+        Mixeur intelligent qui s'adapte aux sources disponibles.
+        Ratios cibles : Litté 50% | CulturaX 30% | Wiki 20%
+        """
+        # 1. Préparation des itérateurs (seulement si le provider existe)
+        sources = {}
+        if hasattr(self, 'litt_provider') and self.litt_provider:
+            sources['litt'] = iter(self.litt_provider)
+        if hasattr(self, 'culturaX_provider') and self.culturaX_provider:
+            sources['cult'] = iter(self.culturaX_provider)
+        sources['wiki'] = iter(self.train_provider)
+
+        if not sources:
+            raise RuntimeError("❌ Erreur : Aucun dataset n'est disponible pour le mixer !")
+
+        print(f"🔄 Mixer activé avec les sources : {list(sources.keys())}")
+
+        while True:
+            r = np.random.random()
+            # --- Logique de cascade avec repli (Fallback) ---            
+            if r < self.litt_ratio and 'litt' in sources:
+                self.total_step_litt += 1
+                yield next(sources['litt'])
+            
+            elif r < (self.litt_ratio + self.cult_ratio) and 'cult' in sources:
+                self.total_step_cult += 1
+                yield next(sources['cult'])
+            
+            elif 'wiki' in sources:
+                self.total_step_wiki += 1
+                yield next(sources['wiki'])
+            
+            # SÉCURITÉ : Si la source choisie par 'r' n'existe pas, 
+            # on prend la première source disponible dans le dictionnaire
+            else:
+                fallback_key = list(sources.keys())[0]
+                if fallback_key == 'litt': self.total_step_litt += 1
+                if fallback_key == 'cult': self.total_step_cult += 1
+                if fallback_key == 'wiki': self.total_step_wiki += 1
+                yield next(sources[fallback_key])
+
+    def _setup_data(self,data_dir):
+        # --- CHARGEMENT DES DONNÉES BINAIRES (Nouveau) ---
+        # On utilise memmap pour lire le fichier sur le disque sans charger la RAM
+        train_path = os.path.join(data_dir, 'train_wiki.bin')
+        val_path = os.path.join(data_dir, 'val_wiki.bin')
+        train_cult_path = os.path.join(data_dir, 'train_culturax.bin')
+        val_cult_path = os.path.join(data_dir, 'val_culturax.bin')
+        train_litt_path = os.path.join(data_dir, 'train_litteraire.bin')
+        val_litt_path = os.path.join(data_dir, 'val_litteraire.bin')
+        
+        if os.path.exists(train_path):
+            self.train_data = np.memmap(train_path, dtype=np.uint16, mode='r')
+            print(f"🚀 Dataset Train: {len(self.train_data)/1e6:.2f}M tokens.")
+            self.val_data = np.memmap(val_path, dtype=np.uint16, mode='r')
+            print(f"🚀 Dataset Val: {len(self.val_data)/1e6:.2f}M tokens.")
+        else:
+            print(f"⚠️ Fichiers binaires introuvables dans {data_dir}")      
+
+        if self.cult_data and os.path.exists(train_cult_path):
+            self.train_data_cult = np.memmap(train_cult_path, dtype=np.uint16, mode='r')
+            print(f"🚀 Dataset CulturaX: {len(self.train_data_cult)/1e6:.2f}M tokens.")
+            self.val_cult = np.memmap(val_cult_path, dtype=np.uint16, mode='r')
+            print(f"🚀 Dataset Val: {len(self.val_cult)/1e6:.2f}M tokens.")
+        else:
+            self.train_data_cult = None
+            print("ℹ️ Mode Source Unique : Wiki uniquement.")    
+
+        if self.litt_data and os.path.exists(train_litt_path):
+            self.train_data_litt = np.memmap(train_litt_path, dtype=np.uint16, mode='r')
+            print(f"🚀 Dataset Litteraire: {len(self.train_data_litt)/1e6:.2f}M tokens.")
+            self.val_litt = np.memmap(val_litt_path, dtype=np.uint16, mode='r')
+            print(f"🚀 Dataset Val: {len(self.val_litt)/1e6:.2f}M tokens.")
+        else:
+            self.train_data_litt = None
+            print(f"🚀 Dataset Train: {len(self.train_data)/1e6:.2f}M tokens.")
+
+    def _init_providers(self):
+        self.train_provider = DeterministicProvider(
+            data=self.train_data,
+            batch_size=self.params['batch_size'],
+            block_size=self.config['block_size'],
+            device = self.device,
+            start_step=self.total_step_wiki,
+            grad_accum_steps=self.params.get('grad_accum_steps', 4),
+            seed=1965 # Le Salt fixe
+        )
+        # On ajoute ici un fichier train supplémentaire pour CulturaX
+        if  self.train_data_cult is not None:
+            self.culturaX_provider = DeterministicProvider(
+                data=self.train_data_cult,
+                batch_size=self.params['batch_size'],
+                block_size=self.config['block_size'],
+                device = self.device,
+                start_step=self.total_step_cult,
+                grad_accum_steps=self.params.get('grad_accum_steps', 4),
+                seed=2013 # Le Salt fixe mais différent
+                )
+        else: 
+            self.culturaX_provider = None
+        # On ajoute ici un fichier train supplémentaire pour Littearature
+        if  self.train_data_litt is not None:
+            self.litt_provider = DeterministicProvider(
+                data=self.train_data_litt,
+                batch_size=self.params['batch_size'],
+                block_size=self.config['block_size'],
+                device = self.device,
+                start_step=self.total_step_litt,
+                grad_accum_steps=self.params.get('grad_accum_steps', 4),
+                seed=1990 # Le Salt fixe mais différent
+                )
+        else: 
+            self.litt_provider = None
+
+
+    def _init_EMA(self):
         self.ema_model = None
         if self.ema_decay > 0:
             import copy
@@ -468,7 +646,8 @@ class ContinuousTrainer:
                 self.ema_model.load_state_dict(self._saved_ema_state)
                 del self._saved_ema_state
                 print("✅ Poids EMA restaurés depuis le fichier.")
-        # Compilation optionnelle avec torch.compile (PyTorch 2.0+)    
+
+    def _init_compile(self):
         self.is_compiled = False
         if self.params.get('use_compile', False):
             if hasattr(torch, "compile"):
@@ -483,129 +662,7 @@ class ContinuousTrainer:
                     print(f"⚠️ Échec compilation : {e}")
             else:
                 print("⚠️ torch.compile non supporté (nécessite PyTorch 2.0+)")
-
-        # Optimiseur (On l'initialise ici, mais son état peut être écrasé si on charge un checkpoint)
-        self.optimizer = torch.optim.AdamW(
-                    self.model.parameters(), 
-                    lr=train_params['learning_rate'],
-                    weight_decay=train_params.get('weight_decay', 0.1)
-                )
-        # Chargement de l'état de l'optimiseur si disponible
-        # 5. Restauration de l'état de l'Optimiseur
-        if hasattr(self, '_saved_optimizer_state') and self._saved_optimizer_state:
-            self.optimizer.load_state_dict(self._saved_optimizer_state)
-            del self._saved_optimizer_state # Libère la mémoire
-            print("✅ État de l'optimiseur restauré.")
-        # Liste des fichiers déjà traités (obsolète, maintenant on charge un fichier de token unique) & l'historique
-        # self.processed_files = self._load_processed_log()
-        self.history = self._load_history()    
-        self._setup_data(data_dir)
-        # Créer un itérateur pour piocher dedans manuellement comme avant
-        # self.train_iter = iter(self.train_loader)
-        # abandonné au profit du shuffle : // self.train_queue = BackgroundGenerator(lambda: self.get_batch_bin('train'), max_prefetch=1)
-        # Préparation du fournisseur de données déterministe
-        # Il commence exactement au step où on s'est arrêté
-        self.train_provider = DeterministicProvider(
-            data=self.train_data,
-            batch_size=self.params['batch_size'],
-            block_size=self.config['block_size'],
-            device = self.device,
-            start_step=self.total_step_wiki,
-            grad_accum_steps=self.params.get('grad_accum_steps', 4),
-            seed=1965 # Le Salt fixe
-        )
-        # On ajoute ici un fichier train supplémentaire pour CulturaX
-        if (self.cult_data):
-            self.culturaX_provider = DeterministicProvider(
-                data=self.train_data_cult,
-                batch_size=self.params['batch_size'],
-                block_size=self.config['block_size'],
-                device = self.device,
-                start_step=self.total_step_cult,
-                grad_accum_steps=self.params.get('grad_accum_steps', 4),
-                seed=2013 # Le Salt fixe mais différent
-                )
-        else: 
-            self.train_data_cult = None
-
-        # Création du Mixer
-        def training_mixer():
-            it_wiki = iter(self.train_provider)
-            # Si CulturaX est activé, on prépare son itérateur
-            if self.cult_data:
-                it_cult = iter(self.culturaX_provider)
-                while True:
-                    if np.random.random() < self.mixed_ratio:
-                        self.total_step_cult += 1
-                        yield next(it_cult)
-                    else:
-                        self.total_step_wiki += 1
-                        yield next(it_wiki)
-            else:
-                # Sinon, on yield simplement le Wiki tout seul
-                while True:
-                    yield next(it_wiki)
-
-        # 1. On crée l'itérateur persistant ici
-        self.train_iterator = training_mixer()
-        # self.train_iterator = iter(self.train_provider)
-        # 2. Le BackgroundGenerator utilise l'itérateur existant
-        # Note : on utilise 'next(self.train_iterator)' SANS le 'iter()' sinon reset à chaque iter
-        self.train_queue = BackgroundGenerator(
-            lambda: next(self.train_iterator), 
-            max_prefetch=2 # peut monter à 5 pour plus de fluidité ... mais on sature le bus ram unifié et ralenti le GPU !
-        )
-        # Initialisation (une seule fois au début de la classe) passage en float16 sur MPS
-        self.scaler = torch.amp.GradScaler(self.device, enabled=True)
-        # Initialisation du monitor de log
-        self.monitor = Monitor()
-        print(f"🚀 Init terminé.")
-
-    def _setup_data(self,data_dir):
-        # --- CHARGEMENT DES DONNÉES BINAIRES (Nouveau) ---
-        # On utilise memmap pour lire le fichier sur le disque sans charger la RAM
-        train_path = os.path.join(data_dir, 'train.bin')
-        val_path = os.path.join(data_dir, 'val.bin')
-        train_cult_path = os.path.join(data_dir, 'train_culturax.bin')
-        
-        if os.path.exists(train_path):
-            self.train_data = np.memmap(train_path, dtype=np.uint16, mode='r')
-            print(f"🚀 Dataset Train: {len(self.train_data)/1e6:.2f}M tokens.")
-            self.val_data = np.memmap(val_path, dtype=np.uint16, mode='r')
-            print(f"🚀 Dataset Val: {len(self.val_data)/1e6:.2f}M tokens.")
-        else:
-            print(f"⚠️ Fichiers binaires introuvables dans {data_dir}")      
-
-        if self.cult_data and os.path.exists(train_cult_path):
-            self.train_data_cult = np.memmap(train_cult_path, dtype=np.uint16, mode='r')
-            print(f"🚀 Dataset CulturaX: {len(self.train_data_cult)/1e6:.2f}M tokens.")
-        else:
-            self.train_data_cult = None
-            print("ℹ️ Mode Source Unique : Wiki uniquement.")    
- 
-            # self.train_data = np.fromfile(train_path, dtype=np.uint16)
-            # self.val_data = np.fromfile(val_path, dtype=np.uint16)
-            """ test tensor 
-            train_np = np.fromfile(train_path, dtype=np.uint16).astype(np.int32)
-            self.train_data = torch.from_numpy(train_np).to(self.device)
-            val_np = np.fromfile(val_path, dtype=np.uint16).astype(np.int32)
-            self.val_data = torch.from_numpy(val_np).to(self.device)
-            del train_np, val_np # Libère la mémoire CPU NumPy immédiatement
-            """
-            print(f"🚀 Dataset Train: {len(self.train_data)/1e6:.2f}M tokens.")
-            # print(f"🚀 Val Dataset chargé (RAM). Train: {len(self.val_data)/1e6:.2f}M tokens.")
-
-        # train_ds = TokenDataset(train_path, self.config['block_size'])
-        # self.train_loader = DataLoader(
-        #     train_ds, 
-        #     batch_size=self.params['batch_size'],
-        #     shuffle=True,           # Pour une meilleure convergence
-        #     num_workers=1,          # C'est ici que la magie du parallélisme opère (CPU)
-        #     pin_memory=False,       # Sur MPS (mémoire unifiée), pin_memory est souvent inutile
-        #     prefetch_factor=2       # Chaque worker prépare 2 batches d'avance
-        # )
-        # print(f"🚀 Train Loader Activé.")
-
+      
     def _init_weights(self, module):
         """
         Règle d'initialisation standard pour les architectures GPT.
@@ -633,7 +690,7 @@ class ContinuousTrainer:
         if os.path.exists(self.history_path):
             with open(self.history_path, 'r') as f:
                 return json.load(f)
-        return {'train_loss': [], 'val_loss': [], 'steps': [], 'time_elapse': [], 'time_model':[],'time_batch': [], 'time_bacwd': [], 'time_optim': [], 'time_init': [], 'time_eval': []}
+        return {'train_loss': [], 'val_loss': [], 'val_loss_wiki': [], 'val_loss_cult': [], 'val_loss_litt': [], 'steps': [], 'time_elapse': [], 'time_model':[],'time_batch': [], 'time_bacwd': [], 'time_optim': [], 'time_init': [], 'time_eval': []}
 
     def _save_history(self):
         with open(self.history_path, 'w') as f:
@@ -668,7 +725,7 @@ class ContinuousTrainer:
         if (model_mem_mb + optim_mem_mb) > 12000:
             print("⚠️ ATTENTION : La RAM est très sollicitée. Risque de swap.")
         else:
-            print("✅ MÉMOIRE OK : Ton M1 gérera l'entraînement confortablement.")
+            print("✅ MÉMOIRE OK : M1 gérera l'entraînement confortablement.")
 
     def _mark_file_as_done(self, file_path):
         """Ajoute un fichier à la liste des traités"""
@@ -700,6 +757,7 @@ class ContinuousTrainer:
             self.total_steps_done = ckpt.get('total_steps_done', 0)
             self.total_step_wiki = ckpt.get('total_step_wiki', 0) // batch_size
             self.total_step_cult = ckpt.get('total_step_cult', 0) // batch_size
+            self.total_step_litt = ckpt.get('total_step_litt', 0) // batch_size
             print(f"📈 Reprise : Wiki à {self.total_step_wiki} | CulturaX à {self.total_step_cult} | {batch_size}")
 
             # 3. SYNCHRONISATION DU SCHEDULER (Important !)
@@ -734,6 +792,7 @@ class ContinuousTrainer:
             'total_steps_done': self.total_steps_done, # Crucial pour le Scheduler
             'total_step_wiki': self.total_step_wiki * batch_size,
             'total_step_cult': self.total_step_cult * batch_size,
+            'total_step_litt': self.total_step_litt * batch_size,
             'vocab_size': len(self.tokenizer.vocab),
             'params': self.params,
         }
@@ -798,6 +857,30 @@ class ContinuousTrainer:
         # gc.collect()        
                 
         return x, y
+
+    def get_batch_from_source(self, data):
+        """
+        Version optimisée de la fonction pour piocher dans n'importe quel memmap.
+        """
+        # 1. Générer tous les indices d'un coup
+        ix = np.random.randint(0, len(data) - self.config['block_size'], (self.params['batch_size'],))
+        
+        # 2. Grille d'indices (la "magie" NumPy)
+        offsets = np.arange(self.config['block_size'])
+        indices = ix[:, None] + offsets 
+        
+        x_np = data[indices]
+        y_np = data[indices + 1]
+
+        # Conversion en Tenseur (on reste en long pour la CrossEntropy)
+        # Note: On passe en .long() car la CrossEntropy ne prend pas le uint16
+        x = torch.from_numpy(x_np).to(self.device).long()
+        y = torch.from_numpy(y_np).to(self.device).long()
+
+        del x_np, y_np # zut oublié de détruire ces derniers !!
+
+        return x, y
+
     
     def get_batch_bin_tensor(self, split='train'):
         data = self.train_data if split == 'train' else self.val_data
@@ -1018,6 +1101,12 @@ class ContinuousTrainer:
         Entraînement continu sur fichier binaire.
         - Sauvegarde et évalue tous les 'eval_interval' steps.
         - Gère la reprise parfaite de l'optimizer.
+        - Inclus tous les metrics monitoring
+        - Gère plusieurs datasets (3)
+        - Gradient normalisé pour éviter les NaN
+        - Shuffle déterministe sur chaque dataset, et gère la reprises en fonction des batch_size et grad_accum
+        - Shuffle recaculer à chaque changement d'epochs dataset par datasets
+        - inclus les timings 
         """
         self.model.train()
         
@@ -1112,26 +1201,30 @@ class ContinuousTrainer:
                 self.update_ema()            
             # --- EVALUATION & PLOT (Fréquent) ---
             t5 = time.time()
-            if self.total_steps_done % monitor_interval == 0:
-                self.monitor.log(self.total_steps_done, accum_loss, lr, monitor_interval, t5-t_monitor, self.total_step_wiki, self.total_step_cult, purge, current_grad_norm)
+            if (self.total_steps_done % monitor_interval == 0) | (self.total_steps_done<5):
+                self.monitor.log(self.total_steps_done, accum_loss, lr, monitor_interval, t5-t_monitor, self.total_step_wiki, self.total_step_cult, self.total_step_litt, purge, current_grad_norm,self.params)
                 t_monitor=time.time()
                 current_grad_norm = []
                 purge=0
                 
-            if self.total_steps_done % eval_interval == 0:
+            if (self.total_steps_done % eval_interval == 0) | (self.total_steps_done<6):
                 elapsed = time.time() - start_time
                 # Calcul du Loss Val (Le vrai juge)
-                losses, status, pression, mem_rss = self.estimate_loss_bin(eval_iters=eval_iters)
+                losses, status, pression, mem_rss = self.estimate_loss_bin_v6(eval_iters=eval_iters)
+                purge=1
                 swap = psutil.swap_memory().used / (1_048_576)
                 if self.total_steps_done % save_interval == 0:
                     print(f"step {self.total_steps_done}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}, lr {lr:.2e} ({elapsed:.2f}s) | {status} Po: {pression:.1f}% SW: {swap:.0f}Mo MPS: {torch.mps.current_allocated_memory() / 1_048_576:.0f}Mo", end="")
                 else:
-                    print(f"step {self.total_steps_done}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}, lr {lr:.2e} ({elapsed:.2f}s) | {status} Po: {pression:.1f}% SW: {swap:.0f}Mo MPS: {torch.mps.current_allocated_memory() / 1_048_576:.0f}")
+                    print(f"step {self.total_steps_done}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}, lr {lr:.2e} ({elapsed:.2f}s) | {status} Po: {pression:.1f}% SW: {swap:.0f}Mo MPS: {torch.mps.current_allocated_memory() / 1_048_576:.0f}Mo")
                 # Mise à jour historique
                 nb_step = self.total_steps_done - previous_step
                 previous_step = self.total_steps_done
                 self.history['train_loss'].append(losses['train'])
                 self.history['val_loss'].append(losses['val'])
+                self.history['val_loss_wiki'].append(losses['v_wiki'])
+                self.history['val_loss_cult'].append(losses['v_cult'])
+                self.history['val_loss_litt'].append(losses['v_litt'])
                 self.history['steps'].append(self.total_steps_done)
                 self.history['time_elapse'].append(elapsed)
                 self.history['time_model'].append(t_model/nb_step)
@@ -1152,16 +1245,18 @@ class ContinuousTrainer:
                 t_eval=0
                 # print(f"Mémoire allouée MPS : {torch.mps.current_allocated_memory() / 1024**2:.2f} MB")
             # --- SAUVEGARDE CHECKPOINT (Sécurité) ---
-            if self.total_steps_done % save_interval == 0:
+            if (self.total_steps_done % save_interval == 0) | (self.total_steps_done == 1):
                 self._save_checkpoint(n_versions=self.params.get('n_version',5))
             t_eval += time.time() - t5
 
             # 3. Purge préventive avant l'effort d'évaluation
-            if self.total_steps_done % 50 == 0:
+            """
+            if self.total_steps_done %10 == 0:
                 gc.collect()           # Libère la RAM CPU (NumPy/Tensors CPU)
                 if torch.backends.mps.is_available():
                     torch.mps.empty_cache()
                     purge=1
+            """
 
             
 
@@ -1302,6 +1397,69 @@ class ContinuousTrainer:
         self.model.train()
         return out
     
+    def estimate_loss_bin_v6(self, eval_iters=30):
+        """
+        Fonction helper pour estimer le loss sans dropout (mode eval).
+        eval_iters: nombre de batchs pour moyenner et avoir un score stable.
+        ici en V6 on va calculer par rapport aux 3 datasets
+        """
+        out = {}
+        self.model.eval() # Désactive Dropout
+        # on fixe les datasets
+        # Dictionnaire des sources de validation à tester
+        val_sources = {
+            'wiki': self.val_data,
+            'cult': self.val_cult,
+            'litt': self.val_litt
+            }
+
+        
+        # 1. Purge préventive avant l'effort d'évaluation
+        gc.collect()           # Libère la RAM CPU (NumPy/Tensors CPU)
+        if torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+
+        # 2. Utilisation de inference_mode (plus rapide que no_grad sur Metal)
+        with torch.inference_mode(): # ce code crash !!
+            with torch.autocast(device_type='mps', dtype=torch.float16):
+#            with torch.no_grad():
+            #2.1/ le train
+                losses = torch.zeros(eval_iters)
+                for k in range(eval_iters):
+                    X, Y = self.get_batch_bin(split='train')
+                    _, loss = self.model(X, Y)
+                    losses[k] = loss.item()
+                out['train'] = losses.mean().item()
+
+            # 2.2 /Validation détaillée par domaine
+            for name, data_source in val_sources.items():
+                if data_source is not None:
+                    v_losses = torch.zeros(eval_iters)
+                    for k in range(eval_iters):
+                        # On utilise ta logique "magie numpy" directement sur le source
+                        X, Y = self.get_batch_from_source(data_source)
+                        _, loss = self.model(X, Y)
+                        v_losses[k] = loss.item()
+                    out[f'v_{name}'] = v_losses.mean().item()
+
+        # Calcul de la Loss globale pondérée pour le graphe principal
+        out['val'] =  (self.wiki_ratio * out.get('v_wiki', 0) + 
+                       self.cult_ratio * out.get('v_cult', 0) + 
+                       self.litt_ratio * out.get('v_litt', 0))
+        
+        self.model.train() # Réactive Dropout
+            
+        # 3. Purge préventive avant l'effort d'évaluation
+        gc.collect()           # Libère la RAM CPU (NumPy/Tensors CPU)
+        if torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+
+        status, pression, mem_rss = self.log_memory_status()
+
+        return out, status, pression, mem_rss
+
+
+    
     def estimate_loss_bin(self, eval_iters=30):
         """
         Fonction helper pour estimer le loss sans dropout (mode eval).
@@ -1335,7 +1493,7 @@ class ContinuousTrainer:
         status, pression, mem_rss = self.log_memory_status()
 
         return out, status, pression, mem_rss
-    
+
     def log_memory_status(self, v=False):
         # RAM système
         vm = psutil.virtual_memory()
@@ -1366,6 +1524,10 @@ class ContinuousTrainer:
         for ema_param, train_param in zip(self.ema_model.parameters(), self.model.parameters()):
             ema_param.data.lerp_(train_param.data, weight)
 
+# -----------------------------------------------------------------------------
+# 5. MONITORING CLASS - sauvergarde en continue x steps du training
+# -----------------------------------------------------------------------------
+
 class Monitor:
     def __init__(self,file = 'model/monitor.log'):
         self.file = file
@@ -1387,7 +1549,7 @@ class Monitor:
                 f.write(json.dumps(data) + "\n")
             self.queue.task_done()
             
-    def log(self, step, loss, lr, inter, elapse, dataset1, dataset2, purge, array_grad_norm):
+    def log(self, step, loss, lr, inter, elapse, dataset1, dataset2, dataset3, purge, array_grad_norm, params):
         # Capture des stats système
         mem = psutil.virtual_memory()
         swap = psutil.swap_memory()    
@@ -1403,8 +1565,10 @@ class Monitor:
             "swap": round(swap.used / (1024**3), 2),
             "dataset1": dataset1,
             "dataset2": dataset2,
+            "dataset3": dataset3,
             "purg": purge,
-            "grad_norm": [ round(n, 4) for n in array_grad_norm]
+            "grad_norm": [ round(n, 4) for n in array_grad_norm],
+            "params":params
             }
         self.queue.put(data)        
 
@@ -1413,25 +1577,6 @@ class Monitor:
         self.active = False
         self.queue.put(None)
         self.thread.join(timeout=2)
-
-
-class BackgroundGenerator:
-    def __init__(self, generator_func, max_prefetch=1):
-        self.queue = queue.Queue(maxsize=max_prefetch)
-        self.generator_func = generator_func
-        self.stop_event = threading.Event()
-        self.thread = threading.Thread(target=self._run, daemon=True)
-        self.thread.start()
-
-    def _run(self):
-        while not self.stop_event.is_set():
-            # Prépare le batch (CPU + NumPy)
-            batch = self.generator_func()
-            # Attend que la queue ait de la place pour le déposer
-            self.queue.put(batch)
-
-    def next(self):
-        return self.queue.get()
 
 class TokenDataset(Dataset):
     def __init__(self, data_path, block_size):
@@ -1451,18 +1596,19 @@ class TokenDataset(Dataset):
         return x, y
 
 class GenerateGPT:
-    def __init__(self, tokinizer, ckpt_path, default_model='model'):
-        self.tokenizer = tokinizer
+    def __init__(self, tokenizer, ckpt_path, default_model='model', verbose=False):
+        self.tokenizer = tokenizer
         self.ckpt_path = ckpt_path
         self.device = 'mps' if torch.backends.mps.is_available() else 'cpu'
         self.default_model = default_model
+        self.verbose = verbose
         
     def load_for_inference(self):
         if not os.path.exists(self.ckpt_path):
             print("❌ Aucun modèle trouvé !")
             return None, None
-
-        print(f"Loading {self.ckpt_path} on {self.device}...")
+        if self.verbose:
+            print(f"Loading {self.ckpt_path} on {self.device}...")
         checkpoint = torch.load(self.ckpt_path, map_location=self.device)
         
         self.config = checkpoint['config']
