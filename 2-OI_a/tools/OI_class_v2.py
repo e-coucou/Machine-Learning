@@ -141,6 +141,43 @@ class OI_DataProcessor:
             self._log(f"Colonne cumulée '{nom}' ajoutée. [Unit: {unit}]")
         return self
 
+    # Pour Vitamine A des Esters ajoute une colonne qui calcule la qté d'ester en fonction de propionate/acetate
+    @register_step
+    def ajoute_calcul(self, value, type, uv_0, uv_1, scale, nom):
+        """
+        Calcule une colonne cumulative (optimisée vectorisée) :
+        cumul(i) = cumul(i-1) + (value(i)-value(i-1)) * (type(i)==0 ? uv_0(i) : uv_1(i)) * scale
+        Si value(i) < value(i-1), ajouter 1_000_000 au cumul
+        """
+        if self.data is not None and {value, type, uv_0, uv_1}.issubset(self.data.columns):
+            # Calculer le delta
+            delta = self.data[value].diff().fillna(0)
+            
+            # Coefficient = uv_0 si type==0, sinon uv_1
+            coefficient = np.where(
+                self.data[type] == 0,
+                self.data[uv_0],
+                self.data[uv_1]
+            )
+            
+            # Correction si débordement (value[i] < value[i-1])
+            correction = np.where(
+                self.data[value] < self.data[value].shift(1),
+                1_000_000,
+                0
+            )
+            correction[0] = 0  # Première ligne pas de correction
+            
+            # Calcul cumulatif
+            self.data[nom] = (delta * coefficient * scale + correction).cumsum()
+            
+            self.unit_tags.append({'tag': nom, 'nom': nom})
+            self._log(f"Colonne cumulative '{nom}' ajoutée.")
+        else:
+            self._log(f"Erreur : colonnes manquantes pour '{nom}'", level='error')
+        
+        return self
+    
     @register_step
     def ajouter_moyennes_glissantes_ponderee(self, col_poids, col_valeur, nom, window=10):
         """Calcule une moyenne glissante pondérée."""

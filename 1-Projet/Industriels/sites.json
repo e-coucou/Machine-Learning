@@ -1,0 +1,40 @@
+{
+  "sites": [
+    {
+      "code": "ROC",
+      "nom": "Les Roches de Condrieu",
+      "designation": "Usine principale - Production amont",
+      "localisation": "Lyon",
+      "type": "production",
+      "actif": true,
+      "couleur": "#4A90D9"
+    },
+    {
+      "code": "BGS",
+      "nom": "Usine de Burgos",
+      "designation": "Usine Liquide",
+      "localisation": "Burgos",
+      "type": "production",
+      "actif": true,
+      "couleur": "#E67E22"
+    },
+    {
+      "code": "BAY",
+      "nom": "Fondoir de Bayonne",
+      "designation": "Fondoir",
+      "localisation": "Bayonne",
+      "type": "production",
+      "actif": true,
+      "couleur": "#E67E22"
+    },
+    {
+      "code": "RON",
+      "nom": "Roussillon",
+      "designation": "Usine de Poudre",
+      "localisation": "Roussillon",
+      "type": "production",
+      "actif": true,
+      "couleur": "#27AE60"
+    }
+  ]
+}
