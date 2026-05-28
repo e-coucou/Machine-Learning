@@ -152,32 +152,333 @@ class OI_DataProcessor:
         if self.data is not None and {value, type, uv_0, uv_1}.issubset(self.data.columns):
             # Calculer le delta
             delta = self.data[value].diff().fillna(0)
-            
             # Coefficient = uv_0 si type==0, sinon uv_1
             coefficient = np.where(
                 self.data[type] == 0,
                 self.data[uv_0],
                 self.data[uv_1]
             )
-            
             # Correction si débordement (value[i] < value[i-1])
             correction = np.where(
                 self.data[value] < self.data[value].shift(1),
-                1_000_000,
+                self.data[value].shift(1)-self.data[value], # anhiler car marche pas !
                 0
             )
             correction[0] = 0  # Première ligne pas de correction
-            
             # Calcul cumulatif
             self.data[nom] = (delta * coefficient * scale + correction).cumsum()
-            
             self.unit_tags.append({'tag': nom, 'nom': nom})
             self._log(f"Colonne cumulative '{nom}' ajoutée.")
         else:
             self._log(f"Erreur : colonnes manquantes pour '{nom}'", level='error')
+        return self
+
+    @register_step
+    def ajoute_all_batchs(self, batchs, nom):
+        """
+        Crée une colonne qui est la SOMME des valeurs calculées pour TOUS les batchs.
+        Pour chaque batch : Si min <= data[tag] < max : valeur = value * uv * scale
+        Sinon : 0
+        Si 'uv' ou 'value' sont None, on utilise 1 à la place
+        
+        batchs = [
+            {
+                'tag': nom_colonne_tag,
+                'value': nom_colonne_value (ou None),
+                'uv': nom_colonne_uv (ou None),
+                'min': valeur_min (float),
+                'max': valeur_max (float),
+                'scale': coefficient (float),
+                'default': valeur_par_defaut (float)
+            },
+            ...
+        ]
+        """
+        if self.data is None or not batchs:
+            self._log(f"Erreur : data est None ou batchs vide")
+            return self
+        
+        n_rows = len(self.data)
+        resultats_batchs = []
+        # Traiter chaque batch et stocker les résultats
+        for i, batch in enumerate(batchs):
+            # Extraire les paramètres du batch
+            tag = batch.get('tag')
+            value_col = batch.get('value')
+            uv_col = batch.get('uv')
+            min_val = batch.get('min')
+            max_val = batch.get('max')
+            scale = batch.get('scale', 1)
+            default = batch.get('default', 0)
+
+            # Vérifier que la colonne 'tag' existe
+            if tag not in self.data.columns:
+                self._log(f"Batch {i}: colonne '{tag}' manquante")
+                return self
+            
+            # Récupérer les valeurs avec gestion des None
+            tag_vals = self.data[tag].values
+            
+            # Si value_col est None, utiliser 1
+            if value_col is None:
+                value_vals = np.ones(n_rows)
+            else:
+                if value_col not in self.data.columns:
+                    self._log(f"Batch {i}: colonne '{value_col}' manquante")
+                    return self
+                value_vals = self.data[value_col].values
+            
+            # Si uv_col est None, utiliser 1
+            if uv_col is None:
+                uv_vals = np.ones(n_rows)
+            else:
+                if uv_col not in self.data.columns:
+                    self._log(f"Batch {i}: colonne '{uv_col}' manquante")
+                    return self
+                uv_vals = self.data[uv_col].fillna(1).values
+            
+            # Condition : min <= tag < max
+            condition = (tag_vals >= min_val) & (tag_vals < max_val)
+            
+
+            cond = batch.get('cond')
+            val_cond = batch.get('val_cond', [1, 1])            
+            if cond is not None:
+                if cond not in self.data.columns:
+                    self._log(f"Erreur : colonne '{cond}' manquante")
+                    return self
+                cond_vals = self.data[cond].values
+                cond_multiplicateur = np.where(cond_vals == 0, val_cond[0], val_cond[1])
+            else:
+                cond_multiplicateur = 1
+
+            # Calcul vectorisé pour ce batch (0 si condition false)
+            batch_result = np.where(
+                condition,
+                value_vals * uv_vals * scale,
+                0  # Pas de default ici, on veut la somme
+            ) * cond_multiplicateur
+            
+            resultats_batchs.append(batch_result)
+        
+        # Stack les résultats et sommer par row
+        # Shape : (n_batchs, n_rows) -> somme sur axis 0 -> (n_rows,)
+        self.data[nom] = np.stack(resultats_batchs, axis=0).sum(axis=0)
+        
+        self.unit_tags.append({'tag': nom, 'nom': nom})
+        self._log(f"Colonne batch-sum '{nom}' ajoutée ({len(batchs)} batchs)")
         
         return self
-    
+
+    @register_step
+    def ajoute_batch(self, batch, nom):
+        """
+        Crée une colonne basée sur une condition de plage (batch) :
+        Si min <= data[tag] < max : nom = value * uv * scale
+        Sinon : nom = default
+        
+        Si 'uv' ou 'value' sont None, on utilise 1 à la place
+        
+        batch = {
+            'tag': nom_colonne_tag,
+            'value': nom_colonne_value (ou None),
+            'uv': nom_colonne_uv (ou None),
+            'min': valeur_min (float),
+            'max': valeur_max (float),
+            'scale': coefficient (float),
+            'default': valeur_par_defaut (float)
+        }
+        """
+        if self.data is None:
+            self._log(f"Erreur : data est None")
+            return self
+        
+        # Extraire les paramètres du batch
+        tag = batch.get('tag')
+        value_col = batch.get('value')
+        uv_col = batch.get('uv')
+        min_val = batch.get('min')
+        max_val = batch.get('max')
+        scale = batch.get('scale', 1)
+        default = batch.get('default', 0)
+        
+        # Vérifier que la colonne 'tag' existe
+        if tag not in self.data.columns:
+            self._log(f"Erreur : colonne '{tag}' manquante")
+            return self
+        
+        # Récupérer les valeurs avec gestion des None
+        tag_vals = self.data[tag].values
+        
+        # Si value_col est None, utiliser 1, sinon récupérer la colonne
+        if value_col is None:
+            value_vals = np.ones(len(self.data))
+        else:
+            if value_col not in self.data.columns:
+                self._log(f"Erreur : colonne '{value_col}' manquante")
+                return self
+            value_vals = self.data[value_col].values
+        
+        # Si uv_col est None, utiliser 1, sinon récupérer la colonne et remplacer NaN par 1
+        if uv_col is None:
+            uv_vals = np.ones(len(self.data))
+        else:
+            if uv_col not in self.data.columns:
+                self._log(f"Erreur : colonne '{uv_col}' manquante")
+                return self
+            uv_vals = self.data[uv_col].fillna(1).values
+        
+        # Condition : min <= tag < max
+        condition = (tag_vals >= min_val) & (tag_vals < max_val)
+        
+        # Calcul vectorisé
+        self.data[nom] = np.where(
+            condition,
+            value_vals * uv_vals * scale,
+            default
+        )
+        
+        self.unit_tags.append({'tag': nom, 'nom': nom})
+        self._log(f"Colonne batch '{nom}' ajoutée (plage [{min_val}, {max_val}))")
+        
+        return self
+
+
+    def _eval_polynomial(self, coeffs, x):
+        """
+        Fonction interne pour évaluer un polynôme vectorisé :
+        P(x) = coeffs[0] + coeffs[1]*x + coeffs[2]*x^2 + ...
+        
+        Args:
+            coeffs : list de coefficients [c0, c1, c2, ...]
+            x : ndarray des valeurs
+        
+        Returns:
+            ndarray des résultats
+        """
+        result = np.zeros_like(x, dtype=float)
+        for i, c in enumerate(coeffs):
+            result += c * (x ** i)
+        return result
+
+    @register_step
+    def ajoute_continus(self, continu, nom):
+        """
+        Crée une colonne basée sur un polynôme par plage :
+        Si data[tag] <= min : utiliser epalage[0]
+        Sinon : utiliser epalage[1]
+        
+        Pour chaque cas : e = c0 + c1*tag + c2*tag^2 + ...
+        Résultat : nom = e * uv * scale
+        
+        continu = {
+            'tag': nom_colonne_tag,
+            'min': valeur_seuil (float),
+            'epalage': [
+                [c0_low, c1_low, c2_low, ...],  # coeffs si tag <= min
+                [c0_high, c1_high, c2_high, ...]  # coeffs si tag > min
+            ],
+            'uv': nom_colonne_uv (ou None -> 1),
+            'scale': coefficient (float)
+        }
+        """
+        if self.data is None:
+            self._log(f"Erreur : data est None")
+            return self
+        
+        # Extraire les paramètres
+        tag = continu.get('tag')
+        min_val = continu.get('min')
+        epalage = continu.get('epalage')
+        uv_col = continu.get('uv')
+        scale = continu.get('scale', 1)
+        
+        # Vérifier que tag existe
+        if tag not in self.data.columns:
+            self._log(f"Erreur : colonne '{tag}' manquante")
+            return self
+        
+        # Récupérer les valeurs de tag
+        tag_vals = self.data[tag].values
+        n_rows = len(self.data)
+        
+        # Récupérer ou créer les valeurs uv
+        if uv_col is None:
+            uv_vals = np.ones(n_rows)
+        else:
+            if uv_col not in self.data.columns:
+                self._log(f"Erreur : colonne '{uv_col}' manquante")
+                return self
+            uv_vals = self.data[uv_col].fillna(1).values
+        
+        # Évaluer les deux polynômes pour toutes les rows
+        poly_low = self._eval_polynomial(epalage[0], tag_vals)   # Si tag <= min
+        poly_high = self._eval_polynomial(epalage[1], tag_vals)  # Si tag > min
+        
+        # Condition : tag <= min
+        condition = tag_vals <= min_val
+        
+        # Sélectionner le bon polynôme et multiplier par uv * scale
+        self.data[nom] = np.where(
+            condition,
+            poly_low * uv_vals * scale,
+            poly_high * uv_vals * scale
+        )
+        
+        self.unit_tags.append({'tag': nom, 'nom': nom})
+        self._log(f"Colonne continu '{nom}' ajoutée (polynôme, seuil={min_val})")
+        
+        return self
+
+    @register_step
+    def ajoute_all_continus(self, continus_list, nom):
+        """Variante qui cumule plusieurs continus"""
+        if self.data is None or not continus_list:
+            self._log(f"Erreur : data None ou continus_list vide")
+            return self
+        
+        n_rows = len(self.data)
+        resultats = []
+        
+        for continu in continus_list:
+            tag = continu.get('tag')
+            if tag not in self.data.columns:
+                self._log(f"Erreur : colonne '{tag}' manquante")
+                return self
+            
+            tag_vals = self.data[tag].values
+            min_val = continu.get('min')
+            epalage = continu.get('epalage')
+            uv_col = continu.get('uv')
+            scale = continu.get('scale', 1)
+
+            uv_vals = np.ones(n_rows) if uv_col is None else self.data[uv_col].fillna(1).values
+
+            cond = continu.get('cond')
+            val_cond = continu.get('val_cond', [1, 1])            
+            if cond is not None:
+                if cond not in self.data.columns:
+                    self._log(f"Erreur : colonne '{cond}' manquante")
+                    return self
+                cond_vals = self.data[cond].values
+                cond_multiplicateur = np.where(cond_vals == 0, val_cond[0], val_cond[1])
+            else:
+                cond_multiplicateur = 1
+            
+            poly_low = self._eval_polynomial(epalage[0], tag_vals)
+            poly_high = self._eval_polynomial(epalage[1], tag_vals)
+            
+            condition = tag_vals <= min_val
+            result = np.where(condition, poly_low, poly_high) * uv_vals * scale * cond_multiplicateur 
+            
+            resultats.append(result)
+        
+        self.data[nom] = np.stack(resultats, axis=0).sum(axis=0)
+        self.unit_tags.append({'tag': nom, 'nom': nom})
+        self._log(f"Colonne continus-sum '{nom}' ajoutée ({len(continus_list)} continus)")
+        
+        return self
+
     @register_step
     def ajouter_moyennes_glissantes_ponderee(self, col_poids, col_valeur, nom, window=10):
         """Calcule une moyenne glissante pondérée."""

@@ -1,0 +1,103 @@
+🚀 Initialisation de l'entraînement sur MPS...
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+📈 Reprise : Wiki à 604119 | CulturaX à 212487 | 4
+✅ Modèle restauré. Steps faits: 8950
+✅ État de l'optimiseur restauré.
+🚀 Dataset Train: 1293.11M tokens.
+🚀 Dataset Val: 143.07M tokens.
+🚀 Dataset CulturaX: 615.97M tokens.
+🚀 Dataset Val: 5.96M tokens.
+🚀 Dataset Litteraire: 43.75M tokens.
+🚀 Dataset Val: 0.86M tokens.
+✅ Provider HP initialisé : 2525599 blocs uniques. Epoch : 0
+🔄 Reprise au batch 604119 [step : 604119]
+✅ Provider HP initialisé : 1203058 blocs uniques. Epoch : 0
+🔄 Reprise au batch 212487 [step : 212487]
+✅ Provider HP initialisé : 85440 blocs uniques. Epoch : 1
+🔄 Reprise au batch 42651 [step : 42651]
+🔄 Mixer activé avec les sources : ['litt', 'cult', 'wiki']
+🚀 Monitor activé : écriture dans model/monitor.log
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : On lance MAc Fans Control pour refroidir ....
+[96m[Model config][0m
+  n_embd             : 896[0m
+  num_heads          : 14[0m
+  n_layers           : 16[0m
+  block_size         : 512[0m
+  dropout            : [93m0.1[0m
+[96m[Train params][0m
+  batch_size         : 4[0m
+  grad_accum_steps   : 96[0m
+  learning_rate      : [92m0.00035[0m
+  min_lr             : 3.5e-05[0m
+  warmup_iters       : 1500[0m
+  lr_decay_iters     : 30000[0m
+  eval_interval      : [92m10[0m
+  eval_iters         : 10[0m
+  save_interval      : 50[0m
+  n_version          : 5[0m
+  use_compile        : False[0m
+  cult_data          : True[0m
+  litt_data          : True[0m
+  cult_ratio         : 0.25[0m
+  litt_ratio         : 0.05[0m
+  monitor_interval   : 2[0m
+  [1mEffective Batch Size: 384[0m
+..................................................
+
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 8950
+   📉 Evaluation tous les : 10 steps
+   💾 Sauvegarde tous les : 50 steps
+🟡 RAM Système: 70.6% | Process: 669Mo | Swap: 730Mo
+step 8960: train loss 2.8177, val loss 2.8027, lr 3.00e-04 (2132.33s) | 🟢 Po: 67.6% SW: 1444Mo MPS: 3339Mo
+🔄 Nouveau shuffle des indices à l'epoch 2
+step 8970: train loss 2.8691, val loss 2.8929, lr 3.00e-04 (2114.40s) | 🟢 Po: 69.2% SW: 1380Mo MPS: 3346Mo
+step 8980: train loss 2.8493, val loss 2.9216, lr 2.99e-04 (2112.86s) | 🟡 Po: 75.0% SW: 1380Mo MPS: 3350Mo
+step 8990: train loss 2.7222, val loss 2.9297, lr 2.99e-04 (2108.86s) | 🟡 Po: 70.8% SW: 1372Mo MPS: 3354Mo
+step 9000: train loss 2.9304, val loss 2.9357, lr 2.99e-04 (2110.01s) | 🟡 Po: 76.9% SW: 1364Mo MPS: 3358Mo | 💾 | 🗑️ | ✨
+step 9010: train loss 2.8702, val loss 2.8787, lr 2.99e-04 (2125.75s) | 🟡 Po: 75.3% SW: 1421Mo MPS: 3362Mo
+step 9020: train loss 2.8775, val loss 2.9051, lr 2.99e-04 (2114.60s) | 🟡 Po: 71.6% SW: 1452Mo MPS: 3364Mo
+step 9030: train loss 2.8626, val loss 2.8699, lr 2.99e-04 (2110.74s) | 🟡 Po: 74.6% SW: 1444Mo MPS: 3364Mo
+step 9040: train loss 2.8432, val loss 2.8637, lr 2.99e-04 (2113.15s) | 🟡 Po: 74.5% SW: 1487Mo MPS: 3367Mo
+step 9050: train loss 2.9400, val loss 2.9463, lr 2.99e-04 (2115.24s) | 🟡 Po: 75.1% SW: 1455Mo MPS: 3367Mo | 💾 | 🗑️ | ✨
+step 9060: train loss 2.8100, val loss 2.9664, lr 2.98e-04 (2118.12s) | 🟡 Po: 75.1% SW: 1455Mo MPS: 3368Mo
+step 9070: train loss 2.8246, val loss 2.7576, lr 2.98e-04 (2115.26s) | 🟡 Po: 71.7% SW: 1466Mo MPS: 3368Mo
+step 9080: train loss 2.8533, val loss 2.9210, lr 2.98e-04 (2114.18s) | 🟡 Po: 78.6% SW: 1503Mo MPS: 3369Mo
+step 9090: train loss 2.7524, val loss 2.9254, lr 2.98e-04 (2118.81s) | 🟡 Po: 80.3% SW: 1536Mo MPS: 3369Mo
+step 9100: train loss 2.8411, val loss 2.9704, lr 2.98e-04 (2113.56s) | 🟡 Po: 77.1% SW: 1533Mo MPS: 3369Mo | 💾 | 🗑️ | ✨
+step 9110: train loss 2.7466, val loss 2.9585, lr 2.98e-04 (2121.09s) | 🟡 Po: 79.4% SW: 1533Mo MPS: 3370Mo
+step 9120: train loss 2.7655, val loss 2.7969, lr 2.98e-04 (2110.67s) | 🟡 Po: 78.6% SW: 1544Mo MPS: 3370Mo
+step 9130: train loss 2.8972, val loss 2.9001, lr 2.98e-04 (2115.15s) | 🟡 Po: 75.7% SW: 1564Mo MPS: 3367Mo
+step 9140: train loss 2.7889, val loss 2.9442, lr 2.97e-04 (2142.75s) | 🟡 Po: 77.6% SW: 1872Mo MPS: 3368Mo
+step 9150: train loss 2.8239, val loss 2.8921, lr 2.97e-04 (2108.20s) | 🟡 Po: 77.6% SW: 1848Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 9160: train loss 2.9129, val loss 2.8637, lr 2.97e-04 (2117.50s) | 🟡 Po: 75.0% SW: 1816Mo MPS: 3368Mo
+step 9170: train loss 2.8426, val loss 2.8325, lr 2.97e-04 (2109.72s) | 🟡 Po: 77.7% SW: 1808Mo MPS: 3368Mo
+step 9180: train loss 2.8171, val loss 2.9248, lr 2.97e-04 (2110.12s) | 🟡 Po: 77.7% SW: 1808Mo MPS: 3368Mo
+step 9190: train loss 2.9109, val loss 2.8144, lr 2.97e-04 (2109.57s) | 🟡 Po: 78.1% SW: 1808Mo MPS: 3368Mo
+step 9200: train loss 2.8302, val loss 2.9310, lr 2.97e-04 (2125.08s) | 🟡 Po: 77.4% SW: 2154Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 9210: train loss 2.6929, val loss 2.8304, lr 2.96e-04 (2116.89s) | 🟡 Po: 76.5% SW: 2106Mo MPS: 3368Mo
+step 9220: train loss 2.8390, val loss 2.8685, lr 2.96e-04 (2109.94s) | 🟡 Po: 76.8% SW: 2106Mo MPS: 3368Mo
+step 9230: train loss 2.7788, val loss 2.9754, lr 2.96e-04 (2109.11s) | 🟡 Po: 76.8% SW: 2098Mo MPS: 3368Mo
+step 9240: train loss 2.7669, val loss 2.9307, lr 2.96e-04 (2108.67s) | 🟡 Po: 73.7% SW: 2066Mo MPS: 3368Mo
+step 9250: train loss 2.8360, val loss 2.8697, lr 2.96e-04 (2114.65s) | 🟡 Po: 75.2% SW: 2066Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 9260: train loss 2.8361, val loss 2.7841, lr 2.96e-04 (2119.00s) | 🟡 Po: 78.3% SW: 2058Mo MPS: 3368Mo
+step 9270: train loss 2.8805, val loss 2.8979, lr 2.96e-04 (2118.73s) | 🟡 Po: 74.9% SW: 2101Mo MPS: 3368Mo
+step 9280: train loss 2.8480, val loss 2.8855, lr 2.96e-04 (2111.86s) | 🟡 Po: 77.7% SW: 2093Mo MPS: 3368Mo
+step 9290: train loss 2.7779, val loss 2.8912, lr 2.95e-04 (2128.14s) | 🟡 Po: 78.3% SW: 2116Mo MPS: 3368Mo
+step 9300: train loss 2.8337, val loss 2.9163, lr 2.95e-04 (2115.98s) | 🟡 Po: 79.1% SW: 2117Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 9310: train loss 2.8046, val loss 2.8970, lr 2.95e-04 (2123.50s) | 🟡 Po: 78.2% SW: 2202Mo MPS: 3368Mo
+step 9320: train loss 2.7140, val loss 2.7707, lr 2.95e-04 (2117.92s) | 🟡 Po: 78.8% SW: 2244Mo MPS: 3368Mo
+step 9330: train loss 2.7848, val loss 2.8747, lr 2.95e-04 (2192.71s) | 🟡 Po: 79.0% SW: 3114Mo MPS: 3368Mo
+step 9340: train loss 2.7373, val loss 2.9140, lr 2.95e-04 (2206.81s) | 🟡 Po: 77.8% SW: 3325Mo MPS: 3368Mo
+step 9350: train loss 2.8466, val loss 2.9148, lr 2.95e-04 (2230.70s) | 🟡 Po: 79.1% SW: 3826Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+🔄 Nouveau shuffle des indices à l'epoch 1
+step 9360: train loss 2.7863, val loss 2.9103, lr 2.95e-04 (2249.46s) | 🟡 Po: 78.6% SW: 3943Mo MPS: 3368Mo
+step 9370: train loss 2.7624, val loss 2.9306, lr 2.94e-04 (2161.79s) | 🟡 Po: 78.5% SW: 3112Mo MPS: 3368Mo
+step 9380: train loss 2.8217, val loss 2.8999, lr 2.94e-04 (2225.80s) | 🟡 Po: 79.6% SW: 3685Mo MPS: 3368Mo
+step 9390: train loss 2.8534, val loss 2.8438, lr 2.94e-04 (2179.47s) | 🔴 Po: 87.7% SW: 3379Mo MPS: 3368Mo
+step 9400: train loss 2.8600, val loss 2.8099, lr 2.94e-04 (2157.60s) | 🟡 Po: 81.9% SW: 3416Mo MPS: 3368Mo | 💾 | 🗑️ | ✨

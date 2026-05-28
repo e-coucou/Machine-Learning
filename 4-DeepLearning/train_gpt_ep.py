@@ -2,7 +2,7 @@ import os
 import sys
 import torch
 import tools.ai_token as tk
-import tools.ai_gpt_ep as gpt
+import tools.ai_gpt_ep_v6 as gpt
 
 CMDE = "nohup python3 -u train_gpt_ep.py > model/training.log 2>&1 &"     
 
@@ -26,13 +26,13 @@ def main():
         'warmup_iters': 1500,
         'lr_decay_iters': 30000, # initialement 100_000 mais le modèle rebondit vers 7000 steps 
         'eval_interval': 10,
-        'eval_iters': 12, # mini 20 pour lisser 
+        'eval_iters': 10, # mini 20 pour lisser 
         'save_interval': 50,
         'n_version' : 5,
         'use_compile': False,
         'cult_data': True, # à supprimer car ne sert à rien
         'litt_data': True, # à supprimer car ne sert à rien
-        'cult_ratio': 0.25,  # Ratio de données CulturaX dans chaque batch
+        'cult_ratio': 0.05,  # Ratio de données CulturaX dans chaque batch
         'litt_ratio': 0.05,  # Ratio de données Littéraire  dans chaque batch
         'monitor_interval': 2,
     }

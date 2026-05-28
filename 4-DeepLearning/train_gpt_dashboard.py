@@ -6,7 +6,7 @@ from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
 
 # --- CONFIGURATION (À vérifier dans ton script d'entraînement) ---
-VERSION = 'v6.3.4'
+VERSION = 'v6.3.9'
 LOG_FILE = 'model/training.log'
 MONITOR_FILE = 'model/monitor.log'
 HISTORY_FILE = 'model/my_wiky_history.json'
@@ -57,13 +57,14 @@ def f_num(n):
     # Formate avec des virgules puis change en points
     return f"{int(n):,}".replace(',', '.')
 
-def calcul_epoch(step, target, mix, batch, grad, t_step):
-#    epoch_ds1 = calcul_epoch(data_monitor[-1]['dataset1'] , TARGET_BLOCK_DS1, (1-params.get('mixed_ratio',0.4)), batch_size, grad_accum_steps, data_monitor[-1]['step'])
-    epoch = 0
-    if mix>0:
-        epoch =  int((target/batch - step ) / ( mix * grad) + t_step)
-    return epoch
-    
+def calcul_epoch(step, target, mix, batch, grad, t_step, n=1):
+    epoch, next_block = 0, 0
+    if mix > 0:
+        n_blocks = (target * n)  - (step * batch) 
+        epoch = int(( n_blocks ) / (batch * mix * grad) + t_step)
+        next_block =  n_blocks/4 + step
+    return epoch, next_block
+
 def calcul_ema(data):
     # Calcul de la moyenne mobile exponentielle
     ema_loss=data[0]
@@ -665,18 +666,23 @@ def get_dashboard():
     batch_ds1 = data_monitor[-1]['dataset1']
     batch_ds2 = data_monitor[-1]['dataset2']
     batch_ds3 = data_monitor[-1]['dataset3']
-    
+
     ratio_ds1 = ( batch_ds1 - data_monitor[-4]['dataset1']) / grad_accum_steps / 3 / monitor_inter # vs :  (1-params.get('cult_ratio',0.)-params.get('litt_ratio',0.))
     ratio_ds2 = (data_monitor[-1]['dataset2'] - data_monitor[-4]['dataset2']) / grad_accum_steps / 3 / monitor_inter # vs : (params.get('cult_ratio',0.))
     ratio_ds3 = (data_monitor[-1]['dataset3'] - data_monitor[-4]['dataset3']) / grad_accum_steps / 3 / monitor_inter # vs :  (params.get('litt_ratio',0.))
 
     ratio_ds1 = ratio_ds1 if abs(ratio_ds1 -  (1-params.get('cult_ratio',0.)-params.get('litt_ratio',0.))) > 0.06 else  (1-params.get('cult_ratio',0.)-params.get('litt_ratio',0.))
     ratio_ds2 = ratio_ds2 if abs(ratio_ds2 - params.get('cult_ratio',0.)) > 0.06 else  params.get('cult_ratio',0.)
-    ratio_ds3 = ratio_ds3 if abs(ratio_ds3 - params.get('litt_ratio',0.)) > 0.06 else  params.get('litt_ratio',0.)
+    ratio_ds3 = ratio_ds3 if abs(ratio_ds3 - params.get('litt_ratio',0.)) > 0.01 else  params.get('litt_ratio',0.)
+
+    n1 = int(data_monitor[-1]['dataset1']  * batch_size / TARGET_BLOCK_DS1) + 1
+    n2 = int(data_monitor[-1]['dataset2']  * batch_size / TARGET_BLOCK_DS2) + 1
+    n3 = int(data_monitor[-1]['dataset3']  * batch_size / TARGET_BLOCK_DS3) + 1
     
-    epoch_ds1 = calcul_epoch(data_monitor[-1]['dataset1'] , TARGET_BLOCK_DS1, ratio_ds1, batch_size, grad_accum_steps, data_monitor[-1]['step'])
-    epoch_ds2 = calcul_epoch(data_monitor[-1]['dataset2'] , TARGET_BLOCK_DS2, ratio_ds2, batch_size, grad_accum_steps, data_monitor[-1]['step'])
-    epoch_ds3 = calcul_epoch(data_monitor[-1]['dataset3'] , TARGET_BLOCK_DS3, ratio_ds3, batch_size, grad_accum_steps, data_monitor[-1]['step'])
+    epoch_ds1, t = calcul_epoch(step=data_monitor[-1]['dataset1'], target=TARGET_BLOCK_DS1, mix=ratio_ds1, batch=batch_size, grad=grad_accum_steps , t_step=data_monitor[-1]['step'], n=n1)
+    epoch_ds2, _ = calcul_epoch(data_monitor[-1]['dataset2'] , TARGET_BLOCK_DS2, ratio_ds2, batch_size, grad_accum_steps, data_monitor[-1]['step'], n=n2)
+    epoch_ds3, _ = calcul_epoch(data_monitor[-1]['dataset3'] , TARGET_BLOCK_DS3, ratio_ds3, batch_size, grad_accum_steps, data_monitor[-1]['step'], n=n3)
+
     gn_status, gn_avg, gn_max = get_gn_status(data_monitor[-1]['grad_norm'])
     timeout_pattern = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏']
 
@@ -727,7 +733,7 @@ def get_dashboard():
     efficiency, asymptote_new, trend_1k = calculate_saturation_score(steps_h, vals_h, lr_h, window=5000)
     status = f"⚡ {UI['BLUE']}PRODUCTIF {UI['RESET']}" if efficiency > 0.5 else f"🐢 {UI['RED']}SATURATION{UI['RESET']}"
     level_name_new, _,color_asympt_new = get_intel_level(asymptote_new)
-    total_tokens = (batch_ds1 + batch_ds2 + batch_ds3) * block_size * batch_size   #steps[-1] * EBS * block_size
+    total_tokens = monitor_steps[-1] * EBS * block_size # FAUX -> (batch_ds1 + batch_ds2 + batch_ds3) * batch_size * 1000. 
     pct = ratio_wiki
     bar = f"{w}" +"▬" * (int(pct/5)-1) +f"{c}"+ "▬" * (int(ratio_cult/5))+f"{l}"+ "▬" * (round(ratio_litt/5)) #
     # Calcul du GAP (Sur-apprentissage)
@@ -749,9 +755,9 @@ def get_dashboard():
     print(f"     {w}Wiki ({epoch_1:1d}): {pct_ds1:4.1f}% {UI['CYAN']}  ┣{bar_ds1}┫ {UI['RESET']}pour {f_num(TARGET_BLOCK_DS1).rjust(10)} blocks")
     print(f"     {c}Cult ({epoch_2:1d}): {pct_ds2:4.1f}% {UI['CYAN']}  ┣{bar_ds2}┫ {UI['RESET']}pour {f_num(TARGET_BLOCK_DS2).rjust(10)} blocks")
     print(f"     {l}Litt ({epoch_3:1d}): {pct_ds3:4.1f}% {UI['CYAN']}  ┣{bar_ds3}┫ {UI['RESET']}pour {f_num(TARGET_BLOCK_DS3).rjust(10)} blocks")
-    print(f"     Wikipédia  [{ratio_ds1:.2f}] | batch: {batch_ds1:8} | end: {epoch_ds1:6} | {batch_ds1*block_size*batch_size/1000**2:6.1f} Mtoken")
-    print(f"     CulturaX   [{ratio_ds2:.2f}] | batch: {batch_ds2:8} | end: {epoch_ds2:6} | {batch_ds2*block_size*batch_size/1000**2:6.1f} Mtoken")
-    print(f"     Litteraire [{ratio_ds3:.2f}] | batch: {batch_ds3:8} | end: {epoch_ds3:6} | {batch_ds3*block_size*batch_size/1000**2:6.1f} Mtoken")
+    print(f"     Wikipédia  [{ratio_ds1*100:4.1f}] | batch: {batch_ds1:8} | end: {epoch_ds1:6} | {batch_ds1*batch_size*block_size*1e-6:6.1f} Mtoken")
+    print(f"     CulturaX   [{ratio_ds2*100:4.1f}] | batch: {batch_ds2:8} | end: {epoch_ds2:6} | {batch_ds2*batch_size*block_size*1e-6:6.1f} Mtoken")
+    print(f"     Litteraire [{ratio_ds3*100:4.1f}] | batch: {batch_ds3:8} | end: {epoch_ds3:6} | {batch_ds3*batch_size*block_size*1e-6:6.1f} Mtoken")
     print(f"{UI['GRAY']}"+f"─" * LIGNE_LEN+f"{UI['RESET']}")
     print(f"  {temp_icon} PERFORMANCES |", end="")
     print(f" {temp_color}SPD: {sec_per_step:.2f} s/st{UI['RESET']} | {temp_color}DATA: {tok_s:,.0f} tok/s{UI['RESET']} | lr: {lr_h[-1]:10.9f} {lr_status}{r}")

@@ -1,0 +1,223 @@
+🚀 Initialisation de l'entraînement sur MPS...
+✅ Tokenizer chargé (Vocab: 30256)
+🚀 Device: mps
+Dtype du modèle : torch.float32
+📥 Chargement du checkpoint : model/my_wiki.pth
+📈 Reprise : Wiki à 1228348 | CulturaX à 262351 | 4
+✅ Modèle restauré. Steps faits: 16350
+✅ État de l'optimiseur restauré.
+🚀 Dataset Train: 1293.11M tokens.
+🚀 Dataset Val: 143.07M tokens.
+🚀 Dataset CulturaX: 615.97M tokens.
+🚀 Dataset Val: 5.96M tokens.
+🚀 Dataset Litteraire: 43.75M tokens.
+🚀 Dataset Val: 0.86M tokens.
+✅ Provider HP initialisé : 2525599 blocs uniques. Epoch : 1
+🔄 Reprise au batch 1228348 [step : 1228348]
+✅ Provider HP initialisé : 1203058 blocs uniques. Epoch : 0
+🔄 Reprise au batch 262351 [step : 262351]
+✅ Provider HP initialisé : 85440 blocs uniques. Epoch : 3
+🔄 Reprise au batch 78991 [step : 78991]
+🔄 Mixer activé avec les sources : ['litt', 'cult', 'wiki']
+🚀 Monitor activé : écriture dans model/monitor.log
+🚀 Init terminé.
+📦 Démarrage du mode binaire (Continuous Training)
+🌡️  Surveillance Mac Pro : On lance MAc Fans Control pour refroidir ....
+[96m[Model config][0m
+  n_embd             : 896[0m
+  num_heads          : 14[0m
+  n_layers           : 16[0m
+  block_size         : 512[0m
+  dropout            : [93m0.1[0m
+[96m[Train params][0m
+  batch_size         : 4[0m
+  grad_accum_steps   : 96[0m
+  learning_rate      : [92m0.00035[0m
+  min_lr             : 3.5e-05[0m
+  warmup_iters       : 1500[0m
+  lr_decay_iters     : 30000[0m
+  eval_interval      : [92m10[0m
+  eval_iters         : 10[0m
+  save_interval      : 50[0m
+  n_version          : 5[0m
+  use_compile        : False[0m
+  cult_data          : True[0m
+  litt_data          : True[0m
+  cult_ratio         : 0.05[0m
+  litt_ratio         : 0.05[0m
+  monitor_interval   : 2[0m
+  [1mEffective Batch Size: 384[0m
+..................................................
+
+📦 Démarrage Training sur 3Go (Mode Continu)
+   ▶️ Reprise au step : 16350
+   📉 Evaluation tous les : 10 steps
+   💾 Sauvegarde tous les : 50 steps
+🟢 RAM Système: 69.8% | Process: 670Mo | Swap: 873Mo
+step 16360: train loss 2.6257, val loss 2.6441, lr 1.82e-04 (2120.45s) | 🟢 Po: 66.8% SW: 1216Mo MPS: 3339Mo
+step 16370: train loss 2.4084, val loss 2.6414, lr 1.82e-04 (2113.41s) | 🟢 Po: 69.7% SW: 1208Mo MPS: 3346Mo
+step 16380: train loss 2.4075, val loss 2.7476, lr 1.82e-04 (2108.79s) | 🟡 Po: 75.5% SW: 1192Mo MPS: 3350Mo
+step 16390: train loss 2.5810, val loss 2.6912, lr 1.81e-04 (2111.31s) | 🟡 Po: 81.3% SW: 1184Mo MPS: 3354Mo
+step 16400: train loss 2.5833, val loss 2.6125, lr 1.81e-04 (2109.15s) | 🟡 Po: 71.1% SW: 1184Mo MPS: 3358Mo | 💾 | 🗑️ | ✨
+step 16410: train loss 2.7336, val loss 2.5807, lr 1.81e-04 (2119.82s) | 🟡 Po: 70.8% SW: 1187Mo MPS: 3362Mo
+step 16420: train loss 2.4189, val loss 2.7158, lr 1.81e-04 (2113.35s) | 🟡 Po: 77.0% SW: 1171Mo MPS: 3364Mo
+step 16430: train loss 2.4599, val loss 2.7275, lr 1.81e-04 (2109.82s) | 🟡 Po: 70.9% SW: 1268Mo MPS: 3364Mo
+step 16440: train loss 2.4963, val loss 2.5260, lr 1.81e-04 (2108.20s) | 🟡 Po: 78.2% SW: 1260Mo MPS: 3367Mo
+step 16450: train loss 2.5275, val loss 2.6894, lr 1.80e-04 (2109.34s) | 🟡 Po: 78.3% SW: 1252Mo MPS: 3367Mo | 💾 | 🗑️ | ✨
+step 16460: train loss 2.5694, val loss 2.6344, lr 1.80e-04 (2119.65s) | 🟡 Po: 75.5% SW: 1278Mo MPS: 3368Mo
+step 16470: train loss 2.5507, val loss 2.6935, lr 1.80e-04 (2110.05s) | 🟡 Po: 78.0% SW: 1289Mo MPS: 3368Mo
+step 16480: train loss 2.5814, val loss 2.6487, lr 1.80e-04 (2108.93s) | 🟡 Po: 78.7% SW: 1281Mo MPS: 3369Mo
+step 16490: train loss 2.7094, val loss 2.6290, lr 1.80e-04 (2113.34s) | 🟡 Po: 79.6% SW: 1282Mo MPS: 3369Mo
+step 16500: train loss 2.4884, val loss 2.6351, lr 1.80e-04 (2115.82s) | 🟡 Po: 78.1% SW: 1334Mo MPS: 3370Mo | 💾 | 🗑️ | ✨
+step 16510: train loss 2.5309, val loss 2.4996, lr 1.79e-04 (2118.15s) | 🟡 Po: 78.1% SW: 1334Mo MPS: 3370Mo
+step 16520: train loss 2.6060, val loss 2.6848, lr 1.79e-04 (2118.04s) | 🟡 Po: 76.4% SW: 1336Mo MPS: 3370Mo
+step 16530: train loss 2.4917, val loss 2.5864, lr 1.79e-04 (2114.82s) | 🟡 Po: 75.1% SW: 1379Mo MPS: 3367Mo
+step 16540: train loss 2.5908, val loss 2.6345, lr 1.79e-04 (2118.29s) | 🟡 Po: 80.9% SW: 1362Mo MPS: 3368Mo
+step 16550: train loss 2.5336, val loss 2.5668, lr 1.79e-04 (2113.46s) | 🟡 Po: 78.8% SW: 1427Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 16560: train loss 2.5908, val loss 2.6277, lr 1.78e-04 (2126.25s) | 🟡 Po: 79.6% SW: 1461Mo MPS: 3368Mo
+step 16570: train loss 2.3552, val loss 2.7808, lr 1.78e-04 (2108.06s) | 🟡 Po: 78.5% SW: 1461Mo MPS: 3368Mo
+step 16580: train loss 2.6114, val loss 2.6175, lr 1.78e-04 (2112.25s) | 🟡 Po: 77.4% SW: 1453Mo MPS: 3368Mo
+step 16590: train loss 2.6153, val loss 2.6843, lr 1.78e-04 (2115.33s) | 🟡 Po: 79.0% SW: 1903Mo MPS: 3368Mo
+step 16600: train loss 2.6005, val loss 2.6577, lr 1.78e-04 (2152.04s) | 🟡 Po: 77.4% SW: 1858Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 16610: train loss 2.3395, val loss 2.5754, lr 1.78e-04 (2142.93s) | 🟡 Po: 77.4% SW: 2009Mo MPS: 3368Mo
+step 16620: train loss 2.6270, val loss 2.7103, lr 1.77e-04 (2110.39s) | 🟡 Po: 77.0% SW: 1929Mo MPS: 3368Mo
+step 16630: train loss 2.6361, val loss 2.6332, lr 1.77e-04 (2108.36s) | 🟡 Po: 77.0% SW: 1905Mo MPS: 3368Mo
+step 16640: train loss 2.5767, val loss 2.7156, lr 1.77e-04 (2108.65s) | 🟡 Po: 76.7% SW: 1905Mo MPS: 3368Mo
+step 16650: train loss 2.3967, val loss 2.6495, lr 1.77e-04 (2109.02s) | 🟡 Po: 78.1% SW: 1905Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 16660: train loss 2.5441, val loss 2.6770, lr 1.77e-04 (2121.23s) | 🟡 Po: 79.9% SW: 1918Mo MPS: 3368Mo
+step 16670: train loss 2.5258, val loss 2.6162, lr 1.77e-04 (2109.21s) | 🟡 Po: 78.0% SW: 1910Mo MPS: 3368Mo
+step 16680: train loss 2.6476, val loss 2.7435, lr 1.76e-04 (2118.19s) | 🟡 Po: 77.7% SW: 1974Mo MPS: 3368Mo
+step 16690: train loss 2.5837, val loss 2.5896, lr 1.76e-04 (2111.93s) | 🟡 Po: 77.5% SW: 1966Mo MPS: 3368Mo
+step 16700: train loss 2.5305, val loss 2.6138, lr 1.76e-04 (2112.02s) | 🟡 Po: 78.2% SW: 2012Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 16710: train loss 2.5507, val loss 2.6061, lr 1.76e-04 (2117.94s) | 🟡 Po: 77.0% SW: 1996Mo MPS: 3368Mo
+step 16720: train loss 2.6468, val loss 2.7952, lr 1.76e-04 (2109.08s) | 🟡 Po: 78.3% SW: 1996Mo MPS: 3368Mo
+step 16730: train loss 2.6612, val loss 2.6952, lr 1.76e-04 (2108.92s) | 🟡 Po: 73.9% SW: 1988Mo MPS: 3368Mo
+step 16740: train loss 2.5157, val loss 2.6758, lr 1.75e-04 (2108.85s) | 🟡 Po: 77.4% SW: 1988Mo MPS: 3368Mo
+🔄 Nouveau shuffle des indices à l'epoch 2
+step 16750: train loss 2.6441, val loss 2.6695, lr 1.75e-04 (2109.37s) | 🟡 Po: 77.8% SW: 1972Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 16760: train loss 2.3401, val loss 2.5645, lr 1.75e-04 (2118.12s) | 🟡 Po: 77.9% SW: 1964Mo MPS: 3368Mo
+step 16770: train loss 2.5305, val loss 2.6595, lr 1.75e-04 (2111.78s) | 🟡 Po: 80.8% SW: 1459Mo MPS: 3368Mo
+step 16780: train loss 2.6325, val loss 2.5853, lr 1.75e-04 (2113.22s) | 🟡 Po: 78.0% SW: 1460Mo MPS: 3368Mo
+step 16790: train loss 2.5682, val loss 2.5710, lr 1.75e-04 (2117.51s) | 🟡 Po: 80.2% SW: 1520Mo MPS: 3368Mo
+step 16800: train loss 2.5073, val loss 2.6926, lr 1.74e-04 (2117.06s) | 🟡 Po: 78.0% SW: 1640Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 16810: train loss 2.5822, val loss 2.6195, lr 1.74e-04 (2119.49s) | 🟡 Po: 76.0% SW: 1631Mo MPS: 3368Mo
+step 16820: train loss 2.5192, val loss 2.7259, lr 1.74e-04 (2113.33s) | 🟡 Po: 75.2% SW: 1640Mo MPS: 3368Mo
+step 16830: train loss 2.5688, val loss 2.6697, lr 1.74e-04 (2117.80s) | 🟡 Po: 80.2% SW: 1636Mo MPS: 3368Mo
+step 16840: train loss 2.5702, val loss 2.6499, lr 1.74e-04 (2112.11s) | 🟡 Po: 77.9% SW: 1647Mo MPS: 3368Mo
+step 16850: train loss 2.7486, val loss 2.6092, lr 1.73e-04 (2112.24s) | 🟡 Po: 80.3% SW: 1700Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 16860: train loss 2.6842, val loss 2.7141, lr 1.73e-04 (2130.99s) | 🟡 Po: 78.8% SW: 1711Mo MPS: 3368Mo
+step 16870: train loss 2.6474, val loss 2.6689, lr 1.73e-04 (2116.62s) | 🟡 Po: 79.6% SW: 1758Mo MPS: 3368Mo
+step 16880: train loss 2.5781, val loss 2.7159, lr 1.73e-04 (2114.54s) | 🟡 Po: 79.5% SW: 1809Mo MPS: 3368Mo
+step 16890: train loss 2.4846, val loss 2.6877, lr 1.73e-04 (2112.31s) | 🟡 Po: 77.8% SW: 1811Mo MPS: 3368Mo
+step 16900: train loss 2.5063, val loss 2.6075, lr 1.73e-04 (2111.97s) | 🟡 Po: 79.0% SW: 1812Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 16910: train loss 2.6952, val loss 2.6774, lr 1.72e-04 (2117.76s) | 🟡 Po: 77.7% SW: 1812Mo MPS: 3368Mo
+step 16920: train loss 2.6113, val loss 2.7116, lr 1.72e-04 (2109.44s) | 🟡 Po: 80.3% SW: 1812Mo MPS: 3368Mo
+step 16930: train loss 2.3770, val loss 2.6324, lr 1.72e-04 (2109.44s) | 🟡 Po: 77.8% SW: 1804Mo MPS: 3368Mo
+step 16940: train loss 2.6385, val loss 2.7142, lr 1.72e-04 (2109.75s) | 🟡 Po: 77.5% SW: 1831Mo MPS: 3368Mo
+step 16950: train loss 2.6795, val loss 2.6445, lr 1.72e-04 (2113.36s) | 🟡 Po: 75.1% SW: 1852Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 16960: train loss 2.6737, val loss 2.6568, lr 1.72e-04 (2124.63s) | 🟡 Po: 77.8% SW: 1952Mo MPS: 3368Mo
+step 16970: train loss 2.6258, val loss 2.6516, lr 1.71e-04 (2109.72s) | 🟡 Po: 77.5% SW: 1965Mo MPS: 3368Mo
+step 16980: train loss 2.6028, val loss 2.5919, lr 1.71e-04 (2110.29s) | 🟡 Po: 77.8% SW: 1965Mo MPS: 3368Mo
+step 16990: train loss 2.5129, val loss 2.6526, lr 1.71e-04 (2177.07s) | 🟡 Po: 81.2% SW: 2598Mo MPS: 3368Mo
+step 17000: train loss 2.7203, val loss 2.5964, lr 1.71e-04 (2132.71s) | 🟡 Po: 76.4% SW: 2449Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17010: train loss 2.6678, val loss 2.6480, lr 1.71e-04 (2126.23s) | 🟡 Po: 77.4% SW: 2353Mo MPS: 3368Mo
+step 17020: train loss 2.6737, val loss 2.6340, lr 1.71e-04 (2119.26s) | 🟡 Po: 77.8% SW: 2327Mo MPS: 3368Mo
+step 17030: train loss 2.4588, val loss 2.6151, lr 1.70e-04 (2112.95s) | 🟡 Po: 74.7% SW: 2327Mo MPS: 3368Mo
+step 17040: train loss 2.5210, val loss 2.5305, lr 1.70e-04 (2110.40s) | 🟡 Po: 77.5% SW: 2335Mo MPS: 3368Mo
+step 17050: train loss 2.5585, val loss 2.6229, lr 1.70e-04 (2114.22s) | 🟡 Po: 77.7% SW: 2321Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17060: train loss 2.3625, val loss 2.6027, lr 1.70e-04 (2125.15s) | 🟡 Po: 78.0% SW: 2389Mo MPS: 3368Mo
+step 17070: train loss 2.4413, val loss 2.6023, lr 1.70e-04 (2119.02s) | 🟡 Po: 77.2% SW: 2397Mo MPS: 3368Mo
+step 17080: train loss 2.5894, val loss 2.7442, lr 1.70e-04 (2108.84s) | 🟡 Po: 78.1% SW: 2397Mo MPS: 3368Mo
+step 17090: train loss 2.4684, val loss 2.6803, lr 1.69e-04 (2112.17s) | 🟡 Po: 79.4% SW: 2422Mo MPS: 3368Mo
+step 17100: train loss 2.6408, val loss 2.6866, lr 1.69e-04 (2116.15s) | 🟡 Po: 75.4% SW: 2422Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17110: train loss 2.5570, val loss 2.6781, lr 1.69e-04 (2124.96s) | 🟡 Po: 78.9% SW: 2408Mo MPS: 3368Mo
+step 17120: train loss 2.5994, val loss 2.6198, lr 1.69e-04 (2111.85s) | 🟡 Po: 78.5% SW: 2408Mo MPS: 3368Mo
+step 17130: train loss 2.4146, val loss 2.6735, lr 1.69e-04 (2115.95s) | 🟡 Po: 80.0% SW: 2404Mo MPS: 3368Mo
+step 17140: train loss 2.4381, val loss 2.6973, lr 1.68e-04 (2121.21s) | 🟡 Po: 77.4% SW: 2467Mo MPS: 3368Mo
+step 17150: train loss 2.5924, val loss 2.6402, lr 1.68e-04 (2114.22s) | 🟡 Po: 77.6% SW: 2667Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17160: train loss 2.5229, val loss 2.5853, lr 1.68e-04 (2117.61s) | 🟡 Po: 80.5% SW: 2651Mo MPS: 3368Mo
+step 17170: train loss 2.7150, val loss 2.5839, lr 1.68e-04 (2131.50s) | 🟡 Po: 76.8% SW: 2621Mo MPS: 3368Mo
+step 17180: train loss 2.5305, val loss 2.5859, lr 1.68e-04 (2112.12s) | 🟡 Po: 79.2% SW: 2639Mo MPS: 3368Mo
+step 17190: train loss 2.5684, val loss 2.5587, lr 1.68e-04 (2113.14s) | 🟡 Po: 77.7% SW: 2712Mo MPS: 3368Mo
+step 17200: train loss 2.6047, val loss 2.5857, lr 1.67e-04 (2110.28s) | 🔴 Po: 86.9% SW: 2696Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17210: train loss 2.5940, val loss 2.6832, lr 1.67e-04 (2121.66s) | 🟡 Po: 80.9% SW: 2672Mo MPS: 3368Mo
+step 17220: train loss 2.6399, val loss 2.6702, lr 1.67e-04 (2111.51s) | 🟡 Po: 74.9% SW: 2670Mo MPS: 3368Mo
+step 17230: train loss 2.5784, val loss 2.6365, lr 1.67e-04 (2115.56s) | 🟡 Po: 77.7% SW: 2725Mo MPS: 3368Mo
+step 17240: train loss 2.4889, val loss 2.7945, lr 1.67e-04 (2110.56s) | 🟡 Po: 78.9% SW: 2717Mo MPS: 3368Mo
+step 17250: train loss 2.6020, val loss 2.5937, lr 1.67e-04 (2115.49s) | 🟡 Po: 79.6% SW: 2733Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17260: train loss 2.5166, val loss 2.5076, lr 1.66e-04 (2121.50s) | 🟡 Po: 77.7% SW: 2725Mo MPS: 3368Mo
+step 17270: train loss 2.4827, val loss 2.7210, lr 1.66e-04 (2130.21s) | 🟡 Po: 80.4% SW: 2718Mo MPS: 3368Mo
+step 17280: train loss 2.5757, val loss 2.6567, lr 1.66e-04 (2120.21s) | 🟡 Po: 79.1% SW: 2725Mo MPS: 3368Mo
+step 17290: train loss 2.5761, val loss 2.4963, lr 1.66e-04 (2114.84s) | 🟡 Po: 80.8% SW: 2725Mo MPS: 3368Mo
+step 17300: train loss 2.5811, val loss 2.6443, lr 1.66e-04 (2122.42s) | 🟡 Po: 79.8% SW: 2821Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17310: train loss 2.5604, val loss 2.5747, lr 1.66e-04 (2121.65s) | 🟡 Po: 77.8% SW: 2908Mo MPS: 3368Mo
+step 17320: train loss 2.5968, val loss 2.7062, lr 1.65e-04 (2114.83s) | 🟡 Po: 78.9% SW: 2965Mo MPS: 3368Mo
+step 17330: train loss 2.5793, val loss 2.6648, lr 1.65e-04 (2114.00s) | 🟡 Po: 78.4% SW: 2969Mo MPS: 3368Mo
+step 17340: train loss 2.5506, val loss 2.6032, lr 1.65e-04 (2115.35s) | 🟡 Po: 78.6% SW: 3041Mo MPS: 3368Mo
+step 17350: train loss 2.5229, val loss 2.7516, lr 1.65e-04 (2116.32s) | 🟡 Po: 78.2% SW: 3080Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17360: train loss 2.6045, val loss 2.6270, lr 1.65e-04 (2121.43s) | 🟡 Po: 75.1% SW: 3072Mo MPS: 3368Mo
+step 17370: train loss 2.7023, val loss 2.6283, lr 1.65e-04 (2112.33s) | 🟡 Po: 76.2% SW: 3078Mo MPS: 3368Mo
+step 17380: train loss 2.4673, val loss 2.6605, lr 1.64e-04 (2126.01s) | 🟡 Po: 76.6% SW: 3536Mo MPS: 3368Mo
+step 17390: train loss 2.6168, val loss 2.5718, lr 1.64e-04 (2108.95s) | 🟡 Po: 76.7% SW: 3528Mo MPS: 3368Mo
+step 17400: train loss 2.5932, val loss 2.6886, lr 1.64e-04 (2127.43s) | 🟡 Po: 76.7% SW: 3565Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17410: train loss 2.5547, val loss 2.5753, lr 1.64e-04 (2150.34s) | 🟡 Po: 78.8% SW: 3695Mo MPS: 3368Mo
+step 17420: train loss 2.5302, val loss 2.6582, lr 1.64e-04 (2148.37s) | 🟡 Po: 79.3% SW: 3871Mo MPS: 3368Mo
+step 17430: train loss 2.5223, val loss 2.6358, lr 1.64e-04 (2172.66s) | 🟡 Po: 81.7% SW: 4389Mo MPS: 3368Mo
+step 17440: train loss 2.5128, val loss 2.7115, lr 1.63e-04 (2141.12s) | 🟡 Po: 78.5% SW: 4226Mo MPS: 3368Mo
+step 17450: train loss 2.6017, val loss 2.6843, lr 1.63e-04 (2114.95s) | 🟡 Po: 78.1% SW: 4247Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17460: train loss 2.5418, val loss 2.6994, lr 1.63e-04 (2124.59s) | 🟡 Po: 77.7% SW: 4354Mo MPS: 3368Mo
+step 17470: train loss 2.4349, val loss 2.6307, lr 1.63e-04 (2120.84s) | 🟡 Po: 77.6% SW: 4477Mo MPS: 3368Mo
+step 17480: train loss 2.6753, val loss 2.5382, lr 1.63e-04 (2112.65s) | 🟡 Po: 78.9% SW: 4373Mo MPS: 3368Mo
+step 17490: train loss 2.4947, val loss 2.6574, lr 1.62e-04 (2121.52s) | 🟡 Po: 78.2% SW: 4465Mo MPS: 3368Mo
+step 17500: train loss 2.6610, val loss 2.6789, lr 1.62e-04 (2114.83s) | 🟡 Po: 78.0% SW: 4442Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17510: train loss 2.5007, val loss 2.6663, lr 1.62e-04 (2119.99s) | 🟡 Po: 78.0% SW: 4426Mo MPS: 3368Mo
+step 17520: train loss 2.6381, val loss 2.5300, lr 1.62e-04 (2114.10s) | 🟡 Po: 79.0% SW: 4411Mo MPS: 3368Mo
+step 17530: train loss 2.4225, val loss 2.6373, lr 1.62e-04 (2175.16s) | 🔴 Po: 89.5% SW: 4619Mo MPS: 3368Mo
+step 17540: train loss 2.4275, val loss 2.7010, lr 1.62e-04 (2216.31s) | 🟡 Po: 79.6% SW: 3769Mo MPS: 3368Mo
+step 17550: train loss 2.5804, val loss 2.5591, lr 1.61e-04 (2148.79s) | 🟡 Po: 81.2% SW: 3630Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17560: train loss 2.7963, val loss 2.5120, lr 1.61e-04 (2147.37s) | 🟡 Po: 79.5% SW: 3904Mo MPS: 3368Mo
+step 17570: train loss 2.5061, val loss 2.6363, lr 1.61e-04 (2127.43s) | 🟡 Po: 78.0% SW: 4079Mo MPS: 3368Mo
+step 17580: train loss 2.4179, val loss 2.6810, lr 1.61e-04 (2119.95s) | 🟡 Po: 80.6% SW: 4086Mo MPS: 3368Mo
+step 17590: train loss 2.4824, val loss 2.5872, lr 1.61e-04 (2114.37s) | 🟡 Po: 76.8% SW: 4314Mo MPS: 3368Mo
+step 17600: train loss 2.6045, val loss 2.5699, lr 1.61e-04 (2133.96s) | 🟡 Po: 78.7% SW: 4194Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17610: train loss 2.7032, val loss 2.6521, lr 1.60e-04 (2152.64s) | 🟡 Po: 83.8% SW: 4060Mo MPS: 3368Mo
+step 17620: train loss 2.6630, val loss 2.5847, lr 1.60e-04 (2123.39s) | 🟡 Po: 79.2% SW: 4067Mo MPS: 3368Mo
+step 17630: train loss 2.6307, val loss 2.6049, lr 1.60e-04 (2122.59s) | 🟡 Po: 79.8% SW: 4076Mo MPS: 3368Mo
+step 17640: train loss 2.3970, val loss 2.6157, lr 1.60e-04 (2117.99s) | 🟡 Po: 78.5% SW: 4052Mo MPS: 3368Mo
+step 17650: train loss 2.4379, val loss 2.6514, lr 1.60e-04 (2124.50s) | 🟡 Po: 78.7% SW: 4107Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17660: train loss 2.5126, val loss 2.7012, lr 1.60e-04 (2133.70s) | 🟡 Po: 79.6% SW: 4227Mo MPS: 3368Mo
+step 17670: train loss 2.5344, val loss 2.6026, lr 1.59e-04 (2122.93s) | 🟡 Po: 74.2% SW: 4512Mo MPS: 3368Mo
+🔄 Nouveau shuffle des indices à l'epoch 4
+step 17680: train loss 2.6482, val loss 2.6452, lr 1.59e-04 (2112.75s) | 🟡 Po: 78.0% SW: 4432Mo MPS: 3368Mo
+step 17690: train loss 2.4889, val loss 2.6470, lr 1.59e-04 (2110.57s) | 🟡 Po: 77.5% SW: 4368Mo MPS: 3368Mo
+step 17700: train loss 2.5654, val loss 2.6329, lr 1.59e-04 (2120.79s) | 🟡 Po: 78.0% SW: 4336Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17710: train loss 2.5520, val loss 2.7788, lr 1.59e-04 (2119.36s) | 🟡 Po: 77.5% SW: 4320Mo MPS: 3368Mo
+step 17720: train loss 2.4819, val loss 2.6255, lr 1.59e-04 (2125.74s) | 🟡 Po: 78.2% SW: 4308Mo MPS: 3368Mo
+step 17730: train loss 2.5667, val loss 2.5194, lr 1.58e-04 (2112.56s) | 🟡 Po: 78.0% SW: 4292Mo MPS: 3368Mo
+step 17740: train loss 2.6777, val loss 2.6171, lr 1.58e-04 (2128.61s) | 🟡 Po: 80.8% SW: 4307Mo MPS: 3368Mo
+step 17750: train loss 2.5668, val loss 2.5800, lr 1.58e-04 (2118.21s) | 🟡 Po: 80.1% SW: 4271Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17760: train loss 2.4315, val loss 2.6103, lr 1.58e-04 (2143.57s) | 🟡 Po: 77.7% SW: 4369Mo MPS: 3368Mo
+step 17770: train loss 2.5541, val loss 2.6577, lr 1.58e-04 (2123.00s) | 🟡 Po: 80.1% SW: 4380Mo MPS: 3368Mo
+step 17780: train loss 2.5795, val loss 2.5366, lr 1.58e-04 (2148.35s) | 🟡 Po: 81.0% SW: 4436Mo MPS: 3368Mo
+step 17790: train loss 2.5385, val loss 2.6312, lr 1.57e-04 (2201.07s) | 🟡 Po: 81.4% SW: 4658Mo MPS: 3368Mo
+step 17800: train loss 2.4920, val loss 2.6139, lr 1.57e-04 (2225.46s) | 🟡 Po: 84.4% SW: 4956Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17810: train loss 2.5843, val loss 2.6357, lr 1.57e-04 (2225.02s) | 🟡 Po: 82.5% SW: 5391Mo MPS: 3368Mo
+step 17820: train loss 2.6445, val loss 2.6542, lr 1.57e-04 (2243.87s) | 🔴 Po: 90.6% SW: 4964Mo MPS: 3368Mo
+step 17830: train loss 2.5989, val loss 2.5662, lr 1.57e-04 (2241.14s) | 🟡 Po: 79.8% SW: 5684Mo MPS: 3368Mo
+step 17840: train loss 2.6410, val loss 2.4965, lr 1.57e-04 (2210.62s) | 🟡 Po: 79.4% SW: 5812Mo MPS: 3368Mo
+step 17850: train loss 2.5295, val loss 2.5956, lr 1.56e-04 (2152.61s) | 🟡 Po: 80.3% SW: 5604Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17860: train loss 2.4792, val loss 2.6263, lr 1.56e-04 (2145.35s) | 🔴 Po: 87.3% SW: 5728Mo MPS: 3368Mo
+step 17870: train loss 2.5072, val loss 2.5606, lr 1.56e-04 (2197.75s) | 🟡 Po: 81.5% SW: 6397Mo MPS: 3368Mo
+step 17880: train loss 2.6992, val loss 2.6890, lr 1.56e-04 (2185.77s) | 🟡 Po: 81.4% SW: 5196Mo MPS: 3368Mo
+step 17890: train loss 2.5697, val loss 2.6456, lr 1.56e-04 (2242.43s) | 🟡 Po: 84.7% SW: 5776Mo MPS: 3368Mo
+step 17900: train loss 2.4252, val loss 2.5224, lr 1.56e-04 (2135.78s) | 🟡 Po: 77.2% SW: 5948Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17910: train loss 2.6237, val loss 2.6693, lr 1.55e-04 (2141.14s) | 🟡 Po: 75.7% SW: 6018Mo MPS: 3368Mo
+step 17920: train loss 2.4595, val loss 2.6810, lr 1.55e-04 (2124.15s) | 🟡 Po: 80.6% SW: 5972Mo MPS: 3368Mo
+step 17930: train loss 2.5799, val loss 2.6585, lr 1.55e-04 (2126.04s) | 🟡 Po: 79.3% SW: 5976Mo MPS: 3368Mo
+step 17940: train loss 2.5586, val loss 2.6933, lr 1.55e-04 (2203.85s) | 🟡 Po: 81.5% SW: 6305Mo MPS: 3368Mo
+step 17950: train loss 2.4571, val loss 2.6963, lr 1.55e-04 (2154.58s) | 🟡 Po: 75.6% SW: 4447Mo MPS: 3368Mo | 💾 | 🗑️ | ✨
+step 17960: train loss 2.5315, val loss 2.6038, lr 1.55e-04 (2143.40s) | 🟡 Po: 77.2% SW: 4760Mo MPS: 3368Mo
+step 17970: train loss 2.5390, val loss 2.5492, lr 1.54e-04 (2120.05s) | 🟡 Po: 78.5% SW: 4642Mo MPS: 3368Mo
+step 17980: train loss 2.5678, val loss 2.6028, lr 1.54e-04 (2109.31s) | 🟡 Po: 77.5% SW: 4554Mo MPS: 3368Mo
+step 17990: train loss 2.5823, val loss 2.6906, lr 1.54e-04 (3417.05s) | 🟡 Po: 80.6% SW: 4775Mo MPS: 3368Mo
+step 18000: train loss 2.7492, val loss 2.5645, lr 1.54e-04 (2241.47s) | 🟡 Po: 79.7% SW: 5838Mo MPS: 3368Mo | 💾 | 🗑️ | ✨

@@ -1,5 +1,29 @@
-import tools.ai_graph as g
+import tools.ai_graph_v4 as g
 import argparse
+
+
+UI = {
+    "RESET": "\033[0m",
+    "BOLD":  "\033[1m",
+    "DIM":   "\033[2m",
+    "UNDER": "\033[4m",
+    # Couleurs de texte
+    "GREEN":  "\033[92m",
+    "YELLOW": "\033[93m",
+    "RED":    "\033[91m",
+    "BLUE":   "\033[94m",
+    "MAGENTA":"\033[95m",
+    "CYAN":   "\033[96m",
+    "WHITE":  "\033[97m",
+    "GRAY":   "\033[90m",
+    "ORANGE": "\033[38;5;208m",
+    "B_OR":   "\033[1;38;5;208m",
+    "B_MAG":  "\033[1;38;5;201m",
+    # Couleurs de fond (si besoin pour des étiquettes)
+    "BG_RED": "\033[41m",
+    "BG_GREEN": "\033[42m",
+}
+
 
 def main():
     # 1. Configuration des arguments de ligne de commande
@@ -30,7 +54,7 @@ def main():
     # 2. Définition de tes événements (Historique du projet)
     mes_evenements = [
         {"step": 380, "label": "Mixte : 70/25/5", "color": "gray", "lw": 0.7},
-        {"step": 1500, "label": "End warmup", "color": "gray", "lw": 0.7},
+#        {"step": 1500, "label": "End warmup", "color": "gray", "lw": 0.7},
 #        {"step": 3400, "label": "Introduction de CulturaX à 10%", "color": "gray", "lw": 1.},
 #        {"step": 4200, "label": "CulturaX à 20%", "color": "gray", "lw": 1.},
 #        {"step": 5000, "label": "CulturaX à 35%", "color": "gray", "lw": 1.},
@@ -55,9 +79,10 @@ def main():
     ]
 
     # 3. Appel de la fonction de graphisme
-    print(f"📊 Génération du graphique : {args.log1} ...")
+    print(f"{UI['BLUE']}"+"-"*100)
+    print(f"📊 Génération du graphique : {args.log1} ..."+f"{UI['RESET']}")
     
-    g.plot_poussin_gap(
+    plotter = g.PoussinPlotter(
         y_min=args.ymin,
         y_max=args.ymax,
         x_max=args.xmax,
@@ -76,6 +101,8 @@ def main():
         proj=args.proj,
         ds=args.ds
     )
+
+    plotter.plot()
 
 if __name__ == "__main__":
     main()

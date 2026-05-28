@@ -1,18 +1,18 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
+#from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
 import time
 import os, psutil
 import glob
-import random, math
+import math
 import json
 import threading
 import queue, gc
 # -----------------------------------------------------------------------------
-VERSION = "v6.2.0"
+VERSION = "v6.4.0"
 VERSION_INFO = "Cette version 6.2 inclus les calculs de loss avec les datasets val & train au ratio des datasets et devrait donc se rapprocher du train_raw avec l'exception du dropout"
 # -----------------------------------------------------------------------------
 # 1. BLOCS DE BASE DU MODÈLE (Architecture GPT "Decoder-Only")
@@ -52,56 +52,6 @@ class MultiHeadAttention(nn.Module): # version light
         #1 out = out.permute(0, 2, 1, 3).contiguous().reshape(B, T, C)
         #2 out = out.transpose(1, 2).contiguous().view(B, T, C)
         out = out.transpose( 1, 2).reshape(B, T, C)
-        
-        out = self.proj(out)
-        out = self.dropout(out)
-        return out
-
-class MultiHeadAttention_full(nn.Module):
-    """ Causal Self-Attention. C'est le coeur du mécanisme GPT. """
-    def __init__(self, num_heads, head_size, n_embd, block_size, dropout):
-        super().__init__()
-        self.num_heads = num_heads
-        self.head_size = head_size
-        
-        # Projection clés, requêtes, valeurs
-        self.qkv = nn.Linear(n_embd, 3 * n_embd, bias=False)
-        self.proj = nn.Linear(n_embd, n_embd)
-        
-        self.dropout = nn.Dropout(dropout)
-        self.attn_dropout = nn.Dropout(dropout)
-        
-        # Masque causal (tril) pour empêcher de voir le futur
-        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
-        self.scale = head_size ** -0.5
-
-    def forward(self, x):
-        B, T, C = x.shape
-        
-        # Calcul Q, K, V en une seule opération (optimisé M1)
-        qkv = self.qkv(x)  # (B, T, 3*n_embd)
-        qkv = qkv.reshape(B, T, 3, self.num_heads, self.head_size)
-        qkv = qkv.permute(2, 0, 3, 1, 4)  # (3, B, num_heads, T, head_size)
-        q, k, v = qkv[0], qkv[1], qkv[2]
-        
-        # Calcul des scores d'attention
-        # (B, num_heads, T, head_size) @ (B, num_heads, head_size, T) -> (B, num_heads, T, T)
-        scores = torch.matmul(q, k.transpose(-2, -1)) * self.scale
-        
-        # Application du masque causal : on remplace les 0 du masque par -inf
-        # On slice [:T, :T] pour gérer les séquences plus courtes que block_size (ex: génération)
-        mask = self.tril[:T, :T]
-        scores = scores.masked_fill(mask == 0, float('-inf'))
-        
-        attn_weights = F.softmax(scores, dim=-1)
-        attn_weights = self.attn_dropout(attn_weights)
-        
-        # Agrégation des valeurs
-        out = torch.matmul(attn_weights, v)  # (B, num_heads, T, head_size)
-        
-        # Recomposition
-        #out = out.permute(0, 2, 1, 3).contiguous().reshape(B, T, C)
-        out = out.transpose(1, 2).reshape(B, T, C)
         
         out = self.proj(out)
         out = self.dropout(out)
@@ -167,6 +117,9 @@ class GPTLanguageModel(nn.Module):
                 torch.nn.init.zeros_(module.bias)
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+        elif isinstance(module, nn.LayerNorm):
+            torch.nn.init.ones_(module.weight)   # on fait l'init ici de tous les poids
+            torch.nn.init.zeros_(module.bias)
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
@@ -209,156 +162,9 @@ class GPTLanguageModel(nn.Module):
             idx_next = torch.multinomial(probs, num_samples=1)
             idx = torch.cat((idx, idx_next), dim=1)
         return idx
-# -----------------------------------------------------------------------------
-# 2. CLASSE DE GESTION D'ENTRAÎNEMENT (Optimisée Multi-Fichiers + M1)
-# -----------------------------------------------------------------------------
-
-class Trainer:
-    def __init__(self, tokenizer, config, parameters, data_folder, file_out='ckpt.pth'):
-        self.tokenizer = tokenizer
-        self.config = config
-        self.params = parameters
-        self.file_out = file_out
-        self.data_folder = data_folder
-        
-        # Device Setup
-        if torch.backends.mps.is_available():
-            self.device = torch.device("mps")
-            print("🚀 Utilisation du device MPS (Apple Silicon)")
-        else:
-            self.device = torch.device("cpu")
-            print("⚠️ MPS non disponible. Utilisation CPU (Lent)")
-
-        # Init Model
-        self.model = GPTLanguageModel(
-            vocab_size=len(tokenizer.vocab),
-            **self.config
-        ).to(self.device)
-        
-        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=parameters['learning_rate'])
-        
-        # Historique
-        self.history = {'train_loss': [], 'files_processed': 0}
-
-    def get_file_list(self):
-        return glob.glob(os.path.join(self.data_folder, "*.txt"))
-
-    def get_batch(self, data_tensor):
-        """ Extrait un batch aléatoire depuis le tenseur du fichier courant """
-        block_size = self.config['block_size']
-        batch_size = self.params['batch_size']
-        
-        ix = torch.randint(len(data_tensor) - block_size, (batch_size,))
-        
-        x = torch.stack([data_tensor[i:i+block_size] for i in ix])
-        y = torch.stack([data_tensor[i+1:i+block_size+1] for i in ix])
-        
-        return x.to(self.device), y.to(self.device)
-
-    def train_one_file(self, file_path):
-        """ Charge, tokenize et entraîne sur un seul fichier """
-        # 1. Chargement
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                text = f.read()
-        except Exception as e:
-            print(f"Erreur lecture {file_path}: {e}")
-            return 0.0
-
-        if len(text) < self.config['block_size'] + 10:
-            return 0.0 # Fichier trop petit
-
-        # 2. Tokenization & Transfert GPU
-        tokens = self.tokenizer.encode(text)
-        data_tensor = torch.tensor(tokens, dtype=torch.long) # Sur CPU d'abord pour économiser VRAM
-        
-        # 3. Calcul du nombre d'itérations pour ce fichier
-        # On veut passer environ 1 fois sur tout le fichier
-        n_tokens = len(data_tensor)
-        batch_tokens = self.params['batch_size'] * self.config['block_size']
-        iters_per_file = max(10, n_tokens // batch_tokens) 
-        
-        # Limite haute pour éviter de rester bloqué sur un énorme fichier
-        iters_per_file = min(iters_per_file, 500) 
-        
-        grad_accum_steps = self.params.get('grad_accum_steps', 4)
-        avg_loss = 0
-        
-        self.model.train()
-        
-        for i in range(iters_per_file):
-            
-            # Gradient Accumulation Loop
-            loss_accum = 0
-            self.optimizer.zero_grad()
-            
-            for _ in range(grad_accum_steps):
-                X, Y = self.get_batch(data_tensor)
-                logits, loss = self.model(X, Y)
-                
-                # Normalisation du loss pour l'accumulation
-                loss = loss / grad_accum_steps
-                loss_accum += loss.item()
-                loss.backward()
-            
-            self.optimizer.step()
-            avg_loss += loss_accum
-
-        return avg_loss / iters_per_file
-
-    def train_global(self):
-        epochs = self.params['epochs']
-        files = self.get_file_list()
-        print(f"Début de l'entraînement sur {len(files)} fichiers pour {epochs} époques.")
-        print(f"Paramètres: Batch={self.params['batch_size']}, Accum={self.params.get('grad_accum_steps', 1)}")
-        
-        start_time = time.time()
-        
-        for epoch in range(epochs):
-            random.shuffle(files) # Important pour la généralisation
-            
-            print(f"\n--- ÉPOQUE {epoch+1}/{epochs} ---")
-            
-            for i, file_path in enumerate(files):
-                fname = os.path.basename(file_path)
-                
-                loss = self.train_one_file(file_path)
-                
-                self.history['train_loss'].append(loss)
-                self.history['files_processed'] += 1
-                
-                # Feedback console
-                if i % 1 == 0: # Afficher à chaque fichier
-                    elapsed = time.time() - start_time
-                    print(f"[{epoch+1}] File {i+1}/{len(files)} ({fname}) -> Loss: {loss:.4f} | Time: {elapsed:.1f}s")
-                
-                # Sauvegarde régulière (checkpoint)
-                if i % 10 == 0:
-                    self.save_checkpoint()
-
-        print("Entraînement terminé.")
-        self.save_checkpoint()
-
-    def save_checkpoint(self):
-        ckpt = {
-            'model': self.model.state_dict(),
-            'optimizer': self.optimizer.state_dict(),
-            'config': self.config,
-            'history': self.history,
-            'vocab_size': len(self.tokenizer.vocab)
-        }
-        torch.save(ckpt, self.file_out)
-        # print("Checkpoint saved.")
-
-    def generate_text(self, prompt, max_tokens=100):
-        self.model.eval()
-        tokens = self.tokenizer.encode(prompt)
-        idx = torch.tensor([tokens], dtype=torch.long, device=self.device)
-        gen_idx = self.model.generate(idx, max_tokens)
-        return self.tokenizer.decode(gen_idx[0].tolist(), self.tokenizer.vocab)
 
 # -----------------------------------------------------------------------------
-# 3. FOURNISSEUR DE DONNÉES DÉTERMINISTE POUR CONTINUOUS TRAINING
+# 2. FOURNISSEUR DE DONNÉES DÉTERMINISTE POUR CONTINUOUS TRAINING
 # -----------------------------------------------------------------------------
 
 class DeterministicProvider:
@@ -426,7 +232,7 @@ class DeterministicProvider:
             x = torch.as_tensor(x_np, device = self.device)
             y = torch.as_tensor(y_np, device = self.device)
 
-#            del x_np,y_np
+            del x_np,y_np
             
             yield x, y
             self.step += 1
@@ -471,14 +277,14 @@ class ContinuousTrainer:
         self.wiki_ratio = 1. - self.cult_ratio - self.litt_ratio
         self.ema_decay = train_params.get('ema_decay', 0) # 0 pour désactiver
         # Gestion du Device / préférence sur MPS /
-        self.dtype = torch.bfloat16
+#        self.dtype = torch.bfloat16
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
         print(f"🚀 Device: {self.device}")
         # Instanciation du modèle
         self.model = model_class(vocab_size=len(tokenizer.vocab), **config)
         # On applique l'initialisation personnalisée sur le modèle neuf
-        self.model.apply(self._init_weights)
-        self.model.to(self.device, dtype=self.dtype) #, dtype=torch.float16 if self.device.type == 'mps' else torch.float32)
+#v6.4        self.model.apply(self._init_weights)
+        self.model.to(self.device, dtype=torch.float32) #, dtype=torch.float16 if self.device.type == 'mps' else torch.float32)
         # Check >Dtype
         print(f"Dtype du modèle : {next(self.model.parameters()).dtype}")
         # Initialisation des steps totaux : seront mis à jour par le load_checkpoint
@@ -496,7 +302,7 @@ class ContinuousTrainer:
         self.optimizer = torch.optim.AdamW(
                     self.model.parameters(), 
                     lr=train_params['learning_rate'],
-                    weight_decay=train_params.get('weight_decay', 0.1)
+                    weight_decay=train_params.get('weight_decay', 0.1),
                 )
         # Chargement de l'état de l'optimiseur si disponible
         # Restauration de l'état de l'Optimiseur
@@ -737,12 +543,6 @@ class ContinuousTrainer:
         else:
             print("✅ MÉMOIRE OK : M1 gérera l'entraînement confortablement.")
 
-    def _mark_file_as_done(self, file_path):
-        """Ajoute un fichier à la liste des traités"""
-        with open(self.log_file, 'a') as f:
-            f.write(file_path + "\n")
-        self.processed_files.add(file_path)
-
     def _load_checkpoint(self):
         """Charge les poids. Permet de changer les hyperparams d'entraînement (LR) mais garde les poids."""
         if os.path.exists(self.ckpt_path):
@@ -833,41 +633,6 @@ class ContinuousTrainer:
         # print(f"✨ Modèle d'inférence prêt : {os.path.basename(light_model_path)}")
         print(f" | ✨")
 
-    def get_batch(self, data_tensor):
-        block_size = self.config['block_size']
-        batch_size = self.params['batch_size'] # faut il verifier len(data_tensor) / batch_size
-        ix = torch.randint(len(data_tensor) - block_size, (batch_size,))
-        x = torch.stack([data_tensor[i:i+block_size] for i in ix])
-        y = torch.stack([data_tensor[i+1:i+block_size+1] for i in ix])
-        return x.to(self.device), y.to(self.device)
-
-    def get_batch_bin(self, split='train'):
-        """
-        Récupère un lot de données aléatoire depuis le fichier binaire (memmap).
-        N'est plus utilisé que pour le l'eval. 
-        """
-        data = self.train_data if split == 'train' else self.val_data
-        # 1. Générer tous les indices d'un coup
-        ix = np.random.randint(0, len(data) - self.config['block_size'], (self.params['batch_size'],))
-        
-        # 2. Utiliser la magie de NumPy pour extraire les blocs sans boucle Python lente
-        # On crée une grille d'indices // à voir pour le créer dans l'init ?
-        offsets = np.arange(self.config['block_size'])
-        indices = ix[:, None] + offsets  # Forme (batch_size, block_size)
-        
-        x_np = data[indices]
-        y_np = data[indices + 1]
-
-        # Conversion directe en Tenseur sur le device
-        # Note: On passe en .long() car la CrossEntropy ne prend pas le uint16
-        x = torch.from_numpy(x_np).to(self.device).long()
-        y = torch.from_numpy(y_np).to(self.device).long()
-
-        del x_np, y_np
-        # gc.collect()        
-                
-        return x, y
-
     def get_batch_from_source(self, data):
         """
         Version optimisée de la fonction pour piocher dans n'importe quel memmap.
@@ -892,36 +657,9 @@ class ContinuousTrainer:
         x = torch.as_tensor(x_np, device = self.device)
         y = torch.as_tensor(y_np, device = self.device)
 
-#        del x_np, y_np # zut oublié de détruire ces derniers !!
+        del x_np, y_np #
 
         return x, y
-
-    
-    def get_batch_bin_tensor(self, split='train'):
-        data = self.train_data if split == 'train' else self.val_data
-        
-        # Générer les indices sur CPU (plus rapide pour l'aléatoire simple)
-        ix = torch.randint(0, data.size(0) - self.config['block_size'], (self.params['batch_size'],))
-        
-        # Extraire les séquences (Slicing sur GPU)
-        # On utilise une liste de compréhension car le slicing indexé 
-        # est parfois plus stable sur MPS que les grilles d'indices complexes
-        x = torch.stack([data[i:i+self.config['block_size']] for i in ix])
-        y = torch.stack([data[i+1:i+1+self.config['block_size']] for i in ix])
-        
-        # On convertit en long() au dernier moment (requis pour la loss)
-        return x.long(), y.long()
-
-    def get_batch_parallel(self):
-        try:
-            x, y = next(self.train_iter)
-        except StopIteration:
-            # Si on arrive au bout du dataset, on recommence
-            self.train_iter = iter(self.train_loader)
-            x, y = next(self.train_iter)
-        
-        # Seul le transfert final vers MPS est bloquant
-        return x.to(self.device), y.to(self.device)
 
     def get_lr(self,it):
         # Utilisation des paramètres passés à l'init
@@ -940,176 +678,6 @@ class ContinuousTrainer:
         decay_ratio = (it - warmup) / (max_iters - warmup)
         coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
         return lr_min + coeff * (lr_max - lr_min)
-    
-    def train_file(self, file_path):
-        """Entraîne sur UN seul fichier"""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                text = f.read()
-        except Exception as e:
-            print(f"❌ Erreur lecture {file_path}, ignoré.")
-            return
-
-        if len(text) < self.config['block_size'] + 10:
-            return
-
-        # Tokenization
-        tokens = self.tokenizer.encode(text)
-        data_tensor = torch.tensor(tokens, dtype=torch.long, device= self.device)
-        # --- SPLIT TRAIN / VAL (90% / 10%) ---
-        n = int(0.9 * len(data_tensor))
-        train_data = data_tensor[:n]
-        val_data = data_tensor[n:]
-        
-        # Calcul dynamique des itérations pour voir tout le fichier
-        batch_size = self.params['batch_size']
-        block_size = self.config['block_size']
-        grad_accum = self.params.get('grad_accum_steps', 1)
-        
-        # Nombre total de tokens / (batch * block)
-        n_batches = len(train_data) // (batch_size * block_size)
-        if n_batches < 1: n_batches = 1
-        
-        self.model.train()
-        total_loss = 0
-        
-        # Boucle d'entraînement sur ce fichier
-        for i in range(n_batches):
-            
-            # On utilise le step global pour le calcul du cosinus
-            current_lr = self.get_lr(self.total_steps_done)
-            for param_group in self.optimizer.param_groups:
-                param_group['lr'] = current_lr
-            # Gradient Accumulation
-            self.optimizer.zero_grad(set_to_none=True)
-            accum_loss = 0
-            
-            for _ in range(grad_accum):
-                X, Y = self.get_batch(train_data)
-                _, loss = self.model(X, Y)
-                loss = loss / grad_accum
-                accum_loss += loss.item()
-                loss.backward()
-            
-            # Empêche le modèle de diverger si un batch est "bizarre"
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)            
-            self.optimizer.step()
-            self.total_steps_done += 1
-            total_loss += accum_loss
-
-        avg_loss = total_loss / n_batches
-        return avg_loss, train_data, val_data
-
-    def train_buffer(self, file_paths):
-        """
-        Fusionne une liste de fichiers en un seul grand bloc et entraîne le modèle dessus.
-        """
-        # --- 1. Lecture et Fusion (Memory Efficient) ---
-        content_list = []
-        valid_files = [] # On garde trace des fichiers qui ont bien été lus
-        
-        # Séparateur pour aider le modèle à comprendre qu'on change de document
-        # Si tu n'as pas de token spécial <|endoftext|>, \n\n suffit.
-        separator = "\n\n" 
-        start_time = time.time()
-
-        for fname in file_paths:
-            try:
-                with open(fname, 'r', encoding='utf-8', errors='ignore') as f:
-                    text = f.read()
-                    # On ignore les fichiers vides (< 100 char)
-                    if len(text) > 100: 
-                        content_list.append(text)
-                        valid_files.append(fname)
-            except Exception:
-                print(f"⚠️ Erreur lecture : {fname}")
-                continue
-
-        if not content_list:
-            return None, [], None, None
-
-        # Fusion optimisée
-        full_text = separator.join(content_list)
-        print(f"🗂️ Fichiers lus. {(time.time()-start_time):.1f} s")
-        start_time = time.time()
-        
-        # --- 2. Tokenization & Tensor ---
-        # On garde le tenseur sur le CPU pour ne pas saturer la VRAM du M1
-        tokens = self.tokenizer.encode(full_text)
-        data_tensor = torch.tensor(tokens, dtype=torch.long, device=self.device)
-        
-        # --- 3. Split Train/Val ---
-        n = int(0.9 * len(data_tensor))
-        train_data = data_tensor[:n]
-        val_data = data_tensor[n:]
-        print(f"𝌬 Encodage des fichiers [{len(train_data):d}], lancement des Batchs : {(time.time()-start_time):.1f} s")
-        start_time = time.time()
-
-
-        # --- 4. Configuration de l'entraînement ---
-        batch_size = self.params['batch_size']
-        block_size = self.config['block_size']
-        grad_accum = self.params.get('grad_accum_steps', 4)
-
-        # Combien de batches complets peut-on faire ?
-        n_batches = len(train_data) // (batch_size * block_size)
-        
-        if n_batches < 1: 
-            return None, valid_files, None, None
-
-        self.model.train()
-        total_loss = 0
-        
-        # --- 5. Boucle d'entraînement sur le Buffer ---
-        for i in range(n_batches):
-            
-            # A. Learning Rate Dynamique
-            lr = self.get_lr(self.total_steps_done)
-            for param_group in self.optimizer.param_groups:
-                param_group['lr'] = lr
-            
-            # B. Zero Grad
-            self.optimizer.zero_grad(set_to_none=True)
-            accum_loss = 0
-            
-            # C. Accumulation de Gradient
-            for _ in range(grad_accum):
-                # C'est ici qu'on envoie les données sur le GPU (MPS)
-                X, Y = self.get_batch(train_data)
-                
-                # Mixed Precision n'est pas nécessaire sur M1 (MPS gère bien le Float32)
-                logits, loss = self.model(X, Y)
-                
-                loss = loss / grad_accum
-                accum_loss += loss.item()
-                loss.backward()
-            
-            # D. Clipping & Update
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
-            self.optimizer.step()
-            
-            self.total_steps_done += 1
-            total_loss += accum_loss
-
-            # --- AJOUT : ÉVALUATION RÉGULIÈRE ---
-            # On évalue toutes les 20 itérations (tu peux ajuster ce chiffre)
-            if self.total_steps_done % 20 == 0:
-                losses = self.estimate_loss(train_data, val_data)
-                
-                # Mise à jour de l'historique en temps réel
-                self.history['train_loss'].append(losses['train'])
-                self.history['val_loss'].append(losses['val'])
-                self.history['steps'].append(self.total_steps_done)
-                
-                # Sauvegarde automatique pour ne rien perdre
-                self._save_checkpoint()
-                self._save_history()
-                
-                print(f"\n📈 Step {self.total_steps_done} | Loss Val: {losses['val']:.4f} | LR: {lr:.2e} | {(time.time()-start_time):.1f}")
-
-        avg_loss = total_loss / n_batches
-        
-        return avg_loss, valid_files, train_data, val_data
 
     def train_bin(self):
         """
@@ -1144,7 +712,7 @@ class ContinuousTrainer:
         print(f"   📉 Evaluation tous les : {eval_interval} steps")
         print(f"   💾 Sauvegarde tous les : {save_interval} steps")
 
-        self.log_memory_status(v=True)
+        self._log_memory_status(v=True)
 
         # --- BOUCLE INFINIE (Pilotée par les steps) ---
         # On ne boucle pas sur 'epoch', on boucle jusqu'à 'max_steps'
@@ -1181,20 +749,23 @@ class ContinuousTrainer:
                 t1 = time.time() # Temps chargement données
                 t_batch += t1 - t0
                 # Mixed precision auto gérée par PyTorch si dispo, sinon float32
-                with torch.autocast(device_type='mps', dtype=torch.bfloat16):
+                with torch.autocast(device_type='mps', dtype=torch.float16):
                     logits, loss = self.model(X, Y)
                 loss = loss / grad_accum
                 t2 = time.time() # Temps forward pass
                 t_model += t2 - t1
                 accum_loss += loss.item()
                 self.scaler.scale(loss).backward()
+#                loss.backward()  # en v6.4 on calcule en direct
                 t3 = time.time() # Temps backward pass (souvent le plus long)
                 t_bacwd += t3 - t2
             
             # 3. Step Optimizer
-            """ ancienne version float32
+            # ancienne version float32 remise en selle avec bfloat16 sur MPS
+            """
             t4_start = time.time()
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+            norm = torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+            current_grad_norm.append(float(norm)) # valeur pour le monitoring
             self.optimizer.step()
             """
             # On redescend les gradients avant le clipping
@@ -1270,140 +841,6 @@ class ContinuousTrainer:
         self.monitor.stop()
         print("✅ Fin de l'entraînement (Max Steps atteint).")
 
-    def run_training_loop(self, max_files_session=50):
-        """
-        Lance l'entraînement.
-        max_files_session: nombre de fichiers à traiter avant d'arrêter le script (pour procéder par lots)
-        """
-        # 1. Lister tous les fichiers
-        all_files = glob.glob(os.path.join(self.data_root, "*", "*"))
-        all_files = [f for f in all_files if os.path.isfile(f)]
-        
-        # 2. Filtrer ceux déjà faits
-        remaining_files = [f for f in all_files if f not in self.processed_files]
-        
-        print(f"📊 Statut : {len(self.processed_files)} terminés, {len(remaining_files)} restants.")
-        
-        if not remaining_files:
-            print("🎉 Tous les fichiers ont été traités !")
-            return
-
-        # 3. Mélanger pour éviter le biais (ex: ne pas apprendre que les articles commençant par 'A')
-        random.shuffle(remaining_files)
-        
-        # 4. Sélectionner le lot pour cette session
-        files_to_do = remaining_files[:max_files_session]
-        print(f"▶️ Démarrage de la session sur {len(files_to_do)} fichiers...\n")
-
-        start_time = time.time()
-        
-        for idx, fname in enumerate(files_to_do):
-            # Affichage "pretty"
-            short_name = f"{os.path.basename(os.path.dirname(fname))}/{os.path.basename(fname)}"
-            
-            loss, train_data, val_data = self.train_file(fname)
-            
-            if loss is not None:
-                # Marquer comme fait
-                self._mark_file_as_done(fname)
-                
-                elapsed = time.time() - start_time
-                print(f"[{idx+1}/{len(files_to_do)}] Loss: {loss:.4f} | Fichier: {short_name}")
-                
-                # --- EVALUATION ---
-                losses = self.estimate_loss(train_data, val_data)
-
-                # Enregistrement
-                self.history['train_loss'].append(losses['train'])
-                self.history['val_loss'].append(losses['val'])
-                self.history['steps'].append(len(self.processed_files))
-
-                # Sauvegarde régulière (à chaque fichier pour sécurité maximale sur M1)
-                self._save_checkpoint()
-                self._save_history()
-
-        print(f"\n✅ Session terminée. Vous pouvez relancer le script pour la suite.")
-
-    def run_training_loop_merge(self, files_per_buffer=50, max_buffers=1000):
-        """
-        Nouvelle boucle optimisée par fusion.
-        files_per_buffer : Nombre de fichiers à coller ensemble (ex: 50).
-        max_buffers : Nombre de lots à traiter dans cette session.
-        """
-        # 1. Lister tous les fichiers
-        all_files = glob.glob(os.path.join(self.data_root, "*", "*")) # Adapté à ta structure
-        all_files = [f for f in all_files if os.path.isfile(f)]
-        
-        # 2. Filtrer ceux déjà faits
-        remaining_files = [f for f in all_files if f not in self.processed_files]
-        
-        print(f"📊 Statut Global : {len(self.processed_files)} terminés, {len(remaining_files)} restants.")
-        
-        if not remaining_files:
-            print("🎉 Tous les fichiers ont été traités !")
-            return
-
-        # 3. Mélanger pour éviter le biais
-        random.shuffle(remaining_files)
-        
-        # 4. Création des 'Chunks' (Les lots de 50 fichiers)
-        chunks = [remaining_files[i:i + files_per_buffer] for i in range(0, len(remaining_files), files_per_buffer)]
-        
-        # On ne prend que le nombre demandé pour cette session
-        chunks_to_do = chunks[:max_buffers]
-        
-        print(f"▶️ Démarrage : {len(chunks_to_do)} buffers (lots) à traiter.\n")
-        start_time = time.time()
-        
-        for idx, chunk_files in enumerate(chunks_to_do):
-            
-            print(f"📦 Buffer {idx+1}/{len(chunks_to_do)} ({len(chunk_files)} fichiers)... ", end="", flush=True)
-            
-            # Appel du Worker
-            loss, done_files, t_data, v_data = self.train_buffer(chunk_files)
-            
-            if loss is not None:
-                # On marque TOUS les fichiers du lot comme faits
-                for f in done_files:
-                    self._mark_file_as_done(f)
-                
-                # elapsed = time.time() - start_time
-                # print(f"OK | Loss: {loss:.4f} | Steps: {self.total_steps_done}")
-                
-                # # --- EVALUATION & SAUVEGARDE ---
-                # # On sauvegarde à la fin de chaque buffer car ça représente beaucoup de travail (~5-10 min)
-                # losses = self.estimate_loss(t_data, v_data)
-
-                # # Enregistrement historique
-                # self.history['train_loss'].append(losses['train'])
-                # self.history['val_loss'].append(losses['val'])
-                # self.history['steps'].append(self.total_steps_done) # On log les steps, pas le nombre de fichiers
-
-                # self.save_checkpoint()
-                # self._save_history()
-            else:
-                print("SKIPPED (Données insuffisantes)")
-
-        print(f"\n✅ Session terminée. {len(chunks_to_do)} buffers traités.")
-
-    @torch.no_grad()
-    def estimate_loss(self, train_data, val_data):
-        """ Évalue le loss sur les deux splits du fichier courant """
-        self.model.eval()
-        out = {}
-        # On évalue sur un nombre fixe de petits batchs pour aller vite
-        eval_iters = 20 
-        for split, data in [('train', train_data), ('val', val_data)]:
-            losses = torch.zeros(eval_iters)
-            for k in range(eval_iters):
-                X, Y = self.get_batch(data)
-                if X is None: continue
-                _, loss = self.model(X, Y)
-                losses[k] = loss.item()
-            out[split] = losses.mean().item()
-        self.model.train()
-        return out
-    
     def estimate_loss_bin_v6(self, eval_iters=30):
         """
         Fonction helper pour estimer le loss sans dropout (mode eval).
@@ -1416,13 +853,13 @@ class ContinuousTrainer:
         # Dictionnaire des sources de validation à tester
         val_sources = {
             'wiki': self.val_data,
-            'cult': self.val_cult,
-            'litt': self.val_litt
+            'cult': getattr(self, 'val_cult', None), 
+            'litt': getattr(self, 'val_litt', None)
             }
         train_sources = {
             'wiki': self.train_data,
-            'cult': self.train_data_cult,
-            'litt': self.train_data_litt
+            'cult': getattr(self, 'train_data_cult', None),
+            'litt': getattr(self, 'train_data_litt', None)
             }
 
         # 1. Purge préventive avant l'effort d'évaluation
@@ -1432,7 +869,7 @@ class ContinuousTrainer:
 
         # 2. Utilisation de inference_mode (plus rapide que no_grad sur Metal)
         with torch.inference_mode(): # ce code crash !!
-            with torch.autocast(device_type='mps', dtype=torch.bfloat16):
+            with torch.autocast(device_type='mps', dtype=torch.float16):
 #            with torch.no_grad():
             #2.1/ le train pqr source new version
             # on migre t_losses sur le CPU avec un numpy_array
@@ -1478,45 +915,11 @@ class ContinuousTrainer:
         if torch.backends.mps.is_available():
             torch.mps.empty_cache()
 
-        status, pression, mem_rss = self.log_memory_status()
+        status, pression, mem_rss = self._log_memory_status()
 
         return out, status, pression, mem_rss
     
-    def estimate_loss_bin(self, eval_iters=30):
-        """
-        Fonction helper pour estimer le loss sans dropout (mode eval).
-        eval_iters: nombre de batchs pour moyenner et avoir un score stable.
-        """
-        out = {}
-        self.model.eval() # Désactive Dropout
-        # 1. Purge préventive avant l'effort d'évaluation
-        if torch.backends.mps.is_available():
-            torch.mps.empty_cache()
-
-        # 2. Utilisation de inference_mode (plus rapide que no_grad sur Metal)
-        with torch.autocast(device_type='mps', dtype=torch.bfloat16):
-            with torch.inference_mode():
-            # with torch.no_grad():
-                for split in ['train', 'val']:
-                    losses = torch.zeros(eval_iters)
-                    for k in range(eval_iters):
-                        X, Y = self.get_batch_bin(split)
-                        _, loss = self.model(X, Y)
-                        losses[k] = loss.item()
-                    out[split] = losses.mean().item()
-        
-        self.model.train() # Réactive Dropout
-            
-        # 3. Purge préventive avant l'effort d'évaluation
-        if torch.backends.mps.is_available():
-            gc.collect()           # Libère la RAM CPU (NumPy/Tensors CPU)
-            torch.mps.empty_cache()
-
-        status, pression, mem_rss = self.log_memory_status()
-
-        return out, status, pression, mem_rss
-
-    def log_memory_status(self, v=False):
+    def _log_memory_status(self, v=False):
         # RAM système
         vm = psutil.virtual_memory()
         # Pression mémoire (en %) - c'est l'indicateur le plus important sur macOS
@@ -1600,23 +1003,6 @@ class Monitor:
         self.queue.put(None)
         self.thread.join(timeout=2)
 
-class TokenDataset(Dataset):
-    def __init__(self, data_path, block_size):
-        # On utilise memmap pour ne pas exploser la RAM
-        # Le système d'exploitation gérera le cache intelligemment
-        self.data = np.memmap(data_path, dtype=np.uint16, mode='r')
-        self.block_size = block_size
-
-    def __len__(self):
-        return len(self.data) - self.block_size - 1
-
-    def __getitem__(self, idx):
-        # Cette partie s'exécutera sur le CPU (dans les workers)
-        chunk = self.data[idx : idx + self.block_size + 1].astype(np.int64)
-        x = torch.from_numpy(chunk[:-1])
-        y = torch.from_numpy(chunk[1:])
-        return x, y
-
 class GenerateGPT:
     def __init__(self, tokenizer, ckpt_path, default_model='model', verbose=False):
         self.tokenizer = tokenizer
@@ -1659,11 +1045,21 @@ class GenerateGPT:
                 logits = logits[:, -1, :] / temperature # Applique la température
 
                 # On parcourt les tokens déjà générés pour pénaliser les logits et réduire les répétitions
+                """ en O(n2)
                 for token_id in set(input_tensor[0].tolist()):
                     if logits[0, token_id] > 0:
                         logits[0, token_id] /= rep_penalty
                     else:
                         logits[0, token_id] *= rep_penalty
+                """
+                # v6.4 (O(n) vectorisé, reste sur le device)
+                unique_ids = torch.unique(input_tensor[0])
+                scores = logits[0, unique_ids]
+                # Divise si positif, multiplie si négatif (même sémantique)
+                penalty = torch.where(scores > 0, 
+                                      torch.tensor(rep_penalty, device=self.device), 
+                                      torch.tensor(1.0 / rep_penalty, device=self.device))
+                logits[0, unique_ids] = scores / penalty
             
                 # ajout du top_k qui ne garde que les mots les plus probable : mask
                 if top_k is not None:

@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "."
+		},
+		{
+			"path": "../../llm-wiki"
 		}
 	],
 	"settings": {}

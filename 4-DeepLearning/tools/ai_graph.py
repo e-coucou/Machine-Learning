@@ -8,26 +8,104 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 
-VERSION = 'v3.3.2'
+VERSION = 'v3.7.13'
 
 MONITOR_FILE = 'model/monitor.log'
 TRAIN_INFO = 'model/train_info.json'
 TARGET_BLOCK_DS1 = 2525599 #3367466 #5051199 # old wiki_raw 5963390
 TARGET_BLOCK_DS2 = 1203058 #1619593 #2429390
 TARGET_BLOCK_DS3 = 85440 #116091  #174137
-MIXED = 0.25
-LITT = 0.05
+MIXED = 0.10
+LITT = 0.07
 BATCH_SIZE = 4
 GRAD_ACCUM = 96
+END_TRAIN = 30000
 
 xActual = 0
 line_dict = {}
+trend = []
+trend_line = []
 
-def calcul_epoch(step, target, mix, batch, grad, t_step):
-    epoch = 0
+#-----
+# Configuration des phases d'entraînement pour le monitoring (30 000 steps)
+# Format : (start, stop, titre, couleur, nom_technique, etat_lr, neurones_action, symptome)
+
+phases_train = [
+    (
+        0, 
+        1500, 
+        "Éveil & Explosion", 
+        "#cc3333",  # Rouge clair (Chaud / Instable)
+        "Warmup & Initial Convergence",
+        "Ascension rapide : 0 \u2192 3.5e-4",
+        "Découverte du bruit. Apprentissage des espaces et des mots très fréquents (le, la, et).",
+        "Charabia total, puis mots existants mais sans suite logique."
+    ),
+    (
+        1500, 
+        5000, 
+        "Acquisition Syntaxique", 
+        "#ffbc59",  # Orange clair (Forge / Grammaire)
+        "Grammar & Structural Learning",
+        "Plateau maximum : ~3.5e-4",
+        "Intégration de la syntaxe. Mémorisation de la ponctuation. Associations statistiques par proximité pure.",
+        "Le Poète Amnésique : Grammaire parfaite, style riche, mais hallucinations géographiques/logiques."
+    ),
+    (
+        5000, 
+        12000, 
+        "Ségrégation Sémantique", 
+        "#c3c311",  # Jaune (Tri / Frontières)
+        "Domain Separation & Knowledge Embedding",
+        "Descente douce : 3.4e-4 \u2192 2.5e-4",
+        "Création de cloisons dans l'espace latent. Séparation des données Wiki (faits) et CulturaX (web/produits).",
+        "Les faits se précisent. Baisse drastique des associations absurdes (couleurs = musée)."
+    ),
+    (
+        12000, 
+        22000, 
+        "Cristallisation", 
+        "#79df79",  # Vert clair (Solidification / Logique)
+        "Attention Head Specialization",
+        "Chute raide : 2.5e-4 \u2192 < 1.0e-4",
+        "Figeage des poids. Les têtes d'attention se spécialisent (une pour la géographie, une pour la logique).",
+        "Apparition du raisonnement (Bleu + Jaune = Vert). Fin des boucles de répétition."
+    ),
+    (
+        22000, 
+        30000, 
+        "Affinage & Polissage", 
+        "#89acef",  # Bleu clair (Froid / Précision)
+        "Late-stage Fine-Tuning & Entropy Reduction",
+        "Atterrissage lent : < 1.0e-4 \u2192 3.5e-5",
+        "Correction des micro-détails et du vocabulaire rare. Baisse de l'entropie (incertitude).",
+        "Réponses stables, déterministes, nettes et précises."
+    )
+]
+#----
+def calcul_ds(step, mix, grad):
+    return int(step * mix * grad)
+    
+def calcul_epoch(step, target, mix, batch, grad, t_step, n=1):
+    epoch, next_block = 0, 0
     if mix > 0:
-        epoch = int((target - step * batch) / (batch * mix * grad) + t_step)
-    return epoch
+        n_blocks = (target * n)  - (step * batch) 
+        epoch = int(( n_blocks ) / (batch * mix * grad) + t_step)
+        next_block =  n_blocks/4 + step
+    return epoch, next_block
+
+def get_epoch(first, target, mix, batch, grad, t_step):
+    epochs = []
+    n = int(first * batch / target) + 1
+    e, t = calcul_epoch(step=first, target=target, mix=mix, batch=batch, grad=grad , t_step=t_step, n=n)
+    epochs.append(e)
+    while (e<END_TRAIN):
+        n +=  1
+        e, t = calcul_epoch(step=t, target=target, mix=mix, batch=batch, grad=grad , t_step=e, n=n)
+        if (e<END_TRAIN):
+            epochs.append(e)
+    return epochs
+
     
 def calcul_ema(data_loss, data_steps, compare=None):
     if len(data_loss) == 0:
@@ -249,21 +327,57 @@ def on_mouse_move(event):
         x, y = ax.transData.inverted().transform((event.x, event.y))
         h_line.set_ydata([y,y])
         h_line.set_visible(True)
+        ax3 = t_line.axes
+        _, y3 = ax3.transData.inverted().transform((event.x, event.y+20))
 
-        if x > xActual:
+        if (x > xActual) & (event.y>101):
             lr = calcul_lr(x)
             elapse = ((x - xActual)*spdActual)
             eta = datetime.now() + timedelta(seconds=elapse)
             ETA = eta.strftime("%d-%B %H:%M")
             t_line.set_text(f"{ETA}\nlr = {lr:10.8f}\n[{round(x):5d} - {y:4.2f}]")
-            t_line.xy = (x, y+0.05)
+            t_line.get_bbox_patch().set_facecolor('#ccddff')
+            t_line.set_ha('center')
+            t_line.xy = (x, y3)
+            t_line.set_visible(True)
+        elif (event.y<100):
+            info = get_phase_train(round(x),phases_train)
+            t_line.set_text(f"{info['titre']}  [{info['start']}-{info['stop']}]\n{info['tech']}\n{info['lr']}\n{info['neurone']}\n{info['symptome']}\neCoucou {VERSION}")
+            t_line.xy = (x, y3+0.2)
+            t_line.get_bbox_patch().set_facecolor(info['couleur'])
+            t_line.set_ha('left')
+            t_line.set_zorder(1000)
             t_line.set_visible(True)
         else:
             t_line.set_visible(False)
-            
-#    else:
-#        v_line.set_visible(False)
         event.canvas.draw_idle()
+
+def on_mouse_click(event):
+    global trend_line, trend
+    if event.button == 3:
+        for a in trend_line:
+            a.remove()
+        trend_line.clear()
+        trend.clear()
+        event.canvas.draw_idle()
+        return
+        
+    if event.inaxes and event.button==1:
+        ax_p = event.canvas.figure.ax_principal
+        inv = ax_p.transData.inverted()
+        x, y = inv.transform((event.x, event.y))
+        trend.append((x, y))
+#        pt, = event.inaxes.plot(event.xdata, event.ydata, 'ro', markersize=2)
+        pt, = ax_p.plot(x, y, 'ro', markersize=2)
+        trend_line.append(pt)
+        
+    if len(trend) == 2:
+        p1, p2 = trend[0], trend[1]
+        tl, = ax_p.plot([p1[0], p2[0]], [p1[1],p2[1]], color="orange",linestyle="-", marker='', lw=2, zorder=1000)
+        trend_line.append(tl)
+        trend.clear()
+        event.canvas.draw_idle()
+#        event.canvas.draw()
 
 def on_pick(event):
     global line_dict
@@ -275,12 +389,24 @@ def on_pick(event):
         leg_item.set_alpha(1. if vis else 0.2)
         event.canvas.draw_idle()
 
+def set_off(ligne, legende):
+#    orig_line = line_dict[item][0]
+    ligne.set_visible(False)
+    legende.set_alpha(0.2)
+#        event.canvas.draw_idle()
+
 def ajouter_phase_train(ax, start, end, phases):
-    for debut, fin, label, color in phases:
+    for debut, fin, label, color, _, _ ,_ ,_ in phases:
         if (debut < end) :
             ax.axvspan(debut, end, ymin=0, ymax=0.02, facecolor=color, alpha=1, edgecolor='gray', linewidth=0.1)
             xText = (max(debut,start) + min(fin,end))//2
             ax.text( xText, 0.01, label, transform = ax.get_xaxis_transform() , ha ='center', va = 'center', fontsize = 8, fontweight = 'bold', color = 'white')
+
+def get_phase_train(step, phases):
+    for phase in phases:
+        start,stop,titre,couleur,tech,lr,neurone,symptome = phase
+        if start<step<stop or (step==stop and step==phases[-1][1]):
+            return {"start":start, "stop":stop,"titre":titre,"couleur":couleur,"tech":tech,"lr":lr,"neurone":neurone,"symptome":symptome}
 
 def copyright(ax, ymin):
     label = f'eCoucou {VERSION}'
@@ -317,7 +443,8 @@ def plot_poussin_gap(
         titre = "Training GPT Mac-M1",
         horizon = 30000,
         proj = 10,
-        phase_train = [(0,1500,'WarmUp','#993311') , (1500,2000,'Stabilisation','#51719f'), (2000, 5000, 'Cristallisation','#619f71'), (5000, 10000, 'Grammaire', '#9c0056'), (10000, 20000, 'Polissage', '#101099') ],
+#        phase_train = [(0,1500,'WarmUp','#993311') , (1500,2000,'Stabilisation','#51719f'), (2000, 5000, 'Cristallisation','#619f71'), (5000, 10000, 'Grammaire', '#9c0056'), (10000, 20000, 'Polissage', '#101099') ],
+        phase_train = phases_train,
         ds = False
     ):
 
@@ -340,7 +467,7 @@ def plot_poussin_gap(
         for line in f:
             if line.strip():
                 data_monitor.append(json.loads(line))
-    monitor_loss, monitor_ds1, monitor_ds2, monitor_ds3, monitor_mixed,  monitor_step_ds, monitor_grad, monitor_lr = [], [], [], [], [], [], [], []
+    monitor_loss, monitor_ds1, monitor_ds2, monitor_ds3, monitor_mixed,  monitor_step_ds, monitor_grad, monitor_lr, monitor_token = [], [], [], [], [], [], [], [], []
 
     for d in data_monitor:
         monitor_loss.append(d['loss'])
@@ -351,6 +478,8 @@ def plot_poussin_gap(
         monitor_ds2.append( (d.get('dataset2',0)/TARGET_BLOCK_DS2*BATCH_SIZE) % 1 )
         monitor_ds3.append( (d.get('dataset3',0)/TARGET_BLOCK_DS3*BATCH_SIZE) % 1 )
         monitor_mixed.append(d.get('dataset1',0)/(d.get('dataset1',0)+d.get('dataset2',0.1)+d.get('dataset3',0.1)))
+        monitor_token.append( int(d['step']*d['params']['batch_size']*d['params']['grad_accum_steps']/100_000)*100 )
+    monitor_loss.insert(0,0)
     monitor_lr.insert(0,0)
     monitor_ds1.insert(0,0)
     monitor_ds2.insert(0,0)
@@ -358,25 +487,27 @@ def plot_poussin_gap(
     monitor_mixed.insert(0,0)
     monitor_step_ds.insert(0,0)
     monitor_grad.insert(0,0)
+    monitor_token.insert(0,0)
+    
     monitor_tokens = convert_steps_list(monitor_step_ds, "model_5", info)
- 
+
     if compare == -1:
         compare = data["steps"][-1]
         # echéances epoch
-    step_ds1 = data_monitor[-1]['dataset1']
-    epoch_ds1 = calcul_epoch(step=step_ds1, target=TARGET_BLOCK_DS1, mix=(1-MIXED-LITT), batch=BATCH_SIZE, grad=GRAD_ACCUM , t_step=compare)
-    step_ds2 = data_monitor[-1]['dataset2']
-    epoch_ds2 = calcul_epoch(step=step_ds2, target=TARGET_BLOCK_DS2, mix=MIXED, batch=BATCH_SIZE, grad=GRAD_ACCUM , t_step=compare)
-    step_ds3 = data_monitor[-1]['dataset3']
-    epoch_ds3 = calcul_epoch(step=step_ds3, target=TARGET_BLOCK_DS3, mix=LITT, batch=BATCH_SIZE, grad=GRAD_ACCUM , t_step=compare)
 
-    print("Epochs : ",epoch_ds1, epoch_ds2, epoch_ds3)
+    epoch_1 = get_epoch(first=data_monitor[-1]['dataset1'],target=TARGET_BLOCK_DS1, mix = (1-MIXED-LITT), batch=BATCH_SIZE, grad=GRAD_ACCUM, t_step=compare)
+    epoch_2 = get_epoch(first=data_monitor[-1]['dataset2'],target=TARGET_BLOCK_DS2, mix = MIXED, batch=BATCH_SIZE, grad=GRAD_ACCUM, t_step=compare)
+    epoch_3 = get_epoch(first=data_monitor[-1]['dataset3'],target=TARGET_BLOCK_DS3, mix = LITT, batch=BATCH_SIZE, grad=GRAD_ACCUM, t_step=compare)
+
     steps = np.array(data["steps"])
     train_loss = np.array(data["train_loss"])
     val_loss = np.array(data["val_loss"])
     val_loss_wiki = np.array(data["val_loss_wiki"])
     val_loss_cult = np.array(data["val_loss_cult"])
     val_loss_litt = np.array(data["val_loss_litt"])
+    train_loss_wiki = np.array(data["train_loss_wiki"])
+    train_loss_cult = np.array(data["train_loss_cult"])
+    train_loss_litt = np.array(data["train_loss_litt"])
     gap = val_loss - train_loss
     tokens = convert_steps_list(steps, "model_5", info)
 
@@ -392,7 +523,8 @@ def plot_poussin_gap(
     else:
         val_loss_second, steps_second, tokes_second  = None, None, None
         ema_loss_second, end_second = 0, 0
-        print(f"⚠️  Note : Second fichier de log non chargé ({second})")
+        if not second:
+            print(f"⚠️  Note : Second fichier de log non chargé ({second})")
 
     if third and os.path.exists(third):
         with open(third, "r") as f2:
@@ -403,7 +535,8 @@ def plot_poussin_gap(
     else:
         val_loss_third, steps_third = None, None
         ema_loss_third, end_third = 0, 0
-        print(f"⚠️  Note : Troisieme fichier de log non chargé ({third})")
+        if not third:
+            print(f"⚠️  Note : Troisieme fichier de log non chargé ({third})")
 
     # --- LISSAGE ET EMA ---
     def moving_average(x, w):
@@ -414,36 +547,42 @@ def plot_poussin_gap(
     ema_loss, end = calcul_ema(val_loss, steps, compare=compare)
     ema_last, end_last = calcul_ema(val_loss, steps, compare=None)
 
-
+    #----------------------------------------
     # --- STYLE ET FIGURE ---
     plt.style.use("seaborn-v0_8-whitegrid")
     fig, ax = plt.subplots(figsize=(15, 7.5))  #, layout="constrained")
+    fig.ax_principal = ax
     # Ajuste les marges manuellement (0.1 = 10% de marge)
-    plt.subplots_adjust(left=0.03, right=0.88, top=0.95, bottom=0.05)
+    plt.subplots_adjust(left=0.03, right=0.88, top=0.92, bottom=0.06)
     # On créé la barre verticale avec le curseur ETA
     xActual = data_monitor[-1]['step']
     spdActual = data_monitor[-1]['elapse'] / (xActual - data_monitor[-2]['step'])    
     
-    fig.v_line = ax.axvline( color='#aaaaaa',linestyle='-.',linewidth=0.7, visible=False, zorder=10)
-    fig.h_line = ax.axhline(0, color='#aaaaaa',linestyle='-.',linewidth=0.7, visible=False, zorder=100)
+    fig.v_line = ax.axvline( color='#aaaaaa',linestyle='-.',linewidth=0.8, visible=False, zorder=10)
+    fig.h_line = ax.axhline( color='#aaaaaa',linestyle='-.',linewidth=0.8, visible=False, zorder=10)
+    """
     fig.t_line = ax.annotate("", xy=(0,1), xycoords=('data'), xytext = (10,10), textcoords = 'offset points', rotation=0, color="black",
             fontsize=7, verticalalignment="bottom",
             bbox=dict (facecolor='#ccddff',alpha=1., edgecolor='#aabbdd',boxstyle='square,pad=0.4'),
             ha = 'center',
-            va = 'center'
+            va = 'center',
+            zorder=1000
         )
-    
+    """
     fig.canvas.mpl_connect('motion_notify_event', on_mouse_move)
+    fig.canvas.mpl_connect('button_press_event', on_mouse_click)
 
     # Définit un repère principal tous les 2500
-    if (x_max-x_min) < 5000:
+    if (x_max-x_min) < 7001:
         x_ticks = 100
-    else:
+    elif (x_max-x_min) < 10001:
         x_ticks = 200
+    else:
+        x_ticks = 500
     epsilon = 1e-5
     ax.xaxis.set_major_locator(ticker.MultipleLocator(x_ticks))
     # Optionnel : Ajoute des petits traits (minuscules) tous les 500 pour plus de précision
-#    ax.xaxis.set_minor_locator(ticker.MultipleLocator(100))
+    ax.xaxis.set_minor_locator(ticker.MultipleLocator(100))
     ax.xaxis.set_minor_locator(ticker.AutoMinorLocator(10))
     # Rotation des labels pour éviter qu'ils ne se chevauchent s'il y en a trop
     ax.set_yticks(np.arange(y_min, y_max + epsilon, 0.1)) #(y_max-y_min)/10))
@@ -451,6 +590,15 @@ def plot_poussin_gap(
     ax.tick_params(axis='x', which='major', length=5, width=1, colors='black',labelsize=8)
     ax.tick_params(axis='x', which='minor', length=2, width=0.5, colors='gray')
     plt.xticks(rotation=45)
+
+    ay = ax.twiny()
+    ay.grid(False)
+    ay.xaxis.set_major_locator(ticker.MultipleLocator(1))
+    ay.xaxis.set_minor_locator(ticker.AutoMinorLocator(0.1))
+    ay_min, ay_max = int((x_min*BATCH_SIZE*GRAD_ACCUM)*0.512/10_000)/100 , int((x_max*BATCH_SIZE*GRAD_ACCUM*0.512)/10_000)/100
+    ay.set_xlim(ay_min, ay_max)
+    ay.set_xticks(np.arange(ay_min-epsilon, ay_max, 0.05))
+    ay.tick_params(axis='x',labelsize=8, color='black',length=2, width=0.7, rotation=45)
 
     label = f"\u25b2"
     add_cursor_x(ax, label, data_monitor[-1]['step'], y_min, 2, color="black", textAlign='top')
@@ -472,9 +620,19 @@ def plot_poussin_gap(
     ema_smooth, ema_smooth_raw = [], []
     ema_smooth_2 = []
     ema_smooth_3 = []
+    ema_val_loss_wiki, ema_val_loss_cult, ema_val_loss_litt = [], [], []
+    ema_train_loss_wiki, ema_train_loss_cult, ema_train_loss_litt = [], [], []
+    ema_train_loss = []
 
     for i in range(len(steps)):
         ema_smooth.append(calcul_ema(val_loss[: i + 1], steps[: i + 1])[0])
+        ema_val_loss_wiki.append(calcul_ema(val_loss_wiki[: i + 1], steps[: i + 1])[0])
+        ema_val_loss_cult.append(calcul_ema(val_loss_cult[: i + 1], steps[: i + 1])[0])
+        ema_val_loss_litt.append(calcul_ema(val_loss_litt[: i + 1], steps[: i + 1])[0])
+        ema_train_loss_wiki.append(calcul_ema(train_loss_wiki[: i + 1], steps[: i + 1])[0])
+        ema_train_loss_cult.append(calcul_ema(train_loss_cult[: i + 1], steps[: i + 1])[0])
+        ema_train_loss_litt.append(calcul_ema(train_loss_litt[: i + 1], steps[: i + 1])[0])
+        ema_train_loss.append(calcul_ema(train_loss[: i + 1], steps[: i + 1])[0])
 
     if val_loss_second is not None:
         for i in range(len(steps_second)):
@@ -489,11 +647,10 @@ def plot_poussin_gap(
             ema_smooth_raw.append(calcul_ema(monitor_loss[: i + 1], monitor_step_ds[: i + 1])[0])
 
     # --- Calcul des stats ---
-    steps_proj, ema_proj, popt = predict_loss_projection(steps, val_loss, x_max, proj)
+#    steps_proj, ema_proj, popt = predict_loss_projection(steps, val_loss, x_max, proj)
+    steps_proj, ema_proj, popt = predict_loss_projection(steps, ema_smooth, x_max, proj)
     stats = check_efficiency(popt, steps[-1], horizon)
     status_plateau = f"\u2714 OUI" if stats["is_plateau"] else f"\u2715 NON"
-#    print('projection  :',popt)
-#    print(stats)
     # --- Préparation du texte ---
     info_text = (
         f"PREDICTION (Target: {horizon/1000:.0f}k)\n"
@@ -503,6 +660,17 @@ def plot_poussin_gap(
         f"Slope/1k ({horizon/1000:.0f}k) : {stats['future_slope_per_1000']:.4f}\n"
         f'Plateau : {status_plateau}'
     )
+
+    # - Courbe de prévision  du LR
+    proj_x, proj_lr_y, proj_wiki, proj_cult, proj_litt = [], [], [], [], []
+    s0 = steps[-1] 
+    for s in range(s0, x_max, 2):
+#    for s in steps_proj:
+        proj_x.append(s)
+        proj_lr_y.append(calcul_lr(s)*1.e4)  
+        proj_wiki.append( (calcul_ds(s-s0,(1-MIXED-LITT),GRAD_ACCUM)*BATCH_SIZE/(TARGET_BLOCK_DS1) + monitor_ds1[-1]) % 1 )
+        proj_cult.append( (calcul_ds(s-s0,MIXED,GRAD_ACCUM)*BATCH_SIZE/(TARGET_BLOCK_DS2) + monitor_ds2[-2]) % 1 )
+        proj_litt.append( (calcul_ds(s-s0,LITT,GRAD_ACCUM)*BATCH_SIZE/(TARGET_BLOCK_DS3) + monitor_ds3[-1]) % 1 )
 
     lines = []
 
@@ -527,31 +695,43 @@ def plot_poussin_gap(
             lines.append(ax.plot(steps_third, ema_smooth_3, label="EMA lissée third", color="#70eef3", linestyle="-.", lw=1.))
 
         lines.append(ax.plot(steps, train_loss, color="#3498db", alpha=0.4, lw=1))
-        lines.append(ax.plot(steps, val_loss, color="#fa8118", alpha=0.4, lw=1))
-        lines.append(ax.plot(steps, ema_smooth, label="EMA lissée", color="#ff0000", linestyle="-.", lw=1.5))
-        lines.append(ax.plot(steps_proj, ema_proj, label="EMA Projectionf", color="#e67e22", linestyle=":", lw=1.1))
+        lines.append(ax.plot(steps, val_loss, color="#ff0020", alpha=0.4, lw=1))  #fa8118
+        lines.append(ax.plot(steps, ema_smooth, label="EMA lissée", color="#ff0020", linestyle="-.", lw=1.5))
+        lines.append(ax.plot(steps_proj, ema_proj, label="EMA Projection", color="#ff0020", linestyle=":", lw=1.1))
 #        ax.text(steps[-1]+x_sens/10, ema_smooth[-1], s=f"{ema_smooth[-1]:.3f}", color="red", rotation=0, fontsize=9, horizontalalignment="left")
         if raw:
             lines.append(ax.plot(monitor_step_ds[5:], moving_average(monitor_loss,5)*1., label="train: raw data", color="#000000", linestyle=":", lw=0.5))
  #           ax.text(monitor_step_ds[-1]+x_sens/10, ema_smooth_raw[-1], s=f"{ema_smooth_raw[-1]:.3f}", color="black", rotation=0, fontsize=9, horizontalalignment="left")
     else:
         lines.append(ax.plot(steps, train_loss, label="Train Loss", color="#3498db", lw=1.5))
-        lines.append(ax.plot(steps, val_loss, label="Val Loss", color="#fa831b", lw=2))
+        lines.append(ax.plot(steps, ema_train_loss, label="Train Loss - EMA", color="#3498db", linestyle="-.", lw=1.))
 
         if ds:
+            lines.append(ax.plot(steps, train_loss_wiki, label="Train Loss Wikipédia", color="Blue", linestyle="--", lw=0.9, alpha=0.7))
+            lines.append(ax.plot(steps,ema_train_loss_wiki, label="Wiki - Train EMA", color="Blue", linestyle="-.", lw=1.))
             lines.append(ax.plot(steps, val_loss_wiki, label="Val Loss Wikipédia", color="Blue", linestyle="--", lw=0.9, alpha=0.7))
-            lines.append(ax.plot(steps, val_loss_cult, label="Val Loss CulturaX", color="Orange", linestyle=":", lw=0.9, alpha=0.7))
-            lines.append(ax.plot(steps, val_loss_litt, label="Val Loss Littéraire", color="Green", linestyle=":", lw=0.9, alpha=0.7))
+            lines.append(ax.plot(steps,ema_val_loss_wiki, label="Wiki - EMA", color="Blue", linestyle="-.", lw=1.))
+            lines.append(ax.plot(steps, train_loss_cult, label="Train Loss CulturaX", color="Orange", linestyle="--", lw=0.9, alpha=0.7))
+            lines.append(ax.plot(steps,ema_train_loss_cult, label="Cult - Train EMA", color="Orange", linestyle="-.", lw=1.))
+            lines.append(ax.plot(steps, val_loss_cult, label="Val Loss CulturaX", color="Orange", linestyle="--", lw=0.9, alpha=0.7))
+            lines.append(ax.plot(steps,ema_val_loss_cult, label="CulturaX - EMA", color="Orange", linestyle="-.", lw=1.))
+            lines.append(ax.plot(steps, train_loss_litt, label="Train Loss Littéraire", color="Green", linestyle="--", lw=0.9, alpha=0.7))
+            lines.append(ax.plot(steps,ema_train_loss_litt, label="Litt - Train EMA", color="Green", linestyle="-.", lw=1.))
+            lines.append(ax.plot(steps, val_loss_litt, label="Val Loss Littéraire", color="Green", linestyle="--", lw=0.9, alpha=0.7))
+            lines.append(ax.plot(steps,ema_val_loss_litt, label="Litteraire - EMA", color="Green", linestyle="-.", lw=1.))
         
         ax.text(monitor_step_ds[-1], train_loss[-1], s=f"\u25c4 {train_loss[-1]:.3f}", color="#3498db", rotation=0, fontsize=9, horizontalalignment="left", va='center')
         ax.text(monitor_step_ds[-1], val_loss[-1], s=f"\u25c4 {val_loss[-1]:.3f}", color="#e67e22", rotation=0, fontsize=9, horizontalalignment="left", va='center')
-        lines.append( ax.plot(steps, ema_smooth, label="EMA lissée", color="#ff0000", linestyle="-.", lw=1.5))
 #        ax.text(steps[-1]+x_sens, ema_smooth[-1], s=f"{ema_smooth[-1]:.3f}", color="red", rotation=0, fontsize=9, horizontalalignment="left")
-        lines.append(ax.plot(steps_proj, ema_proj, label="EMA Projectionf", color="#e67e22", linestyle=":", lw=1.1))
+        lines.append(ax.plot(steps, val_loss, label="Val Loss", color="#ff0020", lw=2))
+        lines.append( ax.plot(steps, ema_smooth, label="Val Loss - EMA", color="#ff0020", linestyle="-.", lw=1.5))
+        lines.append(ax.plot(steps_proj, ema_proj, label="Projection ...", color="#ff0020", linestyle=":", lw=1.1))
         if val_loss_second is not None:
             lines.append(ax.plot(steps_second, val_loss_second, label="Model v4", color="#fb59b6", linestyle="--", lw=0.9))
-        if raw:
-            lines.append(ax.plot(monitor_step_ds[6:], moving_average(monitor_loss,6)*1, label="train: raw data", color="#000000", linestyle=":", lw=0.5))
+    if raw:
+        lines.append(ax.plot(monitor_step_ds, monitor_loss, label="Raw data", color="#000000", linestyle=":", lw=0.5))
+        lines.append(ax.plot(monitor_step_ds[5:], moving_average(monitor_loss,6)*1, label="Raw data smooth", color="#000000", linestyle="solid", lw=0.5))
+        lines.append(ax.plot(monitor_step_ds, ema_smooth_raw, label="Raw data EMA", color="#000000", linestyle="-.", lw=0.5))
 #            ax.text(monitor_step_ds[-1]+x_sens/10, monitor_loss[-1]*1.01, s=f"{monitor_loss[-1]:.3f}", color="black", rotation=0, fontsize=9, horizontalalignment="left")
 
     # --- TARGET --- (Ligne Horizontale) -------------
@@ -575,25 +755,27 @@ def plot_poussin_gap(
     if compare:
         ax.axvline( x=compare, color="black", linestyle="--", alpha=0.7, lw=0.8)
         ax.text( compare+x_sens/10, y_max, "Compare " , rotation=90, color="black", fontsize=9, verticalalignment="top")
-        label = f"[{epoch_ds1}] Epoch 1 - Dataset 1 (Wiki)"
-        if epoch_ds1<x_max:
-            ax.axvline( x=epoch_ds1, color="magenta", linestyle="--", alpha=0.7, lw=0.8)
-            ax.text( epoch_ds1, y_min + 0.06, label , rotation=90, color="magenta", fontsize=9, ha='right', verticalalignment="bottom")
-        label = f"[{epoch_ds2}] Epoch 1 - Dataset 2 (CulturaX)"
-        if epoch_ds2<x_max :
-            ax.axvline( x=epoch_ds2, color="magenta", linestyle="--", alpha=0.7, lw=0.8)
-            ax.text( epoch_ds2, y_min + 0.06, label , rotation=90, color="magenta", fontsize=9, ha='right', verticalalignment="bottom")
-        label = f"[{epoch_ds3}] Epoch 1 - Dataset 3 (Littéraire)"
-        if epoch_ds3<x_max :
-            ax.axvline( x=epoch_ds3, color="magenta", linestyle="--", alpha=0.7, lw=0.8)
-            ax.text( epoch_ds3, y_min + 0.06, label , rotation=90, color="magenta", fontsize=9, ha='right', verticalalignment="bottom")
+        for e in epoch_1:
+            label = f"[{e}] Epoch - Dataset 1 (Wiki)"
+            if e<x_max:
+                ax.axvline( x=e, color="blue", linestyle="--", alpha=0.7, lw=0.8)
+                ax.text( e, y_min + 0.06, label , rotation=90, color="blue", fontsize=9, ha='right', verticalalignment="bottom")
+        for e in epoch_2:
+            label = f"[{e}] Epoch - Dataset 2 (CulturaX)"
+            if e<x_max :
+                ax.axvline( x=e, color="orange", linestyle="--", alpha=0.7, lw=0.8)
+                ax.text( e, y_min + 0.06, label , rotation=90, color="orange", fontsize=9, ha='right', verticalalignment="bottom")
+        for e in epoch_3:
+            label = f"[{e}] Epoch - Dataset 3 (Littéraire)"
+            if e<x_max :
+                ax.axvline( x=e, color="green", linestyle="--", alpha=0.7, lw=0.8)
+                ax.text( e, y_min + 0.06, label , rotation=90, color="green", fontsize=9, ha='right', verticalalignment="bottom")
 
     # --- RÉGLAGES FINAUX ---
     ax.set_ylim(y_min, y_max)
     ax.set_xlim(x_min, x_max)
     ax.set_title(
-        f"{titre} | Step: {steps[-1]} | Gap: {gap[-1]:.4f}", fontsize=14
-    )
+        f"{titre} | Step: {steps[-1]} | Gap: {gap[-1]:.4f}", fontsize=10)
    
     ax.grid(True, alpha=0.3)
     add_label(ax,  f"\u25c4 {monitor_loss[-1]:.3f}", monitor_loss[-1], offset=0, left=0.)
@@ -618,12 +800,12 @@ def plot_poussin_gap(
     ax_droite.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f'{(100*x):.1f}%'))
     #ax_droite.plot(steps, prc, color="#7BFFB0", alpha=0.7, label="%", lw=0.7)
     #ax_droite.plot(steps, prc_train, color="#f6881b", alpha=0.7, label="%", lw=0.7)
-    lines.append(ax_droite.plot(monitor_step_ds, monitor_ds1, color="#7B0080", alpha=0.7, label="Wiki %", lw=0.8))
-    ax_droite.text( monitor_step_ds[-1]+x_sens/10,monitor_ds1[-1] , "wikipédia" , color="blue", fontsize=9, va='center', horizontalalignment="left")
-    lines.append(ax_droite.plot(monitor_step_ds, monitor_ds2, color="#7B0080", alpha=0.7, label="Cult %", lw=0.8))
-    ax_droite.text( monitor_step_ds[-1]+x_sens/10,monitor_ds2[-1] , "culturaX" , color="orange", fontsize=9, va='center', horizontalalignment="left")
-    lines.append(ax_droite.plot(monitor_step_ds, monitor_ds3, color="#7B0080", alpha=0.7, label="Litt %", lw=0.8))
-    ax_droite.text( monitor_step_ds[-1]+x_sens/10,monitor_ds3[-1] , "littéraire" , color="green", fontsize=9, va='center', horizontalalignment="left")
+    lines.append(ax_droite.plot(monitor_step_ds, monitor_ds1, color="blue", alpha=0.8, label="Wiki %", lw=0.8))
+    ax_droite.text( monitor_step_ds[-1]+x_sens/10,monitor_ds1[-1] , "wikipédia" , color="blue", fontsize=9, va='center', horizontalalignment="left", zorder=100, alpha=0.9)
+    lines.append(ax_droite.plot(monitor_step_ds, monitor_ds2, color="orange", alpha=0.7, label="Cult %", lw=0.8))
+    ax_droite.text( monitor_step_ds[-1]+x_sens/10,monitor_ds2[-1] , "culturaX" , color="orange", fontsize=9, va='center', horizontalalignment="left", zorder=100, alpha=0.9)
+    lines.append(ax_droite.plot(monitor_step_ds, monitor_ds3, color="green", alpha=0.7, label="Litt %", lw=0.8))
+    ax_droite.text( monitor_step_ds[-1]+x_sens/10,monitor_ds3[-1] , "littéraire" , color="green", fontsize=9, va='center', horizontalalignment="left", zorder=100, alpha=0.9)
 #    ax_droite.plot(monitor_step_ds, monitor_mixed, color="#7B3F80", alpha=0.7, label="%", lw=0.8)
 #    ax_droite.plot(steps, prc_ds1, color="#7BFFB0", alpha=0.7, label="%", lw=0.7)
 #    ax_droite.plot(steps, prc_ds2, color="#7BFFB0", alpha=0.7, label="%", lw=0.7)
@@ -655,14 +837,29 @@ def plot_poussin_gap(
     ax_droite_3.yaxis.set_minor_locator(ticker.AutoMinorLocator(5))
     ax_droite_3.tick_params(axis='y', which='major',colors='gray',labelsize=8, length = 3.5, width=0.8)
     ax_droite_3.tick_params(axis='y', which='minor',colors='gray', length = 2, width=0.5)
-    lines.append(ax_droite_3.plot(monitor_step_ds, monitor_lr, color="#5b6c60", alpha=0.8, label="lr", linestyle=':', lw=.9))
+    lines.append(ax_droite_3.plot(monitor_step_ds, monitor_lr, color="#5b6c60", alpha=0.8, label="Learning Rate", linestyle='-', lw=.9))
+    lines.append(ax_droite_3.plot(proj_x, proj_lr_y, color="#5b6c60",alpha=0.8, linestyle=':', lw=.9) )
+    lines.append(ax_droite.plot(proj_x, proj_wiki, color="blue", alpha=0.8, linestyle=":", lw=0.5))
+    lines.append(ax_droite.plot(proj_x, proj_cult, color="orange", alpha=0.8, linestyle=":", lw=0.5))
+    lines.append(ax_droite.plot(proj_x, proj_litt, color="green", alpha=0.8, linestyle=":", lw=0.5))
 
     add_label(ax_droite_3,  f"\u25c4 {monitor_lr[-1]:.2f}e-4", monitor_lr[-1], offset=65)
 
     # --- Affichage de l'encart ---
-    plt.text(0.5, 0.80, info_text, transform=plt.gca().transAxes, 
+    plt.text(0.4, 0.87, info_text, transform=plt.gca().transAxes, 
          fontsize=9, verticalalignment='bottom', family='monospace',
          bbox=dict(boxstyle='round', facecolor='#ccddff', edgecolor="#aabbdd", alpha=0.5))   # facecolor='wheat'
+
+    fig.t_line = ax_droite_3.annotate("", xy=(0,1), xycoords=('data'), xytext = (10,10), textcoords = 'offset points', rotation=0, color="black",
+            fontsize=7, verticalalignment="bottom",
+            bbox=dict (facecolor='#ccddff',alpha=1., edgecolor='#aabbdd',boxstyle='square,pad=0.4'),
+            ha = 'center',
+            va = 'center',
+            zorder=1000
+        )
+
+#    fig.p_trend = ax_droite_3.plot(trend[0], trend[1], color="orange", alpha=0.9, lw=2)
+     
 
     # Gestion de la légence clickable
     h1, l1 = ax.get_legend_handles_labels()
@@ -672,13 +869,21 @@ def plot_poussin_gap(
     handles = h1 + h2 + h3 + h4
     labels = l1 + l2 + l3 + l4
     
-    leg = ax_droite_3.legend(handles, labels, loc="upper right", frameon= True)
+    leg = ax_droite_3.legend(handles, labels, loc="upper left", frameon= True)
     line_dict = {}
     for leg_line, leg_text, orig_line in zip(leg.get_lines(),leg.get_texts(), lines):
         leg_line.set_picker(True)
         leg_text.set_picker(True)
         line_dict[leg_text] = orig_line
         line_dict[leg_line] = orig_line
+
+    map_line = {t.get_text(): (line_dict[t][0], t) for t in leg.get_texts()}
+    # on masque les Loss brutes/bruités pour ne conserver que les EMA. dans la légende on peut en revanche les activer d'un simple click !
+    mask = {'Val Loss Wikipédia', 'Val Loss CulturaX', 'Val Loss Littéraire', 'Train Loss CulturaX' , 'Train Loss Wikipédia', 'Train Loss Littéraire', 'Wiki - Train EMA', 'Cult - Train EMA', 'Litt - Train EMA', 'Model v4', 'Wiki %', 'Cult %', 'Litt %', 'Train Loss', 'Val Loss', 'Raw data', 'Raw data smooth'}
+#    mask = {'Val Loss Wikipédia', 'Val Loss CulturaX', 'Val Loss Littéraire', 'Train Loss CulturaX' , 'Train Loss Littéraire', 'Wiki - Train EMA', 'Cult - Train EMA', 'Litt - Train EMA', 'Model v4', 'Wiki %', 'Cult %', 'Litt %', 'Train Loss', 'Val Loss', 'Raw data', 'Raw data smooth'}
+    for l in mask:
+        line, legend = map_line[l]
+        set_off(line, legend)
 
     fig.canvas.mpl_connect('pick_event', on_pick)
 
@@ -696,9 +901,9 @@ def plot_poussin_gap(
         print(f"COMPARE POINT ANALYSIS: {steps[end]} / {steps_second[end_second]}") #" / {steps_third[end_third]}")
         print(f"  - Val Loss: {val_loss[-1]:.4f} vs {val_loss_second[end_second]:.4f}") #" ➥ {val_loss_third[end_third]:.4f}")
         print(f"  - EMA Loss: {ema_loss:.3f} vs {ema_loss_second:.3f}") #" ➥ {ema_loss_third:.3f}")
+    print("-" * 100)
 
 
     tokens_m5 = convert_steps_list(steps, "model_5", info)
 #    tokens_m5 = convert_steps_list(steps_m5, "model_5", info)
 #    print(tokens_m5[:100])
-
