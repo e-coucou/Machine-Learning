@@ -141,7 +141,6 @@ class OI_DataProcessor:
             self._log(f"Colonne cumulée '{nom}' ajoutée. [Unit: {unit}]")
         return self
 
-    # Pour Vitamine A des Esters ajoute une colonne qui calcule la qté d'ester en fonction de propionate/acetate
     @register_step
     def ajoute_calcul(self, value, type, uv_0, uv_1, scale, nom):
         """
@@ -161,7 +160,7 @@ class OI_DataProcessor:
             # Correction si débordement (value[i] < value[i-1])
             correction = np.where(
                 self.data[value] < self.data[value].shift(1),
-                self.data[value].shift(1)-self.data[value], # anhiler car marche pas !
+                self.data[value].shift(1)-self.data[value],
                 0
             )
             correction[0] = 0  # Première ligne pas de correction
@@ -239,7 +238,6 @@ class OI_DataProcessor:
             
             # Condition : min <= tag < max
             condition = (tag_vals >= min_val) & (tag_vals < max_val)
-            
 
             cond = batch.get('cond')
             val_cond = batch.get('val_cond', [1, 1])            
