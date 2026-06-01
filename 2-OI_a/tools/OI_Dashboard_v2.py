@@ -720,7 +720,9 @@ def AjouterVisualisationsAvancees(dashboard):
             xaxis=dict(title='<b>Jours</b>'),
             yaxis=dict(
                 title=dict(text='<b>Production (unités)</b>', font=dict(color='#1f77b4')),
-                tickfont=dict(color='#1f77b4')
+                tickfont=dict(color='#1f77b4'),
+                side='left',
+                range=[0, 12]
             ),
             yaxis2=dict(
                 title=dict(text='<b>OOE Cumulé (%)</b>', font=dict(color='#0F6B6B')) if nom_produit and cmj else None,
