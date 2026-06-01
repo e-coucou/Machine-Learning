@@ -720,15 +720,14 @@ class OI_ProductionProcessor(OI_DataProcessor):
         self._is_recalculating = True
         
         try:
-            # A. Filtrage global
-            self.filtering(tag=['Ester'], min_val=[0], max_val=[10_000_000], na=['Ester'])
-            
-            # B. Calculs par produit
+            # Calculs par produit
             for prod in self.produits:
                 nom = prod['nom']
                 conso_conf = prod.get('conso')
                 stock_list = prod.get('stock', [])
-                
+                 # Filtrage global
+                self.filtering(tag=[conso_conf['value']], min_val=[0], max_val=[10_000_000], na=[conso_conf['value']])
+               
                 # 1. Consommation cumulée du produit
                 conso_col = f"consommation_{nom}"
                 if conso_conf:
@@ -736,7 +735,6 @@ class OI_ProductionProcessor(OI_DataProcessor):
                     conso_type = conso_conf.get('type', 'A/P')
                     conso_uv = conso_conf.get('uv')
                     conso_scale = conso_conf.get('scale', 1e-9)
-                    
                     self.ajoute_conso_produit(conso_val,conso_type, conso_uv, conso_scale, conso_col)
                 else:
                     self.data[conso_col] = 0.0
@@ -899,6 +897,191 @@ class OI_ProductionProcessor(OI_DataProcessor):
                 'consommation': delta_conso,
                 'delta_stock': delta_stock_val,
                 'production': delta_prod
+            }
+        print("_" * 60)
+        return bilan_results
+
+    def calcul_cumul_journalier(self, jour, mois=None, annee=None, nom_produit=None, std=2):
+        """
+        Calcule le cumul de consommation, de variation de stock et de production
+        pour un jour donné.
+
+        La période couvre :
+            (jour-1) à std:00  →  jour à std:00
+
+        Si la fin de la période n'est pas encore atteinte dans les données,
+        on utilise la dernière valeur disponible.
+
+        Parameters
+        ----------
+        jour : int
+            Numéro du jour dans le mois (1–31).
+        mois : int | str | None
+            Numéro ou nom du mois. Si None, utilise le mois du premier
+            enregistrement dans les données.
+        annee : int | None
+            Année. Si None, utilise l'année du premier enregistrement.
+        nom_produit : str | None
+            Nom d'un produit spécifique. Si None, calcule pour tous les produits.
+        std : int
+            Heure de coupure journalière (défaut : 2 → 02:00).
+
+        Returns
+        -------
+        dict | None
+            Dictionnaire {nom_produit: {'consommation', 'delta_stock', 'production'}}
+            ou None en cas d'erreur.
+        """
+        df = self.data
+        if df is None or df.empty:
+            print("Erreur : Les données sont vides.")
+            return None
+
+        # ── Résolution de l'année ──────────────────────────────────────────
+        if annee is None:
+            annee = df.index.year[0]
+
+        # ── Résolution du mois ─────────────────────────────────────────────
+        month_num = None
+        if mois is None:
+            month_num = df.index.month[0]
+        elif isinstance(mois, int):
+            month_num = mois
+        elif isinstance(mois, str):
+            mois_clean = mois.strip().lower()
+            mois_fr = {
+                'janvier': 1, 'jan': 1, 'fevrier': 2, 'février': 2, 'fev': 2, 'fév': 2,
+                'mars': 3, 'mar': 3, 'avril': 4, 'avr': 4, 'mai': 5, 'juin': 6, 'jui': 6,
+                'juillet': 7, 'juil': 7, 'aout': 8, 'août': 8, 'aou': 8, 'aoû': 8,
+                'septembre': 9, 'sept': 9, 'sep': 9, 'octobre': 10, 'oct': 10,
+                'novembre': 11, 'nov': 11, 'decembre': 12, 'décembre': 12, 'dec': 12, 'déc': 12
+            }
+            if mois_clean in mois_fr:
+                month_num = mois_fr[mois_clean]
+            else:
+                try:
+                    month_num = int(mois_clean)
+                except ValueError:
+                    pass
+
+        if month_num is None or not (1 <= month_num <= 12):
+            print(f"Erreur : Mois '{mois}' non valide.")
+            return None
+
+        # ── Résolution du jour ─────────────────────────────────────────────
+        if not isinstance(jour, int) or not (1 <= jour <= 31):
+            print(f"Erreur : Jour '{jour}' non valide (attendu entier entre 1 et 31).")
+            return None
+
+        # ── Construction des bornes ────────────────────────────────────────
+        import calendar
+        max_day = calendar.monthrange(annee, month_num)[1]
+
+        # # Début : jour précédent à std:00
+        # if jour == 1:
+        #     # Le jour précédent est le dernier jour du mois précédent
+        #     prev_month = month_num - 1 if month_num > 1 else 12
+        #     prev_year  = annee if month_num > 1 else annee - 1
+        #     prev_day   = calendar.monthrange(prev_year, prev_month)[1]
+        #     start_dt = pd.Timestamp(year=prev_year, month=prev_month, day=prev_day,
+        #                             hour=std, minute=0, second=0)
+        # else:
+        #     start_dt = pd.Timestamp(year=annee, month=month_num, day=jour - 1,
+        #                             hour=std, minute=0, second=0)
+
+        # # Fin : jour courant à std:00
+        # end_dt = pd.Timestamp(year=annee, month=month_num, day=min(jour, max_day),
+        #                       hour=std, minute=0, second=0)
+
+        # Début : jour courant à std:00
+        start_dt = pd.Timestamp(year=annee, month=month_num, day=jour,
+                                hour=std, minute=0, second=0)
+
+        # Fin : jour suivant à std:00
+        if jour == max_day:
+            # Le jour suivant est le premier jour du mois suivant
+            next_month = month_num + 1 if month_num < 12 else 1
+            next_year  = annee if month_num < 12 else annee + 1
+            next_day   = 1
+            end_dt = pd.Timestamp(year=next_year, month=next_month, day=next_day,
+                                hour=std, minute=0, second=0)
+        else:
+            end_dt = pd.Timestamp(year=annee, month=month_num, day=jour + 1,
+                                hour=std, minute=0, second=0)
+
+        # Gestion timezone
+        if df.index.tz is not None:
+            start_dt = start_dt.tz_localize(df.index.tz)
+            end_dt   = end_dt.tz_localize(df.index.tz)
+
+        last_dt = df.index[-1]
+        is_finished = end_dt <= last_dt
+        actual_end_dt = end_dt if is_finished else last_dt
+
+        # ── Recherche des lignes début / fin ──────────────────────────────
+        try:
+            if start_dt in df.index:
+                row_start = df.loc[start_dt]
+            else:
+                future_idx = df.index[df.index >= start_dt]
+                if len(future_idx) == 0:
+                    print("Erreur : Pas de données après le début de la période.")
+                    return None
+                row_start = df.loc[future_idx[0]]
+                start_dt  = future_idx[0]
+
+            if actual_end_dt in df.index:
+                row_end = df.loc[actual_end_dt]
+            else:
+                past_idx = df.index[df.index <= actual_end_dt]
+                if len(past_idx) == 0:
+                    print("Erreur : Pas de données avant la fin de la période.")
+                    return None
+                row_end       = df.loc[past_idx[-1]]
+                actual_end_dt = past_idx[-1]
+        except Exception as e:
+            print(f"Erreur recherche dates : {e}")
+            return None
+
+        # ── Filtre des produits ────────────────────────────────────────────
+        produits_to_calc = [p['nom'] for p in self.produits]
+        if nom_produit is not None:
+            if nom_produit not in produits_to_calc:
+                print(f"Erreur : Le produit '{nom_produit}' n'est pas défini dans la variable produits.")
+                return None
+            produits_to_calc = [nom_produit]
+
+        # ── Affichage ──────────────────────────────────────────────────────
+        status_str = "Terminé" if is_finished else "À date (En cours)"
+        nom_mois = ["Janvier","Février","Mars","Avril","Mai","Juin",
+                    "Juillet","Août","Septembre","Octobre","Novembre","Décembre"][month_num - 1]
+
+        print("_" * 60)
+        print(f"BILAN JOURNALIER - {jour:02d} {nom_mois.upper()} {annee} ({status_str})")
+        print(f"Période : du {start_dt.strftime('%d/%m/%Y à %H:%M')} au {actual_end_dt.strftime('%d/%m/%Y à %H:%M')}")
+        print("_" * 60)
+
+        bilan_results = {}
+        for nom in produits_to_calc:
+            conso_delta_col = f"conso_delta_{nom}"
+            delta_stock_col = f"delta_stock_{nom}"
+            production_col  = f"production_{nom}"
+
+            delta_conso     = row_end[conso_delta_col]  - row_start[conso_delta_col]
+            delta_stock_val = row_end[delta_stock_col]  - row_start[delta_stock_col]
+            delta_prod      = row_end[production_col]   - row_start[production_col]
+
+            print(f"PRODUIT : {nom.upper()}")
+            print("-" * 60)
+            print(f"  Consommation (Ester)   : {delta_conso:.4f}")
+            print(f"  Variation de Stock     : {delta_stock_val:.4f}")
+            print(f"  Production             : {delta_prod:.4f}")
+            print("_" * 60)
+
+            bilan_results[nom] = {
+                'consommation': delta_conso,
+                'delta_stock':  delta_stock_val,
+                'production':   delta_prod
             }
         print("_" * 60)
         return bilan_results
