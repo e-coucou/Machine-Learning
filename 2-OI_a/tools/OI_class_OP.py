@@ -1075,6 +1075,8 @@ class OI_ProductionProcessor(OI_DataProcessor):
             print("-" * 60)
             print(f"  Consommation (Ester)   : {delta_conso:.4f}")
             print(f"  Variation de Stock     : {delta_stock_val:.4f}")
+            print(f"  Stock Entrée.          : {row_start[delta_stock_col]:.4f}")
+            print(f"  Stock Sortie.          : {row_end[delta_stock_col]:.4f}")
             print(f"  Production             : {delta_prod:.4f}")
             print("_" * 60)
 
