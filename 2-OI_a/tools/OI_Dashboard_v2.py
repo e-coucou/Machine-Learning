@@ -695,10 +695,11 @@ def AjouterVisualisationsAvancees(dashboard):
              yref='y')
 
         # Target OOE
-        if nom_produit and cmj and cmj > 0:
-            fig.add_hline(y=84, line_dash="dash", line_color="#8f97F3", line_width=2.5,
-                annotation_text=f" OOE: {84:.2f}", annotation_position="right",
-                yref='y2')
+#        print(nom_produit, cmj)
+#        if nom_produit and cmj :
+        fig.add_hline(y=8.148, line_dash="dash", line_color="#8f97F3", line_width=2.5,
+            annotation_text=" OOE: 84%", annotation_position="right",
+            yref='y2')
 
         # Zones
         fig.add_hrect(y0=moyenne_prod, y1=max_prod*1.1, fillcolor="green", opacity=0.05, layer="below", yref='y')
@@ -729,7 +730,7 @@ def AjouterVisualisationsAvancees(dashboard):
                 tickfont=dict(color='#0F6B6B'),
                 overlaying='y',
                 side='right',
-                range=[0, 110]
+                range=[0, 123.7]
             ) if nom_produit and cmj else None,
 
             legend=dict(x=0.01, y=0.99)
