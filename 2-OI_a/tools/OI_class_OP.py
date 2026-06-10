@@ -15,7 +15,7 @@ class OI_DataProcessor:
     
     def __init__(self, url_base, tags_other, tags_selected, start, end, 
                  interval='PT20M', hS='00', hF='23', cred_file="../../../cred.txt", 
-                 verbose=True):
+                 verbose=True, agg='MEAN'):
         self.url_base = url_base
         self.tags_other = tags_other
         self.tags_selected = tags_selected
@@ -23,6 +23,7 @@ class OI_DataProcessor:
         self.interval = interval
         self.hS, self.hF = hS, hF
         self.verbose = verbose
+        self.agg = agg
         
         # Pipeline pour stocker les étapes de calcul
         self.pipeline = [] 
@@ -38,6 +39,7 @@ class OI_DataProcessor:
 
         # Mapping initial
         self.rename_mapping = {item['tag']: item['nom'] for item in tags_selected}
+        self.agg_mapping = {item['tag']: item['agg'] for item in tags_selected}
         self.df = None    # Données brutes (API)
         self.data = None  # Données de travail (Renommées/Traitées)
 
@@ -57,10 +59,10 @@ class OI_DataProcessor:
             return result
         return wrapper
     # --- RÉCUPÉRATION ET FUSION ---
-    def get_OI(self, tag):
+    def get_OI(self, tag, agg='MEAN'):
         """Récupère les données brutes d'un tag spécifique."""
         url = (f"{self.url_base}data-reference={tag}&aggregation=TIME"
-               f"&aggregation-function=MEAN&from={self.start}T{self.hS}%3A00%3A00.000Z"
+               f"&aggregation-function={agg}&from={self.start}T{self.hS}%3A00%3A00.000Z"
                f"&to={self.end}T{self.hF}%3A59%3A59.000Z&aggregation-period={self.interval}")
         headers = {'Authorization': f'basic {self.credentials}'}
         try:
@@ -88,7 +90,8 @@ class OI_DataProcessor:
         for tag in tags_api:
             encoded_tag = quote(tag, safe=':/?#[]@!$&\'()*+;-=')
             #encoded_tag = quote(tag)
-            raw_data, unit = self.get_OI(encoded_tag)            
+            agg = self.agg_mapping.get(tag, tag)
+            raw_data, unit = self.get_OI(encoded_tag, agg)            
             if raw_data:
                 temp_df = pd.DataFrame(raw_data)
                 temp_df['timestamp'] = pd.to_datetime(temp_df['timestamp'])
@@ -639,7 +642,7 @@ class OI_ProductionProcessor(OI_DataProcessor):
     
     def __init__(self, url_base, start, end, tags_metadata, produits,
                  interval='PT20M', hS='00', hF='23', cred_file="../../../cred.txt", 
-                 verbose=True):
+                 verbose=True, agg="MEAN"):
         """
         Initialise le processeur de production.
         
@@ -659,7 +662,7 @@ class OI_ProductionProcessor(OI_DataProcessor):
             - 'stock': liste des composants (batch/continu) pour le stock
         """
         super().__init__(url_base, [], tags_metadata, start, end, 
-                         interval, hS, hF, cred_file, verbose)
+                         interval, hS, hF, cred_file, verbose, agg)
         
         self.produits = produits
 
