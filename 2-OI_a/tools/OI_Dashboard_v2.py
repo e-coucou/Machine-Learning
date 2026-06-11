@@ -505,7 +505,7 @@ def AjouterVisualisationsAvancees(dashboard):
         
         fig.show()
         
-        # ✨ STATISTIQUES AVEC RATIO OOE
+        # ✨ STATISTIQUES AVEC RATIO oee
         print("\n" + "="*90)
         print(f"  📊 STATISTIQUES - {titre.upper()}")
         print("="*90)
@@ -517,14 +517,14 @@ def AjouterVisualisationsAvancees(dashboard):
         print(f"Production totale mois:             {sum(productions):.2f}")
         print(f"Jours au-dessus de la moyenne:      {len([p for p in productions if p >= moyenne_prod])} / {len(productions)}")
         
-        # ✨ RATIO OOE (Production / CMJ en %)
+        # ✨ RATIO oee (Production / CMJ en %)
         if nom_produit:
             col_cmj = 'CMJ'
             if col_cmj in df.columns:
-                print(f"\n🎯 RATIO OOE (Production / CMJ en %):")
+                print(f"\n🎯 RATIO oee (Production / CMJ en %):")
                 
-                ooe_ratios = []
-                ooe_par_jour = {}
+                oee_ratios = []
+                oee_par_jour = {}
                 
                 for jour in jours_valides:
                     try:
@@ -539,39 +539,39 @@ def AjouterVisualisationsAvancees(dashboard):
                                 cmj = df[col_cmj][mask].iloc[0]
                                 if cmj > 0:
                                     prod = bilan[nom_produit].production
-                                    ooe = (prod / cmj) * 100
-                                    ooe_ratios.append(ooe)
-                                    ooe_par_jour[jour] = ooe
+                                    oee = (prod / cmj) * 100
+                                    oee_ratios.append(oee)
+                                    oee_par_jour[jour] = oee
                     except:
                         pass
                 
-                if ooe_ratios:
-                    ooe_moyen = np.mean(ooe_ratios)
-                    ooe_min = np.min(ooe_ratios)
-                    ooe_max = np.max(ooe_ratios)
-                    ooe_jours_sup_100 = len([o for o in ooe_ratios if o > 100])
+                if oee_ratios:
+                    oee_moyen = np.mean(oee_ratios)
+                    oee_min = np.min(oee_ratios)
+                    oee_max = np.max(oee_ratios)
+                    oee_jours_sup_100 = len([o for o in oee_ratios if o > 100])
                     
-                    print(f"  OOE Moyen:                          {ooe_moyen:.1f}%")
-                    print(f"  OOE Min/Max:                        {ooe_min:.1f}% / {ooe_max:.1f}%")
-                    print(f"  Jours > 100% (surproduction):       {ooe_jours_sup_100} / {len(ooe_ratios)}")
+                    print(f"  oee Moyen:                          {oee_moyen:.1f}%")
+                    print(f"  oee Min/Max:                        {oee_min:.1f}% / {oee_max:.1f}%")
+                    print(f"  Jours > 100% (surproduction):       {oee_jours_sup_100} / {len(oee_ratios)}")
                     
                     # Détail par jour
                     print(f"\n  Détail par jour:")
-                    for jour in sorted(ooe_par_jour.keys()):
-                        ooe = ooe_par_jour[jour]
-                        statut = "✅" if ooe > 100 else "⚠️ " if ooe > 80 else "❌"
-                        print(f"    J{jour:02d}: {ooe:6.1f}% {statut}")
+                    for jour in sorted(oee_par_jour.keys()):
+                        oee = oee_par_jour[jour]
+                        statut = "✅" if oee > 100 else "⚠️ " if oee > 80 else "❌"
+                        print(f"    J{jour:02d}: {oee:6.1f}% {statut}")
             else:
                 print(f"\n⚠️  Colonne CMJ non trouvée dans les données")
                 print(f"   Colonnes disponibles: {[c for c in df.columns if 'CMJ' in c]}")
         
         print("="*90 + "\n") 
 
-    def plot_histogramme_jours_mois_v2(mois=None, annea=None, nom_produit=None):
+    def plot_histogramme_jours_mois_v2(mois=None, annea=None, nom_produit=None, std=2):
         """
-        Histogramme production par jour avec courbe OOE cumulée
+        Histogramme production par jour avec courbe oee cumulée
         
-        OOE cumulé = sum(productions jour 1 à N) / (N * CMJ) * 100
+        oee cumulé = sum(productions jour 1 à N) / (N * CMJ) * 100
         
         Parameters:
         -----------
@@ -604,13 +604,13 @@ def AjouterVisualisationsAvancees(dashboard):
         # Collecter données
         jours_valides = []
         productions = []
-        ooe_jours = []  # OOE pour chaque jour
-        ooe_cumules = []  # OOE cumulé
+        oee_jours = []  # oee pour chaque jour
+        oee_cumules = []  # oee cumulé
         somme_prod = 0
         
         for jour in range(1, num_jours_mois + 1):
             try:
-                bilan = dashboard.formatter.format_bilan_journalier(jour, mois, annea)
+                bilan = dashboard.formatter.format_bilan_journalier(jour, mois, annea, std=std)
                 
                 if nom_produit:
                     if nom_produit in bilan:
@@ -625,16 +625,16 @@ def AjouterVisualisationsAvancees(dashboard):
                     productions.append(prod)
                     somme_prod += prod
                     
-                    # Calculer OOE cumulé: sum(prod_j1..jN) / (N * CMJ) * 100
+                    # Calculer oee cumulé: sum(prod_j1..jN) / (N * CMJ) * 100
                     if nom_produit and cmj and cmj > 0:
-                        ooe_jour = (prod / cmj) * 100  # OOE du jour seul
-                        ooe_jours.append(ooe_jour)
+                        oee_jour = (prod / cmj) * 100  # oee du jour seul
+                        oee_jours.append(oee_jour)
                         
-                        ooe_cumul = (somme_prod / (len(jours_valides) * cmj)) * 100
-                        ooe_cumules.append(ooe_cumul)
+                        oee_cumul = (somme_prod / (len(jours_valides) * cmj)) * 100
+                        oee_cumules.append(oee_cumul)
                     else:
-                        ooe_jours.append(None)
-                        ooe_cumules.append(None)
+                        oee_jours.append(None)
+                        oee_cumules.append(None)
             except:
                 pass
         
@@ -676,16 +676,16 @@ def AjouterVisualisationsAvancees(dashboard):
             yaxis='y'
         ))
         
-        # COURBE: OOE cumulé
-        if nom_produit and cmj and cmj > 0 and any(o is not None for o in ooe_cumules):
+        # COURBE: oee cumulé
+        if nom_produit and cmj and cmj > 0 and any(o is not None for o in oee_cumules):
             fig.add_trace(go.Scatter(
                 x=[f'J{j}' for j in jours_valides],
-                y=ooe_cumules,
+                y=oee_cumules,
                 mode='lines+markers',
-                name=f'OOE Cumulé ({nom_produit})',
+                name=f'oee Cumulé ({nom_produit})',
                 line=dict(color='#0F6B6B', width=3),
                 marker=dict(size=8, color='#0F6B6B', symbol='diamond'),
-                hovertemplate='<b>Jour %{x}</b><br>OOE Cumul: %{y:.1f}%<extra></extra>',
+                hovertemplate='<b>Jour %{x}</b><br>oee Cumul: %{y:.1f}%<extra></extra>',
                 yaxis='y2'
             ))
         
@@ -694,12 +694,12 @@ def AjouterVisualisationsAvancees(dashboard):
              annotation_text=f" Moy Prod: {moyenne_prod:.2f}", annotation_position="right",
              yref='y')
 
-        # Target OOE
+        # Target oee
 #        print(nom_produit, cmj)
 #        if nom_produit and cmj :
 #        fig.add_hline(y=8.148, line_dash="dash", line_color="#8f97F3", line_width=2.5,
         fig.add_hline(y=84, line_dash="dash", line_color="#8f97F3", line_width=2.5,
-            annotation_text=" OOE: 84%", annotation_position="right",
+            annotation_text=" oee: 84%", annotation_position="right",
             yref='y2')
 
         # Zones
@@ -727,7 +727,7 @@ def AjouterVisualisationsAvancees(dashboard):
                 range=[0, 12]
             ),
             yaxis2=dict(
-                title=dict(text='<b>OOE Cumulé (%)</b>', font=dict(color='#0F6B6B')) if nom_produit and cmj else None,
+                title=dict(text='<b>oee Cumulé (%)</b>', font=dict(color='#0F6B6B')) if nom_produit and cmj else None,
                 tickfont=dict(color='#0F6B6B'),
                 overlaying='y',
                 side='right',
@@ -754,30 +754,30 @@ def AjouterVisualisationsAvancees(dashboard):
         print(f"TRS mois: (jours complets)          {sum(productions) / len(jours_valides):.2f}")
         print(f"Jours au-dessus de la moyenne:      {len([p for p in productions if p >= moyenne_prod])} / {len(productions)}")
         
-        # OOE
+        # oee
         if nom_produit:
             if cmj and cmj > 0:
-                print(f"\n🎯 RATIO OOE (Production / CMJ en %):")
+                print(f"\n🎯 RATIO oee (Production / CMJ en %):")
                 print(f"  CMJ (Cible Journalière):            {cmj:.2f}")
                 
-                if ooe_jours and any(o is not None for o in ooe_jours):
-                    ooe_valides = [o for o in ooe_jours if o is not None]
-                    ooe_moyen = np.mean(ooe_valides)
-                    ooe_min = np.min(ooe_valides)
-                    ooe_max = np.max(ooe_valides)
-                    ooe_cumul_final = ooe_cumules[-1] if ooe_cumules and ooe_cumules[-1] is not None else 0
-                    ooe_jours_sup_100 = len([o for o in ooe_valides if o > 100])
+                if oee_jours and any(o is not None for o in oee_jours):
+                    oee_valides = [o for o in oee_jours if o is not None]
+                    oee_moyen = np.mean(oee_valides)
+                    oee_min = np.min(oee_valides)
+                    oee_max = np.max(oee_valides)
+                    oee_cumul_final = oee_cumules[-1] if oee_cumules and oee_cumules[-1] is not None else 0
+                    oee_jours_sup_100 = len([o for o in oee_valides if o > 100])
                     
-                    print(f"  OOE Moyen (par jour):               {ooe_moyen:.1f}%")
-                    print(f"  OOE Min/Max (par jour):             {ooe_min:.1f}% / {ooe_max:.1f}%")
-                    print(f"  OOE Cumulé à date:                  {ooe_cumul_final:.1f}%")
-                    print(f"  Jours > 100%:                       {ooe_jours_sup_100} / {len(ooe_valides)}")
+                    print(f"  oee Moyen (par jour):               {oee_moyen:.1f}%")
+                    print(f"  oee Min/Max (par jour):             {oee_min:.1f}% / {oee_max:.1f}%")
+                    print(f"  oee Cumulé à date:                  {oee_cumul_final:.1f}%")
+                    print(f"  Jours > 100%:                       {oee_jours_sup_100} / {len(oee_valides)}")
                     
-                    print(f"\n  Détail OOE par jour:")
-                    for jour, ooe in zip(jours_valides, ooe_jours):
-                        if ooe is not None:
-                            statut = "✅" if ooe > 100 else "⚠️ " if ooe > 80 else "❌"
-                            print(f"    J{jour:02d}: {ooe:6.1f}% {statut}")
+                    print(f"\n  Détail oee par jour:")
+                    for jour, oee in zip(jours_valides, oee_jours):
+                        if oee is not None:
+                            statut = "✅" if oee > 100 else "⚠️ " if oee > 80 else "❌"
+                            print(f"    J{jour:02d}: {oee:6.1f}% {statut}")
             else:
                 print(f"\n⚠️  CMJ non trouvée pour {nom_produit}")
         
@@ -785,7 +785,7 @@ def AjouterVisualisationsAvancees(dashboard):
 
     def plot_histogramme_annee(annea=None, nom_produit=None):
         """
-        Affiche histogrammes + OOE cumulé pour tous les mois de l'année
+        Affiche histogrammes + oee cumulé pour tous les mois de l'année
         12 subplots (3 lignes x 4 colonnes)
         
         Parameters:
@@ -833,9 +833,9 @@ def AjouterVisualisationsAvancees(dashboard):
             num_jours_mois = calendar.monthrange(annea, mois)[1]
             jours_valides = []
             productions = []
-            ooe_cumules = []
+            oee_cumules = []
             somme_prod = 0
-            ooe_jours = []
+            oee_jours = []
             
             for jour in range(1, num_jours_mois + 1):
                 try:
@@ -855,13 +855,13 @@ def AjouterVisualisationsAvancees(dashboard):
                         somme_prod += prod
                         
                         if nom_produit and cmj and cmj > 0:
-                            ooe_jour = (prod / cmj) * 100
-                            ooe_jours.append(ooe_jour)
-                            ooe_cumul = (somme_prod / (len(jours_valides) * cmj)) * 100
-                            ooe_cumules.append(ooe_cumul)
+                            oee_jour = (prod / cmj) * 100
+                            oee_jours.append(oee_jour)
+                            oee_cumul = (somme_prod / (len(jours_valides) * cmj)) * 100
+                            oee_cumules.append(oee_cumul)
                         else:
-                            ooe_jours.append(None)
-                            ooe_cumules.append(None)
+                            oee_jours.append(None)
+                            oee_cumules.append(None)
                 except:
                     pass
             
@@ -903,36 +903,36 @@ def AjouterVisualisationsAvancees(dashboard):
                 row=row, col=col, secondary_y=False
             )
             
-            # Ajouter courbe OOE
-            if nom_produit and cmj and cmj > 0 and any(o is not None for o in ooe_cumules):
-                ooe_valides = [o for o in ooe_cumules if o is not None]
+            # Ajouter courbe oee
+            if nom_produit and cmj and cmj > 0 and any(o is not None for o in oee_cumules):
+                oee_valides = [o for o in oee_cumules if o is not None]
                 fig.add_trace(
                     go.Scatter(
                         x=[f'J{j}' for j in jours_valides],
-                        y=ooe_cumules,
+                        y=oee_cumules,
                         mode='lines+markers',
                         line=dict(color='#FF6B6B', width=2),
                         marker=dict(size=3, color='#FF6B6B'),
-                        hovertemplate='<b>%{x}</b><br>OOE: %{y:.0f}%<extra></extra>',
+                        hovertemplate='<b>%{x}</b><br>oee: %{y:.0f}%<extra></extra>',
                         showlegend=False,
-                        name='OOE'
+                        name='oee'
                     ),
                     row=row, col=col, secondary_y=True
                 )
             
             # Sauvegarder résumé
-            ooe_valides_jour = [o for o in ooe_jours if o is not None]
+            oee_valides_jour = [o for o in oee_jours if o is not None]
             resume_mois[mois] = {
                 'jours': len(jours_valides),
                 'prod_total': sum(productions),
                 'prod_moy': np.mean(productions),
-                'ooe_moy': np.mean(ooe_valides_jour) if ooe_valides_jour else 0,
-                'ooe_cumul': ooe_cumules[-1] if ooe_cumules and ooe_cumules[-1] is not None else 0
+                'oee_moy': np.mean(oee_valides_jour) if oee_valides_jour else 0,
+                'oee_cumul': oee_cumules[-1] if oee_cumules and oee_cumules[-1] is not None else 0
             }
         
         # Mise en forme
         fig.update_layout(
-            title=f'<b>📊 Production & OOE Cumulé - {annea}</b>',
+            title=f'<b>📊 Production & oee Cumulé - {annea}</b>',
             height=900,
             showlegend=False,
             hovermode='closest',
@@ -941,7 +941,7 @@ def AjouterVisualisationsAvancees(dashboard):
         
         # Axes Y
         fig.update_yaxes(title_text="Prod", row=1, col=1)
-        fig.update_yaxes(title_text="OOE %", secondary_y=True, row=1, col=1)
+        fig.update_yaxes(title_text="oee %", secondary_y=True, row=1, col=1)
         
         fig.show()
         
@@ -949,26 +949,27 @@ def AjouterVisualisationsAvancees(dashboard):
         print("\n" + "="*100)
         print(f"  📊 RÉSUMÉ ANNUEL {annea}" + (f" - {nom_produit}" if nom_produit else ""))
         print("="*100)
-        print(f"{'Mois':<12} {'Jours':<8} {'Prod Total':<15} {'Prod Moy':<15} {'OOE Moy':<12} {'OOE Cumul':<12}")
+        print(f"{'Mois':<12} {'Jours':<8} {'Prod Total':<15} {'Prod Moy':<15} {'oee Moy':<12} {'oee Cumul':<12}")
         print("-"*100)
         
         for mois in range(1, 13):
             if mois in resume_mois:
                 data = resume_mois[mois]
                 nom_mois = calendar.month_name[mois]
-                print(f"{nom_mois:<12} {data['jours']:<8} {data['prod_total']:<15.2f} {data['prod_moy']:<15.2f} {data['ooe_moy']:<12.1f}% {data['ooe_cumul']:<12.1f}%")
+                print(f"{nom_mois:<12} {data['jours']:<8} {data['prod_total']:<15.2f} {data['prod_moy']:<15.2f} {data['oee_moy']:<12.1f}% {data['oee_cumul']:<12.1f}%")
         
         print("="*100 + "\n")
 
-    def plot_histogramme_annee_complet(annea=None, nom_produit=None):
+    def plot_histogramme_annee_complet(annea=None, nom_produit=None, std=2):
         """
         Affiche l'année COMPLÈTE sur un seul graphique (365 jours)
-        avec histogrammes production + courbe OOE cumulé
+        avec histogrammes production + courbe oee cumulé
         
         Parameters:
         -----------
         annea : int, optionnel
         nom_produit : str, optionnel (si None, affiche total)
+        std : int, optionnel (défault: 2)
         """
         
         df = dashboard.processor.data
@@ -990,9 +991,9 @@ def AjouterVisualisationsAvancees(dashboard):
         # Collecter données pour l'année entière
         jours_dates = []
         productions = []
-        ooe_cumules = []
+        oee_cumules = []
         somme_prod = 0
-        ooe_jours = []
+        oee_jours = []
         jour_annee = 0
         
         # Déterminer si c'est une année bissextile
@@ -1007,7 +1008,7 @@ def AjouterVisualisationsAvancees(dashboard):
                 jour_annee += 1
                 
                 try:
-                    bilan = dashboard.formatter.format_bilan_journalier(jour, mois, annea)
+                    bilan = dashboard.formatter.format_bilan_journalier(jour, mois, annea, std=std)
                     
                     if nom_produit:
                         if nom_produit in bilan:
@@ -1023,28 +1024,28 @@ def AjouterVisualisationsAvancees(dashboard):
                         somme_prod += prod
                         
                         if nom_produit and cmj and cmj > 0:
-                            ooe_jour = (prod / cmj) * 100
-                            ooe_jours.append(ooe_jour)
-                            ooe_cumul = (somme_prod / (jour_annee * cmj)) * 100
-                            ooe_cumules.append(ooe_cumul)
+                            oee_jour = (prod / cmj) * 100
+                            oee_jours.append(oee_jour)
+                            oee_cumul = (somme_prod / (jour_annee * cmj)) * 100
+                            oee_cumules.append(oee_cumul)
                         else:
-                            ooe_jours.append(None)
-                            ooe_cumules.append(None)
+                            oee_jours.append(None)
+                            oee_cumules.append(None)
                     else:
                         jours_dates.append(f"J{jour_annee}")
                         productions.append(0)
-                        ooe_jours.append(None)
+                        oee_jours.append(None)
                         
                         if nom_produit and cmj and cmj > 0 and somme_prod > 0:
-                            ooe_cumul = (somme_prod / (jour_annee * cmj)) * 100
-                            ooe_cumules.append(ooe_cumul)
+                            oee_cumul = (somme_prod / (jour_annee * cmj)) * 100
+                            oee_cumules.append(oee_cumul)
                         else:
-                            ooe_cumules.append(None)
+                            oee_cumules.append(None)
                 except:
                     jours_dates.append(f"J{jour_annee}")
                     productions.append(0)
-                    ooe_jours.append(None)
-                    ooe_cumules.append(None)
+                    oee_jours.append(None)
+                    oee_cumules.append(None)
         
         if not productions or all(p == 0 for p in productions):
             print(f"❌ Aucune donnée pour l'année {annea}")
@@ -1087,15 +1088,15 @@ def AjouterVisualisationsAvancees(dashboard):
             yaxis='y'
         ))
         
-        # COURBE: OOE cumulé
-        if nom_produit and cmj and cmj > 0 and any(o is not None for o in ooe_cumules):
+        # COURBE: oee cumulé
+        if nom_produit and cmj and cmj > 0 and any(o is not None for o in oee_cumules):
             fig.add_trace(go.Scatter(
                 x=jours_dates,
-                y=ooe_cumules,
+                y=oee_cumules,
                 mode='lines',
-                name=f'OOE Cumulé ({nom_produit})',
+                name=f'oee Cumulé ({nom_produit})',
                 line=dict(color='#FF6B6B', width=2.5),
-                hovertemplate='<b>%{x}</b><br>OOE Cumul: %{y:.1f}%<extra></extra>',
+                hovertemplate='<b>%{x}</b><br>oee Cumul: %{y:.1f}%<extra></extra>',
                 yaxis='y2',
                 fill='tozeroy',
                 fillcolor='rgba(255, 107, 107, 0.1)'
@@ -1106,7 +1107,7 @@ def AjouterVisualisationsAvancees(dashboard):
                     annotation_text=f"  Moy: {moyenne_prod:.1f}", annotation_position="right",
                     yref='y')
         
-        # Ligne target OOE
+        # Ligne target oee
         if nom_produit and cmj and cmj > 0:
             fig.add_hline(y=84, line_dash="dash", line_color="#8f97F3", line_width=2,
                         annotation_text=f"  OEE Target: 84%", annotation_position="right",
@@ -1147,7 +1148,7 @@ def AjouterVisualisationsAvancees(dashboard):
                 range=[0, max_prod*1.1]
             ),
             yaxis2=dict(
-                title=dict(text='<b>OOE Cumulé (%)</b>', font=dict(color='#FF6B6B')) if nom_produit and cmj else None,
+                title=dict(text='<b>oee Cumulé (%)</b>', font=dict(color='#FF6B6B')) if nom_produit and cmj else None,
                 tickfont=dict(color='#FF6B6B'),
                 overlaying='y',
                 side='right',
@@ -1172,15 +1173,15 @@ def AjouterVisualisationsAvancees(dashboard):
         print(f"Écart-type:                         {np.std([p for p in productions if p > 0]):.2f}")
         
         if nom_produit and cmj and cmj > 0:
-            ooe_valides = [o for o in ooe_jours if o is not None]
-            ooe_cumul_final = ooe_cumules[-1] if ooe_cumules and ooe_cumules[-1] is not None else 0
-            ooe_jours_sup_100 = len([o for o in ooe_valides if o > 100])
+            oee_valides = [o for o in oee_jours if o is not None]
+            oee_cumul_final = oee_cumules[-1] if oee_cumules and oee_cumules[-1] is not None else 0
+            oee_jours_sup_100 = len([o for o in oee_valides if o > 100])
             
-            print(f"\n🎯 RATIO OOE:")
+            print(f"\n🎯 RATIO oee:")
             print(f"  CMJ (Cible Journalière):            {cmj:.2f}")
-            print(f"  OOE Moyen (par jour):               {np.mean(ooe_valides):.1f}%")
-            print(f"  OOE Cumulé à date (fin d'année):    {ooe_cumul_final:.1f}%")
-            print(f"  Jours > 100% (surproduction):       {ooe_jours_sup_100} / {len(ooe_valides)}")
+            print(f"  oee Moyen (par jour):               {np.mean(oee_valides):.1f}%")
+            print(f"  oee Cumulé à date (fin d'année):    {oee_cumul_final:.1f}%")
+            print(f"  Jours > 100% (surproduction):       {oee_jours_sup_100} / {len(oee_valides)}")
         
         print("="*90 + "\n")
 

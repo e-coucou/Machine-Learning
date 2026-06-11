@@ -90,7 +90,7 @@ class DashboardFormatter:
         return [p['nom'] for p in self.processor.produits]
     
     def format_bilan_journalier(self, jour: int, mois: int = None, annee: int = None, 
-                                 nom_produit: str = None) -> Dict[str, BilanProduit]:
+                                 nom_produit: str = None, std: int = 2) -> Dict[str, BilanProduit]:
         """
         Récupère et formate un bilan journalier
         
@@ -99,7 +99,7 @@ class DashboardFormatter:
         Dict[str, BilanProduit] : {nom_produit: BilanProduit}
         """
         bilan_raw = self.processor.calcul_cumul_journalier(
-            jour, mois, annee, nom_produit, std=2
+            jour, mois, annee, nom_produit, std=std
         )
         
         if bilan_raw is None:
