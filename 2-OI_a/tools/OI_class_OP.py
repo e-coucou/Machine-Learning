@@ -202,6 +202,8 @@ class OI_DataProcessor:
             value_col = batch.get('value') or batch.get('tag')
             uv_col = batch.get('uv')
             scale = batch.get('scale', 1.0)
+
+            nom_temp = f"{nom}_tmp_{pu}_{value_col}_{i}"  # Nom temporaire pour debug
             
             # Paramètres d'épalage
             epalage = batch.get('epalage')
@@ -266,6 +268,8 @@ class OI_DataProcessor:
             batch_result = np.where(condition_pu, calc_val, 0.0)
             
             resultats_batchs.append(batch_result)
+            self.data[nom_temp] = batch_result  # Colonne temporaire pour debug
+            self.unit_tags.append({'tag': nom_temp, 'nom': nom_temp})
             
         # Somme vectorielle de tous les éléments
         self.data[nom] = np.stack(resultats_batchs, axis=0).sum(axis=0)
