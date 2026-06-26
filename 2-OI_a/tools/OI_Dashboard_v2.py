@@ -649,6 +649,7 @@ def AjouterVisualisationsAvancees(dashboard):
         max_prod = max(productions)
         min_prod = min(productions)
         moyenne_prod = np.mean(productions)
+        moyenne_prod = 6.7 # Valeur fixe pour le seuil de couleur (modifiable selon besoin)
         
         colors = []
         for p in productions:
@@ -675,6 +676,8 @@ def AjouterVisualisationsAvancees(dashboard):
             name='Production',
             yaxis='y'
         ))
+
+        yMax = 12 / 9.5 * 100
         
         # COURBE: oee cumulé
         if nom_produit and cmj and cmj > 0 and any(o is not None for o in oee_cumules):
@@ -686,7 +689,8 @@ def AjouterVisualisationsAvancees(dashboard):
                 line=dict(color='#0F6B6B', width=3),
                 marker=dict(size=8, color='#0F6B6B', symbol='diamond'),
                 hovertemplate='<b>Jour %{x}</b><br>oee Cumul: %{y:.1f}%<extra></extra>',
-                yaxis='y2'
+                yaxis='y2',
+                # fig.update_yaxes(range=[0, 110], secondary_y=True, row=row, col=col)
             ))
         
         # Ligne moyenne
@@ -724,14 +728,14 @@ def AjouterVisualisationsAvancees(dashboard):
                 title=dict(text='<b>Production (unités)</b>', font=dict(color='#1f77b4')),
                 tickfont=dict(color='#1f77b4'),
                 side='left',
-                range=[0, 12]
+                range=[0, 13]
             ),
             yaxis2=dict(
                 title=dict(text='<b>oee Cumulé (%)</b>', font=dict(color='#0F6B6B')) if nom_produit and cmj else None,
                 tickfont=dict(color='#0F6B6B'),
                 overlaying='y',
                 side='right',
-                range=[0, 123.7]
+                range=[0, yMax]
             ) if nom_produit and cmj else None,
 
             legend=dict(x=0.01, y=0.99)
@@ -872,6 +876,7 @@ def AjouterVisualisationsAvancees(dashboard):
             max_prod = max(productions)
             min_prod = min(productions)
             moyenne_prod = np.mean(productions)
+            moyenne_prod = 7.  # Valeur fixe pour comparaison
             
             colors = []
             for p in productions:
@@ -902,6 +907,7 @@ def AjouterVisualisationsAvancees(dashboard):
                 ),
                 row=row, col=col, secondary_y=False
             )
+            fig.update_yaxes(range=[0, 12], secondary_y=False, row=row, col=col)            
             
             # Ajouter courbe oee
             if nom_produit and cmj and cmj > 0 and any(o is not None for o in oee_cumules):
@@ -919,7 +925,8 @@ def AjouterVisualisationsAvancees(dashboard):
                     ),
                     row=row, col=col, secondary_y=True
                 )
-            
+                fig.update_yaxes(range=[0, 100], secondary_y=True, row=row, col=col)     
+
             # Sauvegarder résumé
             oee_valides_jour = [o for o in oee_jours if o is not None]
             resume_mois[mois] = {
