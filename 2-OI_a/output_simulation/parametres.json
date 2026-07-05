@@ -1,0 +1,26 @@
+{
+    "N_JOURS": 365,
+    "STOCK_SOLIDE_MIN": 2000,
+    "STOCK_SOLIDE_MAX": 18000,
+    "STOCK_LIQUIDE_MIN": 3000,
+    "STOCK_LIQUIDE_MAX": 15000,
+    "SEUIL_LIQUIDE_BLOQUE": 5000,
+    "TAILLES_BATEAUX": [
+        1000,
+        4000,
+        5000,
+        7000,
+        8000,
+        12000
+    ],
+    "PROBA_TAILLES": [
+        0.07,
+        0.08,
+        0.4,
+        0.35,
+        0.04,
+        0.06
+    ],
+    "PROBA_ANNULATION_TRAIN": 0.08333333333333333,
+    "PROBA_ARRET_FONTE": 0.1
+}
