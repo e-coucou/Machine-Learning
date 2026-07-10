@@ -1,3 +1,6 @@
+import json
+import re
+import urllib.error
 import pandas as pd
 import numpy as np
 from urllib.parse import quote
@@ -81,24 +84,122 @@ class OI_DataProcessor:
             print(curl_cmd)
             print("-" * 80)
             return []
+
+    def _log_batch_error(self, tags, url, headers, error):
+        """Affiche un message d'erreur + commande curl pour un lot de tags (cf. get_OI)."""
+        print(f"[ATTENTION] Erreur récupération du lot {tags}: {error}")
+        print(f"📋 [CURL] Commande à copier-coller dans le terminal :")
+        print("-" * 80)
+        curl_cmd = f"curl -X GET '{url}'"
+        for key, value in headers.items():
+            curl_cmd += f" \\\n  -H '{key}: {value}'"
+        print(curl_cmd)
+        print("-" * 80)
+
+    def _extract_missing_tag(self, http_error, candidates):
+        """
+        Extrait, si possible, le tag fautif du message d'erreur de l'API
+        (ex: "Data with reference X does not exist") afin de l'exclure du
+        lot et retenter la requête pour les autres. Retourne None si le
+        message ne correspond pas à ce cas (erreur réseau, credentials, ...).
+        """
+        try:
+            body = json.loads(http_error.read().decode())
+            message = body.get('detailedMessage', '')
+        except Exception:
+            return None
+        match = re.search(r"Data with reference (\S+) does not exist", message)
+        if match and match.group(1) in candidates:
+            return match.group(1)
+        return None
+
+    def get_OI_batch(self, tags, agg='MEAN'):
+        """
+        Récupère en un seul appel API les données brutes de plusieurs tags
+        partageant la même fonction d'agrégation `agg` (l'API accepte
+        plusieurs `data-reference` répétés dans une même requête, mais une
+        seule `aggregation-function` par requête — d'où le regroupement par
+        `agg` fait dans `merge()`).
+
+        Si un tag du lot est invalide côté API (référence inexistante), il
+        est automatiquement exclu et la requête est retentée avec les tags
+        restants, pour ne pas faire échouer tout le lot à cause d'un seul
+        tag fautif (même tolérance que get_OI() appelé tag par tag).
+
+        Returns
+        -------
+        dict {tag: (values, unit)}
+        """
+        remaining = list(tags)
+        results = {}
+        safe_chars = ":/?#[]@!$&'()*+;-="
+
+        while remaining:
+            refs = "&".join(
+                f"data-reference={quote(t, safe=safe_chars)}" for t in remaining
+            )
+            url = (f"{self.url_base}{refs}&aggregation=TIME"
+                   f"&aggregation-function={agg}&from={self.start}T{self.hS}%3A00%3A00.000Z"
+                   f"&to={self.end}T{self.hF}%3A59%3A59.000Z&aggregation-period={self.interval}")
+            headers = {'Authorization': f'basic {self.credentials}'}
+
+            try:
+                d_data = pd.read_json(url, storage_options=headers)
+                if 'dataReference' in d_data:
+                    for _, row in d_data.iterrows():
+                        results[row['dataReference']] = (row['values'], row['unit'])
+                break
+            except urllib.error.HTTPError as e:
+                bad_tag = self._extract_missing_tag(e, remaining)
+                if bad_tag is None:
+                    self._log_batch_error(remaining, url, headers, e)
+                    break
+                self._log(f"Tag '{bad_tag}' invalide côté API : exclu du lot, nouvelle tentative.")
+                remaining = [t for t in remaining if t != bad_tag]
+            except Exception as e:
+                self._log_batch_error(remaining, url, headers, e)
+                break
+
+        return results
+
     def merge(self):
-        """Récupère tous les tags et initialise self.data."""
+        """
+        Récupère tous les tags et initialise self.data.
+
+        Les tags sont regroupés par fonction d'agrégation (`agg_mapping`) et
+        récupérés un lot à la fois via get_OI_batch() — un seul aller-retour
+        réseau par groupe au lieu d'un par tag (le endpoint API accepte
+        plusieurs `data-reference` dans une même requête).
+        """
         self._log(f"Début fusion ({self.start} au {self.end})")
         tags_api = self.tags_other + list(self.rename_mapping.keys())
+
+        groups = {}
+        for tag in tags_api:
+            agg = self.agg_mapping.get(tag, tag)
+            groups.setdefault(agg, []).append(tag)
+
+        fetched = {}
+        for agg, group_tags in groups.items():
+            self._log(f"Récupération du lot {group_tags} (agg={agg})")
+            fetched.update(self.get_OI_batch(group_tags, agg))
+
         df_list = []
         self.unit_tags = []
         for tag in tags_api:
-            encoded_tag = quote(tag, safe=':/?#[]@!$&\'()*+;-=')
-            #encoded_tag = quote(tag)
-            agg = self.agg_mapping.get(tag, tag)
-            raw_data, unit = self.get_OI(encoded_tag, agg)            
-            if raw_data:
-                temp_df = pd.DataFrame(raw_data)
-                temp_df['timestamp'] = pd.to_datetime(temp_df['timestamp'])
-                temp_df.set_index('timestamp', inplace=True)
-                temp_df.rename(columns={'value': tag}, inplace=True)
-                df_list.append(temp_df)
-                self.unit_tags.append({'tag': tag, 'unit': unit, 'nom': self.rename_mapping.get(tag, tag)})
+            result = fetched.get(tag)
+            if not result:
+                continue
+            raw_data, unit = result
+            if not raw_data:
+                continue
+            temp_df = pd.DataFrame(raw_data)
+            temp_df['timestamp'] = pd.to_datetime(temp_df['timestamp'])
+            temp_df.set_index('timestamp', inplace=True)
+            temp_df.rename(columns={'value': tag}, inplace=True)
+            df_list.append(temp_df)
+            self.unit_tags.append({'tag': tag, 'unit': unit, 'nom': self.rename_mapping.get(tag, tag)})
+
         if not df_list:
             print("[ERREUR] Aucune donnée récupérée.")
             return self
