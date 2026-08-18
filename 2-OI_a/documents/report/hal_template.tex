@@ -1,0 +1,76 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{fontspec}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{calc}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{float}
+\floatplacement{figure}{H}
+\usepackage{xcolor}
+\definecolor{accent}{HTML}{2C6E9E}
+\usepackage[colorlinks=true,linkcolor=accent,citecolor=accent,urlcolor=accent]{hyperref}
+\usepackage{titlesec}
+\titleformat{\section}{\normalfont\Large\bfseries\color{accent}}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+\usepackage{fancyhdr}
+\usepackage{abstract}
+\renewcommand{\abstractnamefont}{\normalfont\bfseries\color{accent}}
+\renewcommand{\abstracttextfont}{\normalfont\itshape}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{enumitem}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\providecommand{\pandocbounded}[1]{%
+  \resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{#1}}
+\makeatletter
+\define@key{Gin}{alt}{}
+\makeatother
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\itshape $if(title-short)$$title-short$$else$$title$$endif$}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyhead[L]{\small\itshape $if(title-short)$$title-short$$else$$title$$endif$}
+  \fancyhead[R]{\small\thepage}
+  \renewcommand{\headrulewidth}{0.4pt}
+}
+
+\title{\bfseries $title$ $if(subtitle)$\\[0.3em]\large\mdseries $subtitle$$endif$}
+\author{$author$ $if(affiliation)$\\[0.2em]\small $affiliation$$endif$}
+\date{$date$}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy}
+
+$if(abstract)$
+\begin{abstract}
+$abstract$
+\end{abstract}
+$endif$
+
+$if(keywords)$
+\noindent\textbf{Mots-clés :} $keywords$
+$endif$
+
+\vspace{1em}
+\hrule
+\vspace{1.5em}
+
+$body$
+
+\end{document}

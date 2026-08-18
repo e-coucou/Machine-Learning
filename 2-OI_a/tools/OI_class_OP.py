@@ -1,5 +1,6 @@
 import json
 import re
+import time
 import urllib.error
 import pandas as pd
 import numpy as np
@@ -16,9 +17,9 @@ class OI_DataProcessor:
     et la visualisation de données API.
     """
     
-    def __init__(self, url_base, tags_other, tags_selected, start, end, 
-                 interval='PT20M', hS='00', hF='23', cred_file="../../../cred.txt", 
-                 verbose=True, agg='MEAN'):
+    def __init__(self, url_base, tags_other, tags_selected, start, end,
+                 interval='PT20M', hS='00', hF='23', cred_file="../../../cred.txt",
+                 verbose=True, agg='MEAN', chunk_days=120, max_retries=3, retry_backoff_s=5):
         self.url_base = url_base
         self.tags_other = tags_other
         self.tags_selected = tags_selected
@@ -27,9 +28,21 @@ class OI_DataProcessor:
         self.hS, self.hF = hS, hF
         self.verbose = verbose
         self.agg = agg
-        
+        # Découpage temporel des requêtes (cf. get_OI_batch/merge) : une
+        # requête couvrant plusieurs années x plusieurs tags à la minute
+        # peut représenter des dizaines de millions de points en une seule
+        # réponse HTTP, ce qui a été observé provoquer un "Remote end closed
+        # connection without response" côté serveur/proxy. Découper en
+        # tronçons de `chunk_days` jours borne la taille de chaque réponse
+        # et permet de ne retenter que le tronçon en échec plutôt que toute
+        # la plage. `max_retries`/`retry_backoff_s` gèrent les erreurs
+        # réseau transitoires sur un tronçon donné.
+        self.chunk_days = chunk_days
+        self.max_retries = max_retries
+        self.retry_backoff_s = retry_backoff_s
+
         # Pipeline pour stocker les étapes de calcul
-        self.pipeline = [] 
+        self.pipeline = []
         self._is_recalculating = False
 
         # Gestion des credentials
@@ -113,23 +126,54 @@ class OI_DataProcessor:
             return match.group(1)
         return None
 
-    def get_OI_batch(self, tags, agg='MEAN'):
+    def _date_chunks(self):
+        """
+        Découpe [self.start, self.end] en tronçons consécutifs d'au plus
+        `self.chunk_days` jours (bornes incluses, format 'YYYY-MM-DD').
+
+        Une requête portant sur plusieurs années x plusieurs tags à
+        résolution 1 minute peut représenter des dizaines de millions de
+        points en une seule réponse HTTP ; découper borne la taille de
+        chaque réponse (cf. get_OI_batch/merge) et permet de ne retenter
+        qu'un tronçon en cas d'échec plutôt que toute la plage demandée.
+        """
+        start = pd.Timestamp(self.start)
+        end = pd.Timestamp(self.end)
+        step = pd.Timedelta(days=self.chunk_days)
+
+        chunk_start = start
+        while chunk_start <= end:
+            chunk_end = min(chunk_start + step - pd.Timedelta(days=1), end)
+            yield chunk_start.strftime("%Y-%m-%d"), chunk_end.strftime("%Y-%m-%d")
+            chunk_start = chunk_end + pd.Timedelta(days=1)
+
+    def get_OI_batch(self, tags, agg='MEAN', start=None, end=None):
         """
         Récupère en un seul appel API les données brutes de plusieurs tags
         partageant la même fonction d'agrégation `agg` (l'API accepte
         plusieurs `data-reference` répétés dans une même requête, mais une
         seule `aggregation-function` par requête — d'où le regroupement par
-        `agg` fait dans `merge()`).
+        `agg` fait dans `merge()`), sur la plage `[start, end]` (par défaut
+        `self.start`/`self.end` si non précisés — utilisé par `merge()` pour
+        appeler un tronçon de date à la fois, cf. `_date_chunks`).
 
         Si un tag du lot est invalide côté API (référence inexistante), il
         est automatiquement exclu et la requête est retentée avec les tags
         restants, pour ne pas faire échouer tout le lot à cause d'un seul
         tag fautif (même tolérance que get_OI() appelé tag par tag).
 
+        En cas d'erreur réseau/transitoire (ex: connexion fermée par le
+        serveur avant réponse), retente jusqu'à `self.max_retries` fois
+        avec un court délai avant d'abandonner le tronçon — une coupure de
+        connexion est souvent ponctuelle, surtout une fois la requête bornée
+        dans le temps par le découpage en tronçons.
+
         Returns
         -------
         dict {tag: (values, unit)}
         """
+        start = start or self.start
+        end = end or self.end
         remaining = list(tags)
         results = {}
         safe_chars = ":/?#[]@!$&'()*+;-="
@@ -139,26 +183,40 @@ class OI_DataProcessor:
                 f"data-reference={quote(t, safe=safe_chars)}" for t in remaining
             )
             url = (f"{self.url_base}{refs}&aggregation=TIME"
-                   f"&aggregation-function={agg}&from={self.start}T{self.hS}%3A00%3A00.000Z"
-                   f"&to={self.end}T{self.hF}%3A59%3A59.000Z&aggregation-period={self.interval}")
+                   f"&aggregation-function={agg}&from={start}T{self.hS}%3A00%3A00.000Z"
+                   f"&to={end}T{self.hF}%3A59%3A59.000Z&aggregation-period={self.interval}")
             headers = {'Authorization': f'basic {self.credentials}'}
 
-            try:
-                d_data = pd.read_json(url, storage_options=headers)
-                if 'dataReference' in d_data:
-                    for _, row in d_data.iterrows():
-                        results[row['dataReference']] = (row['values'], row['unit'])
-                break
-            except urllib.error.HTTPError as e:
-                bad_tag = self._extract_missing_tag(e, remaining)
-                if bad_tag is None:
-                    self._log_batch_error(remaining, url, headers, e)
+            attempt = 0
+            while True:
+                attempt += 1
+                try:
+                    d_data = pd.read_json(url, storage_options=headers)
+                    if 'dataReference' in d_data:
+                        for _, row in d_data.iterrows():
+                            results[row['dataReference']] = (row['values'], row['unit'])
+                    remaining = []
                     break
-                self._log(f"Tag '{bad_tag}' invalide côté API : exclu du lot, nouvelle tentative.")
-                remaining = [t for t in remaining if t != bad_tag]
-            except Exception as e:
-                self._log_batch_error(remaining, url, headers, e)
-                break
+                except urllib.error.HTTPError as e:
+                    bad_tag = self._extract_missing_tag(e, remaining)
+                    if bad_tag is None:
+                        self._log_batch_error(remaining, url, headers, e)
+                        remaining = []
+                        break
+                    self._log(f"Tag '{bad_tag}' invalide côté API : exclu du lot, nouvelle tentative.")
+                    remaining = [t for t in remaining if t != bad_tag]
+                    break
+                except Exception as e:
+                    if attempt < self.max_retries:
+                        self._log(
+                            f"Erreur réseau sur le lot {remaining} ({start}→{end}), "
+                            f"tentative {attempt}/{self.max_retries} : {e}"
+                        )
+                        time.sleep(self.retry_backoff_s)
+                        continue
+                    self._log_batch_error(remaining, url, headers, e)
+                    remaining = []
+                    break
 
         return results
 
@@ -167,9 +225,13 @@ class OI_DataProcessor:
         Récupère tous les tags et initialise self.data.
 
         Les tags sont regroupés par fonction d'agrégation (`agg_mapping`) et
-        récupérés un lot à la fois via get_OI_batch() — un seul aller-retour
-        réseau par groupe au lieu d'un par tag (le endpoint API accepte
-        plusieurs `data-reference` dans une même requête).
+        récupérés lot par lot, tronçon de date par tronçon de date (cf.
+        `_date_chunks`), via get_OI_batch() — plutôt qu'un aller-retour
+        réseau unique portant sur toute la plage `[start, end]`, dont la
+        réponse peut être trop volumineuse (des dizaines de millions de
+        points sur plusieurs années x plusieurs tags à la minute) et
+        provoquer une coupure de connexion côté serveur/proxy avant réception
+        complète. Les valeurs de chaque tronçon sont concaténées par tag.
         """
         self._log(f"Début fusion ({self.start} au {self.end})")
         tags_api = self.tags_other + list(self.rename_mapping.keys())
@@ -179,10 +241,17 @@ class OI_DataProcessor:
             agg = self.agg_mapping.get(tag, tag)
             groups.setdefault(agg, []).append(tag)
 
-        fetched = {}
+        fetched = {}  # tag -> (list[values accumulés], unit)
+        chunks = list(self._date_chunks())
         for agg, group_tags in groups.items():
-            self._log(f"Récupération du lot {group_tags} (agg={agg})")
-            fetched.update(self.get_OI_batch(group_tags, agg))
+            for chunk_start, chunk_end in chunks:
+                self._log(f"Récupération du lot {group_tags} (agg={agg}, {chunk_start}→{chunk_end})")
+                chunk_results = self.get_OI_batch(group_tags, agg, start=chunk_start, end=chunk_end)
+                for tag, (values, unit) in chunk_results.items():
+                    if tag in fetched:
+                        fetched[tag][0].extend(values)
+                    else:
+                        fetched[tag] = [list(values), unit]
 
         df_list = []
         self.unit_tags = []

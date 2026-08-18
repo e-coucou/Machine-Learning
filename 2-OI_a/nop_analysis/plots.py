@@ -262,13 +262,22 @@ def plot_monthly_cv_vs_zscore(monthly_zscore: pd.DataFrame, monthly_cv: pd.DataF
 # Carte de contrôle SPC (I-MR)
 # ---------------------------------------------------------------------------
 def plot_control_chart(ops: pd.DataFrame, limits: dict, value_col: str = "duration_min",
-                        ax: Optional[plt.Axes] = None) -> None:
+                        ax: Optional[plt.Axes] = None, clip_sigma: float = 2.0) -> None:
     """
     Carte de contrôle individus (I-MR) : durée de chaque opération dans le
     temps, avec ligne centrale et limites de contrôle ±3σ (σ estimé par
     étendue mobile). Les points hors limites (variation "cause spéciale")
     sont surlignés en rouge — c'est un moyen objectif de fixer le seuil
     haut du mask plutôt qu'à l'œil sur l'histogramme.
+
+    L'axe Y est recentré sur `center ± clip_sigma*sigma_hat` : sur un jeu de
+    données à queue lourde, quelques valeurs extrêmes suffisent à écraser
+    toute la variation normale sur une échelle brute (min/max). Rien n'est
+    supprimé des données ni du calcul des limites — seul l'affichage est
+    zoomé, comme pour `plot_duration_histogram`. `sigma_hat` (étendue
+    mobile) reste peu sensible à ces mêmes valeurs extrêmes, contrairement à
+    un écart-type classique, ce qui en fait une base de zoom fiable même
+    sur une distribution très asymétrique.
     """
     created_fig = ax is None
     if created_fig:
@@ -286,6 +295,16 @@ def plot_control_chart(ops: pd.DataFrame, limits: dict, value_col: str = "durati
     ax.axhline(limits["center"], color="black", lw=1.2, label=f"Moyenne ({limits['center']:.0f} min)")
     ax.axhline(limits["ucl"], color=ACCENT, linestyle="--", label=f"UCL ({limits['ucl']:.0f} min)")
     ax.axhline(limits["lcl"], color=ACCENT, linestyle="--", label=f"LCL ({limits['lcl']:.0f} min)")
+
+    ylim_hi = limits["center"] + clip_sigma * limits["sigma_hat"]
+    n_clipped = int((flagged[value_col] > ylim_hi).sum())
+    if n_clipped > 0 and ylim_hi > 0:
+        ax.set_ylim(min(0, limits["lcl"]), ylim_hi)
+        note = f"{n_clipped} valeur(s) au-delà de {clip_sigma:g}σ hors champ"
+        if limits["ucl"] > ylim_hi:
+            note += f" (dont l'UCL, {limits['ucl']:.0f} min)"
+        ax.text(0.99, 0.03, note, transform=ax.transAxes, ha="right", va="bottom",
+                fontsize=8, color=ACCENT)
 
     ax.set_xlabel("Date")
     ax.set_ylabel("Durée (min)")
