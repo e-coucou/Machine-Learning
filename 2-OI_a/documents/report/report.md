@@ -4,7 +4,7 @@ subtitle: "Identification du Cycle Machine Théorique (CMT), du Taux de Cadence 
 title-short: "Performances atelier Vitamines --- Golden Score"
 author: "e-coucou"
 affiliation: ""
-date: "12 juillet 2026"
+date: "18 août 2026"
 keywords: "OEE, Golden Score, Best Demonstrated Performance, Taux de Cadence Théorique, Cycle Machine Théorique, contrôle statistique de procédé, atelier Vitamines"
 abstract: |
   Cette étude caractérise la performance opérationnelle de 8 lignes de
@@ -19,9 +19,9 @@ abstract: |
   Performance (BDP) associée. Sur les 8 lignes analysées avec succès
   (0 écartée(s) faute de données suffisantes), le TCD varie de
   2.67 ops/j (NOP_SC15) à
-  4.14 ops/j (NOP_ESTERS), pour une
-  moyenne de 3.46 ops/j et un CMT moyen de 422.3 minutes par
-  opération. La majorité des lignes affiche une tendance mensuelle à l'amélioration. Ces indicateurs fournissent une référence
+  4.47 ops/j (NOP_ESTERS), pour une
+  moyenne de 3.59 ops/j et un CMT moyen de 409.6 minutes par
+  opération. La majorité des lignes affiche une tendance mensuelle à la dégradation, à surveiller. Ces indicateurs fournissent une référence
   directement exploitable pour le calcul du volet Performance de l'OEE de
   chaque ligne.
 lang: fr
@@ -79,14 +79,14 @@ Sur cette fenêtre de référence, on calcule :
 
 | Tag          |   N ops (nettoyées) |   Durée moy. (min) |   Durée méd. (min) |   Nb ops run golden |   TCD (ops/j) |   Temps standard (min/op) |
 |:-------------|--------------------:|-------------------:|-------------------:|--------------------:|--------------:|--------------------------:|
-| NOP_ESTERS   |                3069 |              482   |              426   |                  29 |          4.14 |                     347.9 |
-| NOP_ACETATE  |                2995 |              495.4 |              435   |                  26 |          3.74 |                     384.8 |
-| NOP_RETINOL  |                2996 |              494.9 |              436   |                  26 |          3.7  |                     389.6 |
-| NOP_RHQ      |                2995 |              496.7 |              435   |                  26 |          3.68 |                     391.7 |
-| NOP_RETINENE |                2843 |              522.2 |              451   |                  23 |          3.32 |                     434   |
-| OP1510VA_CPT |                2586 |              527.5 |              481   |                  23 |          3.3  |                     436.4 |
-| NOP_AOIP     |                2252 |              577.5 |              542.5 |                  16 |          3.17 |                     453.9 |
-| NOP_SC15     |                2242 |              642.2 |              578   |                  19 |          2.67 |                     539.9 |
+| NOP_ESTERS   |                9336 |              470.5 |              421.5 |                  20 |          4.47 |                     322.4 |
+| NOP_RHQ      |                9450 |              471   |              420   |                  19 |          3.89 |                     370.3 |
+| NOP_RETINOL  |                9470 |              471.6 |              420   |                  19 |          3.8  |                     378.7 |
+| NOP_ACETATE  |                9471 |              472.3 |              420   |                  26 |          3.77 |                     382.2 |
+| NOP_AOIP     |                7227 |              549   |              510   |                  20 |          3.42 |                     420.9 |
+| OP1510VA_CPT |                3575 |              523.5 |              480   |                  24 |          3.36 |                     428.5 |
+| NOP_RETINENE |                8821 |              501.8 |              456   |                  23 |          3.32 |                     434   |
+| NOP_SC15     |                7185 |              608.3 |              560   |                  19 |          2.67 |                     539.9 |
 
 ## Comparaison inter-lignes
 
